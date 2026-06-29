@@ -180,16 +180,11 @@
     {id:'p5', name:'Living Waters Village', org:'agathos', kind:'project', c:'#2e4a55', matching:true},
     {id:'e2', name:'Charity Gala Dinner 2026', org:"St Andrew's", kind:'event', c:'#86532e', matching:false}
   ];
-  var ORGS = (function(){ var o={}; CATALOGUE.forEach(function(x){o[x.org]=1;}); return Object.keys(o); })();
-
   var S = {
     step:0,
     name:'Christmas Giving 2026', tagline:'Give the gift of hope',
     intro:"This Christmas, stand with families and causes across our community — every gift carries hope into the new year.",
     color:'#15479E',
-    itemMethod:'manual',   // 'manual' | 'rule'
-    rule:'matching',       // 'matching' | 'org'
-    ruleOrg:'Wicare',
     items:['p2','p3','e1'],
     start:'', end:'',
     spotlight:false,       // monthly cadence (e.g. Hidden Causes) — optional, off for a normal campaign
@@ -204,19 +199,6 @@
   function cat(id){ return CATALOGUE.find(function(x){return x.id===id;}); }
   function orgsOf(){ var o={}; S.items.forEach(function(id){o[cat(id).org]=1;}); return Object.keys(o); }
   function hasMatching(){ return S.items.some(function(id){return cat(id).matching;}); }
-
-  function setMethod(m){
-    S.itemMethod=m;
-    if(m==='rule') applyRule();
-    renderStep(); renderPreview();
-  }
-  function applyRule(){
-    if(S.rule==='matching') S.items = CATALOGUE.filter(function(x){return x.matching;}).map(function(x){return x.id;});
-    else if(S.rule==='org') S.items = CATALOGUE.filter(function(x){return x.org===S.ruleOrg;}).map(function(x){return x.id;});
-    if(S.items.indexOf(S.featured)<0) S.featured=S.items[0]||'';
-  }
-  function setRule(r){ S.rule=r; applyRule(); renderStep(); renderPreview(); }
-  function setRuleOrg(o){ S.ruleOrg=o; applyRule(); renderStep(); renderPreview(); }
 
   function toggleItem(id){
     var i=S.items.indexOf(id);
@@ -255,40 +237,18 @@
 
       case 1:
         h='<div class="sh">Add items</div><div class="sd">Pick the projects and events for this campaign. They can come from any organisation.</div>'
-        +'<div class="seg"><button class="'+(S.itemMethod==='manual'?'on':'')+'" onclick="setMethod(\'manual\')">Pick manually</button><button class="'+(S.itemMethod==='rule'?'on':'')+'" onclick="setMethod(\'rule\')">Auto-include by rule</button></div>';
-
-        if(S.itemMethod==='manual'){
-          h+='<div class="search"><input type="text" placeholder="Search projects or events…" value="'+esc(S.search)+'" oninput="setSearch(this.value)"></div>'
-          +'<div class="hint" style="margin-bottom:10px">'+S.items.length+' selected · '+orgsOf().length+' organisations</div>'
-          +'<div class="catlist">';
-          CATALOGUE.filter(function(x){ return !S.search || (x.name+' '+x.org).toLowerCase().indexOf(S.search.toLowerCase())>=0; }).forEach(function(x){
-            var added=S.items.indexOf(x.id)>=0;
-            h+='<div class="catrow"><div class="ph" style="background:'+x.c+'"></div>'
-            +'<div class="info"><div class="nm">'+esc(x.name)+'</div><div class="or">'+esc(x.org)+'</div></div>'
-            +(x.matching?'<span class="matchpill">matching</span>':'')
-            +'<span class="kind '+(x.kind==='project'?'prj':'evt')+'">'+(x.kind==='project'?'Project':'Event')+'</span>'
-            +'<button class="addbtn'+(added?' added':'')+'" onclick="toggleItem(\''+x.id+'\')">'+(added?'✓ Added':'Add')+'</button></div>';
-          });
-          h+='</div>';
-        } else {
-          h+='<div class="field"><label>Rule</label><select onchange="setRule(this.value)">'
-          +'<option value="matching"'+(S.rule==='matching'?' selected':'')+'>All projects with an active matching grant</option>'
-          +'<option value="org"'+(S.rule==='org'?' selected':'')+'>All items from one organisation</option>'
-          +'</select></div>';
-          if(S.rule==='org'){
-            h+='<div class="field"><label>Organisation</label><select onchange="setRuleOrg(this.value)">';
-            ORGS.forEach(function(o){ h+='<option'+(S.ruleOrg===o?' selected':'')+'>'+esc(o)+'</option>'; });
-            h+='</select></div>';
-          }
-          h+='<div class="hint" style="margin-bottom:8px">'+S.items.length+' auto-included · '+orgsOf().length+' organisations</div><div class="catlist">';
-          S.items.forEach(function(id){ var x=cat(id);
-            h+='<div class="catrow"><div class="ph" style="background:'+x.c+'"></div>'
-            +'<div class="info"><div class="nm">'+esc(x.name)+'</div><div class="or">'+esc(x.org)+'</div></div>'
-            +'<span class="kind '+(x.kind==='project'?'prj':'evt')+'">'+(x.kind==='project'?'Project':'Event')+'</span>'
-            +'<span class="autopill">auto</span></div>';
-          });
-          h+='</div>';
-        }
+        +'<div class="search"><input type="text" placeholder="Search projects or events…" value="'+esc(S.search)+'" oninput="setSearch(this.value)"></div>'
+        +'<div class="hint" style="margin-bottom:10px">'+S.items.length+' selected · '+orgsOf().length+' organisations</div>'
+        +'<div class="catlist">';
+        CATALOGUE.filter(function(x){ return !S.search || (x.name+' '+x.org).toLowerCase().indexOf(S.search.toLowerCase())>=0; }).forEach(function(x){
+          var added=S.items.indexOf(x.id)>=0;
+          h+='<div class="catrow"><div class="ph" style="background:'+x.c+'"></div>'
+          +'<div class="info"><div class="nm">'+esc(x.name)+'</div><div class="or">'+esc(x.org)+'</div></div>'
+          +(x.matching?'<span class="matchpill">matching</span>':'')
+          +'<span class="kind '+(x.kind==='project'?'prj':'evt')+'">'+(x.kind==='project'?'Project':'Event')+'</span>'
+          +'<button class="addbtn'+(added?' added':'')+'" onclick="toggleItem(\''+x.id+'\')">'+(added?'✓ Added':'Add')+'</button></div>';
+        });
+        h+='</div>';
 
         h+= hasMatching()
             ? '<div class="statusline on"><span>✓</span><span>Some included items have a matching grant — the landing page will automatically show a matching banner. Nothing to configure here.</span></div>'
@@ -336,7 +296,7 @@
         h='<div class="sh">Review &amp; publish</div><div class="sd">Confirm before scheduling. The campaign references live items by ID — it never changes them.</div>'
         +'<div class="reviewbox">'
         +rr('Name', esc(S.name||'—'))
-        +rr('Items', S.items.length+' across '+orgsOf().length+' organisations · added '+(S.itemMethod==='manual'?'manually':'by rule'))
+        +rr('Items', S.items.length+' across '+orgsOf().length+' organisations · added manually')
         +rr('Schedule', (S.start&&S.end)?(S.start+' → '+S.end):'<span style="color:var(--hint)">not set (draft)</span>')
         +rr('Spotlight', S.spotlight?('on · '+(S.featured?esc(cat(S.featured).name):'—')):'<span style="color:var(--hint)">off</span>')
         +rr('Matching banner', hasMatching()?'on (auto)':'<span style="color:var(--hint)">off</span>')
