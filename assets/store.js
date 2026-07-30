@@ -25,8 +25,8 @@
      name          string      hero title
      subtitle      string      the paragraph under the hero title
      color         string      hex, drives the band behind the hero text
-     bannerDesktop string      filename only — 1920x1080 (16:9)
-     bannerMobile  string      filename only — 375x667 (9:16), optional
+     bannerDesktop string      image path — 1920x1080 (16:9)
+     bannerMobile  string      image path — 375x667 (9:16), optional
      items         string[]    catalogue IDs — referenced, never mutated
      featured      string      item ID, only meaningful when spotlight=true
      showGoal      boolean     render the campaign total goal + progress bar
@@ -58,7 +58,7 @@
 
 /* Bumped when the Campaign shape changes, so stale localStorage reseeds
    instead of silently rendering records that miss the new fields. */
-var STORE_KEY = 'agathos.campaigns.v4';
+var STORE_KEY = 'agathos.campaigns.v5';
 
 /* ---------------------------------------------------------------- DATA ACCESS */
 

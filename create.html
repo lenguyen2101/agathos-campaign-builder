@@ -50,7 +50,7 @@
   var pendingBanner = null;
   /* Blob URLs for files picked this session, so the box previews the real image
      even though nothing is uploaded. Not persisted — the saved value is a
-     /public path, which is what the backend will return.
+     /assets/img path, which is what the backend will return.
      Must be initialised before boot() runs, since boot() renders immediately. */
   var localPreview = {};
 
@@ -138,7 +138,7 @@
     if(pendingBanner && input.files && input.files[0]){
       var f = input.files[0];
       localPreview[pendingBanner] = URL.createObjectURL(f);
-      setField(pendingBanner, 'public/banners/' + f.name);
+      setField(pendingBanner, 'assets/img/banners/' + f.name);
     }
     pendingBanner = null;
     input.value = '';
