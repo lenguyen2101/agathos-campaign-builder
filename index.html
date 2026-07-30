@@ -46,6 +46,7 @@
     {key:'start',     label:'Start Date',   sortable:true,  w:125},
     {key:'end',       label:'End Date',     sortable:true,  w:125},
     {key:'items',     label:'Items',        sortable:true,  w:85},
+    {key:'goal',      label:'Total Goal',   sortable:true,  w:150},
     {key:'orgs',      label:'Organisations',sortable:true,  w:140},
     {key:'matching',  label:'Matching',     sortable:true,  w:135},
     {key:'promotion', label:'Promotion',    sortable:false, w:170},
@@ -115,6 +116,7 @@
       case 'start':     return c.start || '';
       case 'end':       return c.end || '';
       case 'items':     return c.items.length;
+      case 'goal':      return c.showGoal ? totalGoal(c.items) : -1;
       case 'orgs':      return orgsOf(c.items).length;
       case 'matching':  return hasMatching(c.items) ? 1 : 0;
       case 'spotlight': return c.spotlight ? 1 : 0;
@@ -127,7 +129,7 @@
     var list = listCampaigns().filter(function(c){
       if(V.status !== 'All' && statusOf(c) !== V.status) return false;
       if(!V.q) return true;
-      var hay = (c.id + ' ' + c.name + ' ' + c.tagline + ' ' + orgsOf(c.items).join(' ')).toLowerCase();
+      var hay = (c.id + ' ' + c.name + ' ' + c.eyebrow + ' ' + c.subtitle + ' ' + orgsOf(c.items).join(' ')).toLowerCase();
       return hay.indexOf(V.q.toLowerCase()) >= 0;
     });
     var d = V.dir === 'asc' ? 1 : -1;
@@ -239,6 +241,9 @@
         + '<td class="nowrap num">' + (c.start ? fmtDate(c.start) : '<span class="dash">—</span>') + '</td>'
         + '<td class="nowrap num">' + (c.end   ? fmtDate(c.end)   : '<span class="dash">—</span>') + '</td>'
         + '<td class="num">' + c.items.length + '</td>'
+        + '<td class="num nowrap">' + (c.showGoal
+            ? fmtMoney(totalGoal(c.items))
+            : '<span class="dash" title="Total goal is hidden on the campaign page">hidden</span>') + '</td>'
         + '<td class="num">' + orgs.length + '</td>'
 
         + '<td>' + (hasMatching(c.items)

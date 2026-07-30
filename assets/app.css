@@ -105,7 +105,7 @@ svg{display:block;flex:none;}
 .content{flex:1;padding:22px 24px 48px;min-width:0;background:var(--page);}
 
 /* Everything that sits on the grey page is a white card. */
-.tablewrap,.searchpanel,.panel,.steps,.summary,.metabox,.formcard{background:#fff;}
+.tablewrap,.searchpanel,.panel,.steps,.summary,.formcard{background:#fff;}
 
 /* ==========================================================================
    PAGE HEADER
@@ -167,10 +167,21 @@ select.ctl{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xm
 .colorrow{display:flex;align-items:center;gap:10px;}
 .colorrow input[type=color]{width:44px;height:40px;border:1px solid var(--border);border-radius:var(--radius);background:#fff;padding:3px;cursor:pointer;flex:none;}
 
-/* Ant-style upload placeholder — mocked, filename only. */
-.upload{width:180px;height:120px;border:1px solid var(--border);border-radius:var(--radius);background:var(--fill);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--muted);font-size:13px;padding:10px;text-align:center;}
-.upload button{width:40px;height:40px;border-radius:50%;border:none;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.12);color:var(--ink-2);display:flex;align-items:center;justify-content:center;}
-.upload .fn{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-2);}
+/* Ant-style upload box. Uploads are mocked, so the value is a path under
+   /public; if it 404s the box falls back to showing the path. */
+.upload{position:relative;width:100%;max-width:290px;aspect-ratio:16/9;border:1px solid var(--border);
+  border-radius:var(--radius);background:var(--fill);overflow:hidden;display:flex;align-items:center;justify-content:center;}
+.upload.mob{aspect-ratio:9/16;max-width:150px;}
+.upload img{width:100%;height:100%;object-fit:cover;display:block;}
+.upload .add{width:44px;height:44px;border-radius:50%;border:none;background:#fff;
+  box-shadow:0 1px 4px rgba(0,0,0,.14);color:var(--ink-2);display:flex;align-items:center;justify-content:center;}
+.upload .add:hover{color:var(--link);}
+.upload .rm{position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;border:none;
+  background:rgba(0,0,0,.55);color:#fff;font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;}
+.upload .rm:hover{background:rgba(0,0,0,.75);}
+.upload .fallback{display:none;font-size:12px;color:var(--muted);padding:12px;text-align:center;word-break:break-all;}
+.upload.broken img{display:none;}
+.upload.broken .fallback{display:block;}
 
 /* ==========================================================================
    TABLE
@@ -178,7 +189,7 @@ select.ctl{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xm
 .tablewrap{border:1px solid var(--split);border-radius:var(--radius);overflow-x:auto;}
 /* Fixed layout + colgroup — without it 13 columns squeeze the Campaign cell
    until every title wraps onto three lines and row heights go ragged. */
-table.ct{width:100%;border-collapse:collapse;table-layout:fixed;min-width:1740px;}
+table.ct{width:100%;border-collapse:collapse;table-layout:fixed;min-width:1950px;}
 table.ct th{text-align:left;font-size:14px;font-weight:600;color:var(--ink);padding:14px 16px;border-bottom:1px solid var(--split);background:#FAFAFA;white-space:nowrap;}
 table.ct th.sortable{cursor:pointer;user-select:none;}
 table.ct th.sortable:hover{background:var(--fill);}
@@ -295,7 +306,8 @@ td .tagrow{flex-wrap:nowrap;}
 .picklist.scroll{max-height:300px;overflow-y:auto;padding-right:2px;}
 .pickrow{display:flex;align-items:center;gap:12px;border:1px solid var(--split);border-radius:var(--radius);padding:10px 12px;}
 .pickrow:hover{border-color:var(--border);}
-.pickrow .thumb{width:44px;height:36px;border-radius:4px;flex:none;}
+.pickrow .thumb{width:58px;height:42px;border-radius:4px;flex:none;overflow:hidden;background:var(--fill);}
+.pickrow .thumb img{width:100%;height:100%;object-fit:cover;display:block;}
 .pickrow .info{flex:1;min-width:0;}
 .pickrow .nm{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .pickrow .or{font-size:13px;color:var(--muted);}
@@ -332,10 +344,32 @@ td .tagrow{flex-wrap:nowrap;}
    ========================================================================== */
 .aside{position:sticky;top:calc(var(--topbar-h) + 22px);}
 .alabel{font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--hint);margin-bottom:10px;}
-.hero{border-radius:var(--radius);padding:20px 18px;color:#fff;min-height:150px;display:flex;flex-direction:column;justify-content:flex-end;}
-.hero .eb{font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;opacity:.92;}
-.hero h4{font-size:21px;margin:8px 0 6px;line-height:1.15;}
-.hero p{font-size:13px;opacity:.94;line-height:1.5;}
+/* Mirrors the public hero: banner on top, coloured band with the copy under it,
+   stats card overlapping the bottom edge. */
+.herowrap{border:1px solid var(--split);border-radius:var(--radius);overflow:hidden;}
+.herobanner{position:relative;aspect-ratio:16/9;background:var(--fill);overflow:hidden;border-bottom:1px solid var(--split);}
+.herobanner img{width:100%;height:100%;object-fit:cover;display:block;}
+.herobanner .none{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:12px;color:var(--muted);text-align:center;padding:8px;word-break:break-all;}
+/* When an <img> is present the caption is only a fallback for a failed load. */
+.herobanner img ~ .none{display:none;}
+.herobanner.broken img{display:none;}
+.herobanner.broken img ~ .none{display:flex;}
+.hero{padding:18px 16px 26px;color:#fff;display:flex;flex-direction:column;}
+.hero .eb{font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;opacity:.95;}
+.hero .eb i{display:inline-block;width:14px;height:2px;background:var(--gold);vertical-align:middle;margin-right:7px;}
+.hero h4{font-size:20px;margin:8px 0 6px;line-height:1.15;}
+.hero p{font-size:12.5px;opacity:.94;line-height:1.5;}
+
+.statcard{position:relative;background:#fff;border:1px solid var(--split);border-radius:var(--radius);
+  padding:14px 16px;margin:-16px 10px 0;box-shadow:0 2px 8px rgba(0,0,0,.07);}
+.statcard .goalrow b{display:block;font-size:20px;font-weight:700;letter-spacing:-0.01em;}
+.statcard .goalrow b.off{font-size:15px;color:var(--muted);}
+.statcard .goalrow>span{display:block;font-size:12px;color:var(--muted);margin-top:2px;}
+.statcard .statmini{display:flex;gap:10px;margin-top:12px;}
+.statcard .statmini>div{flex:1;border:1px solid var(--split);border-radius:var(--radius);padding:8px 10px;}
+.statcard .statmini b{display:block;font-size:16px;font-weight:700;}
+.statcard .statmini span{font-size:11.5px;color:var(--muted);}
 .summary{border:1px solid var(--split);border-radius:var(--radius);padding:14px 16px;margin-top:14px;}
 .summary .sr{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;padding:5px 0;}
 .summary .sr .k{color:var(--muted);}
@@ -345,7 +379,6 @@ td .tagrow{flex-wrap:nowrap;}
 /* ==========================================================================
    DETAIL (read-only = disabled inputs, like the Event detail screen)
    ========================================================================== */
-.detailcols{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;align-items:start;}
 .formcard{border:1px solid var(--split);border-radius:var(--radius);padding:24px;}
 .block{margin-bottom:28px;}
 .block:last-child{margin-bottom:0;}
@@ -357,10 +390,6 @@ td .tagrow{flex-wrap:nowrap;}
 .blockhead .spacer{flex:1;}
 .swatchbox{display:flex;align-items:center;gap:10px;}
 .swatchbox i{width:40px;height:40px;border-radius:var(--radius);border:1px solid var(--border);flex:none;}
-.metabox{border:1px solid var(--split);border-radius:var(--radius);padding:14px 16px;margin-top:14px;font-size:13px;}
-.metabox .mr{display:flex;justify-content:space-between;gap:12px;padding:5px 0;}
-.metabox .mr .k{color:var(--muted);}
-.metabox .mr .v{font-weight:600;text-align:right;word-break:break-all;}
 
 /* ==========================================================================
    MODAL / TOAST

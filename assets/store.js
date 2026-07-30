@@ -20,35 +20,45 @@
 
    Campaign shape
    --------------
-     id         string            server-assigned
-     name       string
-     tagline    string
-     intro      string
-     color      string            hex, drives the hero background
-     cover      string            filename only (upload is mocked)
-     items      string[]          catalogue IDs — referenced, never mutated
-     featured   string            item ID, only meaningful when spotlight=true
-     status     string            one of STATUSES — set explicitly by the admin
-     start      string            'YYYY-MM-DD' or '' when not scheduled
-     end        string            'YYYY-MM-DD' or ''
-     spotlight  boolean
-     promoHero  boolean
-     ctaLabel   string            only meaningful when promoHero=true
-     link       string            only meaningful when promoHero=true
-     promoBanner boolean
-     story      string
-     createdAt  string            ISO 8601
-     updatedAt  string            ISO 8601
+     id            string      server-assigned
+     eyebrow       string      hero kicker, e.g. 'EMERGENCY APPEAL · URGENT'
+     name          string      hero title
+     subtitle      string      the paragraph under the hero title
+     color         string      hex, drives the band behind the hero text
+     bannerDesktop string      filename only — 1920x1080 (16:9)
+     bannerMobile  string      filename only — 375x667 (9:16), optional
+     items         string[]    catalogue IDs — referenced, never mutated
+     featured      string      item ID, only meaningful when spotlight=true
+     showGoal      boolean     render the campaign total goal + progress bar
+     status        string       one of STATUSES
+     start         string      'YYYY-MM-DD' or '' when not scheduled
+     end           string      'YYYY-MM-DD' or ''
+     spotlight     boolean
+     promoHero     boolean
+     ctaLabel      string      only meaningful when promoHero=true
+     link          string      only meaningful when promoHero=true
+     promoBanner   boolean
+     aboutTitle    string      heading of the ABOUT THIS CAMPAIGN block
+     aboutBody     string      body of that block, blank line = new paragraph
+     createdAt     string      ISO 8601
+     updatedAt     string      ISO 8601
 
    Status is a stored enum chosen by the admin, matching the Event layer:
    REVIEW / ONGOING / COMPLETED / ARCHIVED / DRAFT. It is not derived from the
    dates — start/end control when the campaign's surfaces appear, status
    controls its workflow state, and the two are independent.
+
+   The campaign has NO goal field. Its total goal is the sum of the goals of
+   the items it references (see totalGoal()); showGoal only decides whether
+   that total and its progress bar are rendered on the public page.
+
+   Raised amount and donor count are runtime aggregates owned by the backend.
+   They are not part of this shape and the admin never enters them.
    ============================================================================ */
 
 /* Bumped when the Campaign shape changes, so stale localStorage reseeds
    instead of silently rendering records that miss the new fields. */
-var STORE_KEY = 'agathos.campaigns.v2';
+var STORE_KEY = 'agathos.campaigns.v4';
 
 /* ---------------------------------------------------------------- DATA ACCESS */
 
@@ -113,14 +123,16 @@ var STATUS_DEFAULT = 'DRAFT';
 
 function newCampaign(){
   return {
-    name:'', tagline:'', intro:'', color:'#15479E', cover:'',
+    eyebrow:'', name:'', subtitle:'', color:'#15479E',
+    bannerDesktop:'', bannerMobile:'',
     items:[], featured:'',
+    showGoal:true,
     status:STATUS_DEFAULT,
     start:'', end:'',
     spotlight:false,
-    promoHero:false, ctaLabel:'View campaign', link:'',
+    promoHero:false, ctaLabel:'View Campaign', link:'',
     promoBanner:false,
-    story:''
+    aboutTitle:'', aboutBody:''
   };
 }
 
@@ -140,6 +152,14 @@ function hasMatching(items){
   return items.some(function(id){ var x = catItem(id); return x && x.matching; });
 }
 
+/* Campaign total goal = sum of the referenced items' own goals. */
+function totalGoal(items){
+  return items.reduce(function(sum, id){
+    var x = catItem(id);
+    return sum + (x ? x.goal : 0);
+  }, 0);
+}
+
 function promoLabels(c){
   var out = [];
   if(c.promoHero)   out.push('Homepage hero');
@@ -152,6 +172,10 @@ function promoLabels(c){
 function esc(s){
   return String(s == null ? '' : s)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmtMoney(n){
+  return 'S$' + Number(n || 0).toLocaleString('en-SG');
 }
 
 /* DD/MM/YYYY — the format the Project / Event tables already use. */

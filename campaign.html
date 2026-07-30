@@ -39,6 +39,7 @@
   document.getElementById('delIcon').innerHTML = icon('warn', 22);
 
   var C = null;
+  function imgBroken(el){ el.parentNode.classList.add('broken'); }
 
   (function boot(){
     var id = new URLSearchParams(location.search).get('id');
@@ -68,6 +69,16 @@
     return '<div class="field"><label>' + label + '</label>' + ctl + '</div>';
   }
 
+  /* Read-only banner tile. Same box as the wizard's upload, minus the controls. */
+  function shot(src, cls, emptyLabel){
+    return '<div class="upload' + cls + '">'
+      + (src
+          ? '<img src="' + esc(src) + '" alt="" onerror="imgBroken(this)"><div class="fallback">' + esc(src) + '</div>'
+          : '<div class="fallback" style="display:block">' + (emptyLabel || 'Not set') + '</div>')
+      + '</div>'
+      + (src ? '<div class="hint">' + esc(src) + '</div>' : '');
+  }
+
   function block(step, title, inner){
     return '<div class="block"><div class="blockhead">'
       + '<span class="n">' + (step + 1) + '</span><h3>' + title + '</h3><span class="spacer"></span>'
@@ -85,7 +96,8 @@
     var h = '<div class="pagehead">'
       + '<button class="back" title="Back to campaigns" onclick="location.href=\'index.html\'">' + icon('back', 20) + '</button>'
       + '<h1>Campaign</h1>'
-      + '<span class="meta">' + stText(st) + '</span>'
+      + '<span class="meta">' + stText(st)
+      +   ' · created ' + fmtDate(C.createdAt) + ' · updated ' + fmtAgo(C.updatedAt) + '</span>'
       + '<span class="spacer"></span>'
       + '<div class="acts">'
       +   '<button class="btn" onclick="publishView()">' + icon('doc', 16) + 'Publish view</button>'
@@ -99,15 +111,18 @@
         + 'Change the status in <a class="linkbtn" href="' + editLink(0) + '">Basics</a> to bring it back.</span></div>';
     }
 
-    h += '<div class="detailcols"><div class="formcard">';
+    h += '<div class="formcard">';
 
     /* 0 — Basics */
     h += block(0, 'Basics',
         '<div class="grid2">' + ro('ID', C.id) + ro('Status', st) + '</div>'
-      + ro('Campaign name', C.name)
-      + ro('Tagline', C.tagline)
-      + ro('Intro line', C.intro, {area:true})
-      + ro('Cover Photo', C.cover)
+      + ro('Eyebrow', C.eyebrow)
+      + ro('Campaign title', C.name)
+      + ro('Subtitle', C.subtitle, {area:true})
+      + '<div class="grid2">'
+      +   '<div class="field"><label>Desktop banner · 1920×1080 (16:9)</label>' + shot(C.bannerDesktop, '') + '</div>'
+      +   '<div class="field"><label>Mobile banner · 375×667 (9:16)</label>' + shot(C.bannerMobile, ' mob', 'Falls back to the desktop banner') + '</div>'
+      + '</div>'
       + '<div class="field"><label>Theme colour</label><div class="swatchbox">'
       +   '<i style="background:' + esc(C.color) + '"></i>'
       +   '<input class="ctl" type="text" disabled value="' + esc(C.color) + '" style="max-width:160px">'
@@ -118,7 +133,9 @@
       + ro('Included items', C.items.length)
       + ro('Organisations', orgs.length)
       + '</div>'
-      + ro('Organisation list', orgs.length ? orgs.join(' · ') : '');
+      + ro('Organisation list', orgs.length ? orgs.join(' · ') : '')
+      + ro('Campaign total goal', fmtMoney(totalGoal(C.items)) + ' — sum of the item goals below')
+      ;
 
     if(!C.items.length){
       itemsInner += '<div class="alert neutral">' + icon('inbox', 16)
@@ -134,8 +151,10 @@
             + '<div class="or">id ' + esc(id) + ' is not in the catalogue</div></div></div>';
           return;
         }
-        itemsInner += '<div class="pickrow"><div class="thumb" style="background:' + x.c + '"></div>'
-          + '<div class="info"><div class="nm">' + esc(x.name) + '</div><div class="or">' + esc(x.org) + '</div></div>'
+        itemsInner += '<div class="pickrow"><div class="thumb" style="background:' + x.c + '">'
+          + '<img src="' + esc(x.img) + '" alt=""></div>'
+          + '<div class="info"><div class="nm">' + esc(x.name) + '</div>'
+          + '<div class="or">' + esc(x.org) + ' · goal ' + fmtMoney(x.goal) + '</div></div>'
           + (C.spotlight && C.featured === id ? '<span class="tag gold">FEATURED</span>' : '')
           + (x.matching ? '<span class="tag green">MATCHING</span>' : '')
           + '<span class="tag ' + (x.kind === 'project' ? 'blue' : 'violet') + '">' + x.kind.toUpperCase() + '</span>'
@@ -159,6 +178,10 @@
     /* 3 — Display */
     h += block(3, 'Display',
         '<div class="grid2">'
+      +   ro('Show total goal', C.showGoal ? 'ON' : 'OFF')
+      +   ro('Total goal rendered', C.showGoal ? fmtMoney(totalGoal(C.items)) : '— hidden on the campaign page')
+      + '</div>'
+      + '<div class="grid2">'
       +   ro('Spotlight one item at a time', C.spotlight ? 'ON' : 'OFF')
       +   ro('Featured item', C.spotlight ? (featured ? featured.name : 'not set') : '')
       + '</div>'
@@ -175,37 +198,13 @@
       +   ro('Link', C.promoHero ? C.link : '')
       + '</div>');
 
-    /* 5 — Story */
-    h += block(5, 'Story', C.story
-      ? ro('Story', C.story, {area:true})
+    /* 5 — About */
+    h += block(5, 'About this campaign', (C.aboutTitle || C.aboutBody)
+      ? ro('Heading', C.aboutTitle) + ro('Body', C.aboutBody, {area:true})
       : '<div class="alert neutral">' + icon('inbox', 16)
-        + '<span>No story block — the landing page shows the intro line and the item grid only.</span></div>');
+        + '<span>No about block — the campaign page goes straight from the stats card to the item grid.</span></div>');
 
-    /* aside */
-    h += '</div><div class="aside">'
-      + '<div class="alabel">Landing page hero</div>'
-      + '<div class="hero" style="background:' + esc(C.color) + '">'
-      +   '<div class="eb">Seasonal campaign' + (C.start && C.end ? ' · ' + fmtRange(C.start, C.end) : '') + '</div>'
-      +   '<h4>' + (esc(C.name) || 'Campaign name') + '</h4>'
-      +   '<p>' + (esc(C.intro) || 'No intro line set.') + '</p>'
-      + '</div>'
-      + '<div class="summary">'
-      +   '<div class="sr"><span class="k">Status</span><span class="v">' + stText(st) + '</span></div>'
-      +   '<div class="sr"><span class="k">Items</span><span class="v">' + C.items.length + '</span></div>'
-      +   '<div class="sr"><span class="k">Organisations</span><span class="v">' + orgs.length + '</span></div>'
-      +   '<div class="tagrow">'
-      +     '<span class="tag ' + (C.promoHero ? 'blue' : 'grey') + '">HERO</span>'
-      +     '<span class="tag ' + (C.promoBanner ? 'blue' : 'grey') + '">BANNER</span>'
-      +     (C.spotlight ? '<span class="tag violet">SPOTLIGHT</span>' : '')
-      +     (matching ? '<span class="tag green">MATCHING · AUTO</span>' : '')
-      +   '</div>'
-      + '</div>'
-      + '<div class="metabox">'
-      +   '<div class="mr"><span class="k">Campaign ID</span><span class="v">' + esc(C.id) + '</span></div>'
-      +   '<div class="mr"><span class="k">Created</span><span class="v">' + fmtDate(C.createdAt) + '</span></div>'
-      +   '<div class="mr"><span class="k">Last updated</span><span class="v">' + fmtAgo(C.updatedAt) + '</span></div>'
-      + '</div>'
-      + '</div></div>';
+    h += '</div>';
 
     CONTENT.innerHTML = h;
   }

@@ -41,11 +41,18 @@
   var CONTENT = mountShell('campaign');
   document.getElementById('okIcon').innerHTML = icon('check', 22);
 
-  var STEPS = ['Basics','Add items','Schedule','Display','Promotion','Story','Review'];
-  var NAME_MAX = 100, TAGLINE_MAX = 120;
+  var STEPS = ['Basics','Add items','Schedule','Display','Promotion','About','Review'];
+  var NAME_MAX = 100, SUBTITLE_MAX = 200, EYEBROW_MAX = 40, ABOUT_TITLE_MAX = 90;
 
   /* S = the campaign being edited. U = UI-only state, never saved. */
   var S, U = { step:0, search:'', dirty:false };
+
+  var pendingBanner = null;
+  /* Blob URLs for files picked this session, so the box previews the real image
+     even though nothing is uploaded. Not persisted — the saved value is a
+     /public path, which is what the backend will return.
+     Must be initialised before boot() runs, since boot() renders immediately. */
+  var localPreview = {};
 
   (function boot(){
     var p = new URLSearchParams(location.search);
@@ -126,14 +133,31 @@
     markDirty(); renderStep(); renderAside();
   }
 
-  function openCoverPicker(){ document.getElementById('coverpick').click(); }
+  function openPicker(field){ pendingBanner = field; document.getElementById('coverpick').click(); }
   function pickedCover(input){
-    /* Upload is mocked — the prototype keeps the filename only. */
-    if(input.files && input.files[0]) setField('cover', input.files[0].name);
+    if(pendingBanner && input.files && input.files[0]){
+      var f = input.files[0];
+      localPreview[pendingBanner] = URL.createObjectURL(f);
+      setField(pendingBanner, 'public/banners/' + f.name);
+    }
+    pendingBanner = null;
     input.value = '';
     renderStep();
   }
-  function clearCover(){ setField('cover', ''); renderStep(); }
+  function clearBanner(field){ delete localPreview[field]; setField(field, ''); renderStep(); }
+  function imgBroken(el){ el.parentNode.classList.add('broken'); }
+
+  function uploadBox(field, ratio, dims){
+    var v = S[field];
+    var src = localPreview[field] || v;
+    return '<div class="upload' + (ratio === '9:16' ? ' mob' : '') + '">'
+      + (v
+          ? '<img src="' + esc(src) + '" alt="" onerror="imgBroken(this)">'
+            + '<div class="fallback">' + esc(v) + '</div>'
+            + '<button type="button" class="rm" title="Remove" onclick="clearBanner(\'' + field + '\')">✕</button>'
+          : '<button type="button" class="add" title="Choose file" onclick="openPicker(\'' + field + '\')">' + icon('plus', 20) + '</button>')
+      + '</div><div class="hint">' + dims + ' · ratio ' + ratio + (v ? ' · ' + esc(v) : '') + '</div>';
+  }
 
   /* ----- navigation ----- */
   function renderSteps(){
@@ -153,45 +177,49 @@
     switch(U.step){
 
       case 0:
-        h = head('Basics', 'The theme and copy donors see on the hero and the campaign landing page. Any theme works — a season, a cause, an appeal.')
-          + '<div class="field"><label><span class="req">*</span>Campaign name</label>'
-          +   '<div class="counted"><input class="ctl" type="text" value="' + esc(S.name) + '" maxlength="' + NAME_MAX + '"'
-          +   ' oninput="setCounted(\'name\',this.value,' + NAME_MAX + ',this)" placeholder="e.g. Christmas Giving 2026">'
-          +   '<span class="count">' + S.name.length + ' / ' + NAME_MAX + '</span></div></div>'
-
-          + '<div class="field"><label>Tagline</label>'
-          +   '<div class="counted"><input class="ctl" type="text" value="' + esc(S.tagline) + '" maxlength="' + TAGLINE_MAX + '"'
-          +   ' oninput="setCounted(\'tagline\',this.value,' + TAGLINE_MAX + ',this)" placeholder="A short rallying line">'
-          +   '<span class="count">' + S.tagline.length + ' / ' + TAGLINE_MAX + '</span></div></div>'
-
-          + '<div class="field"><label>Intro line</label>'
-          +   '<textarea class="ctl" oninput="setField(\'intro\',this.value)" placeholder="One or two sentences for the hero">' + esc(S.intro) + '</textarea></div>'
-
+        h = head('Basics', 'The hero of the campaign page: kicker, title, the line underneath, and the banner behind them.')
           + '<div class="grid2">'
           +   '<div class="field"><label>Status</label><select class="ctl" onchange="setField(\'status\',this.value)">'
           +     STATUSES.map(function(s){
                   return '<option value="' + s + '"' + (statusOf(S) === s ? ' selected' : '') + '>' + s + '</option>';
                 }).join('')
           +   '</select></div>'
-          +   '<div class="field"><label>Theme colour</label><div class="colorrow">'
-          +     '<input type="color" value="' + esc(S.color) + '" oninput="setField(\'color\',this.value)">'
-          +     '<input class="ctl" type="text" value="' + esc(S.color) + '" oninput="setField(\'color\',this.value)">'
-          +   '</div></div>'
+          +   '<div class="field"><label>Eyebrow</label>'
+          +     '<div class="counted"><input class="ctl" type="text" value="' + esc(S.eyebrow) + '" maxlength="' + EYEBROW_MAX + '"'
+          +     ' oninput="setCounted(\'eyebrow\',this.value,' + EYEBROW_MAX + ',this)" placeholder="e.g. EMERGENCY APPEAL · URGENT">'
+          +     '<span class="count">' + S.eyebrow.length + ' / ' + EYEBROW_MAX + '</span></div>'
+          +     '<div class="hint">Small kicker above the title. Rendered in caps exactly as typed.</div></div>'
           + '</div>'
 
-          + '<div class="field"><label>Cover Photo</label>'
-          +   '<div class="upload">'
-          +     (S.cover
-                  ? '<span class="fn">' + esc(S.cover) + '</span><button type="button" title="Remove" onclick="clearCover()">✕</button>'
-                  : '<button type="button" title="Choose file" onclick="openCoverPicker()">' + icon('plus', 20) + '</button>')
-          +   '</div><div class="hint">Filename only — upload is mocked in this prototype.</div></div>';
+          + '<div class="field"><label><span class="req">*</span>Campaign title</label>'
+          +   '<div class="counted"><input class="ctl" type="text" value="' + esc(S.name) + '" maxlength="' + NAME_MAX + '"'
+          +   ' oninput="setCounted(\'name\',this.value,' + NAME_MAX + ',this)" placeholder="e.g. Flood Relief for Central Vietnam">'
+          +   '<span class="count">' + S.name.length + ' / ' + NAME_MAX + '</span></div></div>'
+
+          + '<div class="field"><label>Subtitle</label>'
+          +   '<div class="counted"><textarea class="ctl" style="min-height:78px;padding-right:74px" maxlength="' + SUBTITLE_MAX + '"'
+          +   ' oninput="setCounted(\'subtitle\',this.value,' + SUBTITLE_MAX + ',this)"'
+          +   ' placeholder="One or two sentences directly under the title">' + esc(S.subtitle) + '</textarea>'
+          +   '<span class="count" style="top:18px;transform:none">' + S.subtitle.length + ' / ' + SUBTITLE_MAX + '</span></div></div>'
+
+          + '<div class="field" style="max-width:340px"><label>Theme colour</label><div class="colorrow">'
+          +   '<input type="color" value="' + esc(S.color) + '" oninput="setField(\'color\',this.value)">'
+          +   '<input class="ctl" type="text" value="' + esc(S.color) + '" oninput="setField(\'color\',this.value)">'
+          + '</div><div class="hint">Fills the band behind the hero title.</div></div>'
+
+          + '<div class="grid2">'
+          +   '<div class="field"><label><span class="req">*</span>Desktop banner</label>' + uploadBox('bannerDesktop', '16:9', '1920 × 1080px') + '</div>'
+          +   '<div class="field"><label>Mobile banner <span style="color:var(--hint)">· optional</span></label>' + uploadBox('bannerMobile', '9:16', '375 × 667px')
+          +     '<div class="hint">Leave empty to crop the desktop banner automatically.</div></div>'
+          + '</div>';
         break;
 
       case 1:
         h = head('Add items', 'Pick the projects and events for this campaign. They can come from any organisation.')
           + '<div class="field"><label>Search catalogue</label>'
           +   '<input class="ctl" type="text" placeholder="Search projects or events…" value="' + esc(U.search) + '" oninput="setSearch(this.value)"></div>'
-          + '<div class="hint" style="margin:-10px 0 12px">' + S.items.length + ' selected · ' + orgsOf(S.items).length + ' organisations</div>'
+          + '<div class="hint" style="margin:-10px 0 12px">' + S.items.length + ' selected · ' + orgsOf(S.items).length
+          +   ' organisations · total goal ' + fmtMoney(totalGoal(S.items)) + '</div>'
           + '<div class="picklist scroll">';
 
         var visible = CATALOGUE.filter(function(x){
@@ -203,8 +231,10 @@
         }
         visible.forEach(function(x){
           var added = S.items.indexOf(x.id) >= 0;
-          h += '<div class="pickrow"><div class="thumb" style="background:' + x.c + '"></div>'
-             + '<div class="info"><div class="nm">' + esc(x.name) + '</div><div class="or">' + esc(x.org) + '</div></div>'
+          h += '<div class="pickrow"><div class="thumb" style="background:' + x.c + '">'
+             + '<img src="' + esc(x.img) + '" alt=""></div>'
+             + '<div class="info"><div class="nm">' + esc(x.name) + '</div>'
+             + '<div class="or">' + esc(x.org) + ' · goal ' + fmtMoney(x.goal) + '</div></div>'
              + (x.matching ? '<span class="tag green">MATCHING</span>' : '')
              + '<span class="tag ' + (x.kind === 'project' ? 'blue' : 'violet') + '">' + x.kind.toUpperCase() + '</span>'
              + '<button class="btn ' + (added ? 'primary' : 'blue') + '" style="height:32px;padding:0 12px" onclick="toggleItem(\'' + x.id + '\')">'
@@ -231,7 +261,17 @@
         break;
 
       case 3:
-        h = head('Display', 'Optional behaviours on the landing page. A normal campaign leaves these off and simply shows all its items in the grid.')
+        h = head('Display', 'What the campaign page shows besides the item grid.')
+
+          + '<div class="switchrow"><button class="sw' + (S.showGoal ? ' on' : '') + '" onclick="toggle(\'showGoal\')"><i></i></button>'
+          + '<div class="tt"><div class="tk">Show total goal</div>'
+          + '<div class="ts">Renders the campaign total and its progress bar in the stats card. Turn off to show only the amount raised, causes and donors.</div>'
+          + '<div class="subfields"><div class="field"><label>Campaign total goal</label>'
+          +   '<input class="ctl" type="text" disabled value="' + esc(fmtMoney(totalGoal(S.items))) + '" style="max-width:220px">'
+          +   '<div class="hint">Sum of the goals of the ' + S.items.length + ' selected item'
+          +   (S.items.length === 1 ? '' : 's') + ' — not entered here. Change it by changing the items.</div>'
+          + '</div></div></div></div>'
+
           + '<div class="switchrow"><button class="sw' + (S.spotlight ? ' on' : '') + '" onclick="toggle(\'spotlight\')"><i></i></button>'
           + '<div class="tt"><div class="tk">Spotlight one item at a time</div>'
           + '<div class="ts">Features a single item at the top and reveals others over time — the month-by-month cadence used by campaigns like Hidden Causes. Most campaigns leave this off.</div>';
@@ -266,28 +306,41 @@
         break;
 
       case 5:
-        h = head('Story <span style="font-weight:400;color:var(--hint);font-size:14px">· optional</span>',
-                 'A “how it works” or “why this campaign” block on the landing page. Skip it for a simple campaign.')
-          + '<div class="field"><label>Story</label><textarea class="ctl" style="min-height:180px" oninput="setField(\'story\',this.value)"'
-          + ' placeholder="Explain the campaign in the brand voice (optional)">' + esc(S.story) + '</textarea></div>';
+        h = head('About this campaign <span style="font-weight:400;color:var(--hint);font-size:14px">· optional</span>',
+                 'The block under the stats card. Leave both fields empty to hide it entirely.')
+          + '<div class="field"><label>Heading</label>'
+          +   '<div class="counted"><input class="ctl" type="text" value="' + esc(S.aboutTitle) + '" maxlength="' + ABOUT_TITLE_MAX + '"'
+          +   ' oninput="setCounted(\'aboutTitle\',this.value,' + ABOUT_TITLE_MAX + ',this)"'
+          +   ' placeholder="e.g. When the water rose, everything went with it">'
+          +   '<span class="count">' + S.aboutTitle.length + ' / ' + ABOUT_TITLE_MAX + '</span></div></div>'
+          + '<div class="field"><label>Body</label><textarea class="ctl" style="min-height:200px" oninput="setField(\'aboutBody\',this.value)"'
+          +   ' placeholder="Explain the campaign in the brand voice">' + esc(S.aboutBody) + '</textarea>'
+          +   '<div class="hint">Leave a blank line between paragraphs.</div></div>';
         break;
 
       case 6:
         var promo = promoLabels(S);
         h = head('Review &amp; publish', 'Confirm before scheduling. The campaign references live items by ID — it never changes them.')
           + '<div class="reviewbox">'
-          + rr('Campaign name', esc(S.name) || '<span class="dash">—</span>')
-          + rr('Tagline', esc(S.tagline) || '<span class="dash">none</span>')
-          + rr('Cover Photo', esc(S.cover) || '<span class="dash">none</span>')
-          + rr('Items', S.items.length + ' across ' + orgsOf(S.items).length + ' organisations · added manually')
-          + rr('Schedule', (S.start && S.end) ? fmtRange(S.start, S.end) : '<span class="dash">not set (draft)</span>')
           + rr('Status', stText(statusOf(S)))
+          + rr('Eyebrow', esc(S.eyebrow) || '<span class="dash">none</span>')
+          + rr('Campaign title', esc(S.name) || '<span class="dash">—</span>')
+          + rr('Subtitle', esc(S.subtitle) || '<span class="dash">none</span>')
+          + rr('Desktop banner', esc(S.bannerDesktop) || '<span class="dash">none</span>')
+          + rr('Mobile banner', esc(S.bannerMobile) || '<span class="dash">falls back to desktop</span>')
+          + rr('Items', S.items.length + ' across ' + orgsOf(S.items).length + ' organisations · added manually')
+          + rr('Total goal', S.showGoal
+              ? fmtMoney(totalGoal(S.items)) + ' <span style="color:var(--hint)">(sum of items)</span>'
+              : '<span class="dash">hidden on the campaign page</span>')
+          + rr('Schedule', (S.start && S.end) ? fmtRange(S.start, S.end) : '<span class="dash">not set</span>')
           + rr('Spotlight', S.spotlight
               ? ('on · ' + (S.featured && catItem(S.featured) ? esc(catItem(S.featured).name) : '—'))
               : '<span class="dash">off</span>')
           + rr('Matching banner', hasMatching(S.items) ? 'on (auto)' : '<span class="dash">off</span>')
           + rr('Promotion', promo.length ? promo.join(' · ') : '<span class="dash">none</span>')
-          + rr('Story', S.story ? 'included' : '<span class="dash">none</span>')
+          + rr('About block', (S.aboutTitle || S.aboutBody)
+              ? esc(S.aboutTitle || '(no heading)')
+              : '<span class="dash">hidden</span>')
           + '</div>'
           + (S.name ? '' : alert_('warn', 'Campaign name is required before this can be scheduled.'));
         break;
@@ -319,20 +372,36 @@
   function renderAside(){
     document.getElementById('aside').innerHTML =
         '<div class="alabel">Live preview</div>'
-      + '<div class="hero" style="background:' + esc(S.color) + '">'
-      +   '<div class="eb">Seasonal campaign' + ((S.start && S.end) ? ' · ' + fmtRange(S.start, S.end) : '') + '</div>'
-      +   '<h4>' + (esc(S.name) || 'Campaign name') + '</h4>'
-      +   '<p>' + (esc(S.intro) || 'Your intro line appears here.') + '</p>'
+      + '<div class="herowrap">'
+      +   '<div class="herobanner">'
+      +     (S.bannerDesktop
+              ? '<img src="' + esc(localPreview.bannerDesktop || S.bannerDesktop) + '" alt="" onerror="imgBroken(this)">'
+                + '<div class="none">' + esc(S.bannerDesktop) + '</div>'
+              : '<div class="none">No desktop banner</div>')
+      +   '</div>'
+      +   '<div class="hero" style="background:' + esc(S.color) + '">'
+      +     '<div class="eb"><i></i>' + (esc(S.eyebrow) || 'EYEBROW') + '</div>'
+      +     '<h4>' + (esc(S.name) || 'Campaign title') + '</h4>'
+      +     '<p>' + (esc(S.subtitle) || 'Your subtitle appears here.') + '</p>'
+      +   '</div>'
+      + '</div>'
+      /* Raised amount and donor count are backend aggregates — showing a 0%
+         bar and an em dash here would just look like broken data. */
+      + '<div class="statcard">'
+      +   (S.showGoal
+            ? '<div class="goalrow"><b>' + fmtMoney(totalGoal(S.items)) + '</b><span>total goal across this campaign</span></div>'
+            : '<div class="goalrow"><b class="off">No goal shown</b><span>the campaign page hides the total</span></div>')
+      +   '<div class="statmini"><div><b>' + S.items.length + '</b><span>Causes</span></div></div>'
       + '</div>'
       + '<div class="summary">'
       +   '<div class="sr"><span class="k">Status</span><span class="v">' + stText(statusOf(S)) + '</span></div>'
-      +   '<div class="sr"><span class="k">Items</span><span class="v">' + S.items.length + '</span></div>'
       +   '<div class="sr"><span class="k">Organisations</span><span class="v">' + orgsOf(S.items).length + '</span></div>'
       +   '<div class="tagrow">'
       +     '<span class="tag ' + (S.promoHero ? 'blue' : 'grey') + '">HERO</span>'
       +     '<span class="tag ' + (S.promoBanner ? 'blue' : 'grey') + '">BANNER</span>'
       +     (S.spotlight ? '<span class="tag violet">SPOTLIGHT</span>' : '')
       +     (hasMatching(S.items) ? '<span class="tag green">MATCHING · AUTO</span>' : '')
+      +     ((S.aboutTitle || S.aboutBody) ? '<span class="tag blue">ABOUT</span>' : '')
       +   '</div>'
       + '</div>';
   }
