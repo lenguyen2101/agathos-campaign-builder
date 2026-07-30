@@ -3,353 +3,245 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Agathos — Campaign builder</title>
+<title>Agathos Admin — Campaigns</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --blue:#15479E; --accent:#1E73D6; --ink:#1A1C22; --muted:#6B7280; --hint:#9AA1AD;
-    --line:#E6E8EC; --page:#EEF1F5; --card:#FFFFFF; --tint:#EAF2FC; --tint-2:#F4F8FD;
-    --amber-line:#E0922A; --amber-tick:#F2B100; --amber-ink:#6B4A12;
-    --green:#1F9E72; --green-bg:#E4F4EC; --green-ink:#13624A;
-    --violet:#5A3FC0; --violet-bg:#EEE9FB;
-    --radius:12px;
-  }
-  *{box-sizing:border-box;}
-  body{margin:0;font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:var(--page);line-height:1.5;-webkit-font-smoothing:antialiased;}
-  h1,h2,h3,h4,h5{margin:0;font-weight:600;letter-spacing:-0.01em;}
-  p{margin:0;}
-  button{font-family:inherit;cursor:pointer;}
-
-  .topbar{display:flex;align-items:center;gap:12px;background:#fff;border-bottom:1px solid var(--line);padding:14px 22px;position:sticky;top:0;z-index:5;}
-  .topbar .logo{font-weight:700;color:var(--blue);font-size:18px;}
-  .topbar .logo span{color:var(--amber-tick);}
-  .topbar .crumb{font-size:13px;color:var(--muted);}
-  .topbar .crumb b{color:var(--ink);font-weight:600;}
-  .topbar .spacer{flex:1;}
-  .topbar .draft{font-size:12px;color:var(--muted);background:#F1F3F6;padding:4px 11px;border-radius:99px;}
-  .topbar .x{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--muted);font-size:15px;}
-
-  .shell{max-width:1120px;margin:0 auto;padding:24px 22px;display:grid;grid-template-columns:188px 1fr 320px;gap:22px;align-items:start;}
-
-  .rail{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:10px;position:sticky;top:84px;}
-  .rstep{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:9px;font-size:13px;color:var(--muted);border:none;background:none;width:100%;text-align:left;}
-  .rstep:hover{background:#F6F8FB;}
-  .rstep .n{width:21px;height:21px;border-radius:50%;background:#E6E8EC;color:#6B7280;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:none;}
-  .rstep.on{color:var(--ink);font-weight:600;background:var(--tint-2);}
-  .rstep.on .n{background:var(--blue);color:#fff;}
-  .rstep.done .n{background:var(--green);color:#fff;}
-
-  .main{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:24px 26px;min-height:440px;display:flex;flex-direction:column;}
-  .sh{font-size:18px;font-weight:600;}
-  .sd{font-size:13px;color:var(--muted);margin:4px 0 18px;max-width:56ch;}
-  .body{flex:1;}
-
-  .field{margin-bottom:15px;}
-  .field label{display:block;font-size:12.5px;font-weight:600;color:#3A3F4B;margin-bottom:6px;}
-  .field input[type=text],.field textarea,.field input[type=date],.field select{width:100%;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:13.5px;font-family:inherit;color:var(--ink);background:#fff;}
-  .field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(30,115,214,.12);}
-  .field textarea{min-height:74px;resize:vertical;}
-  .two{display:grid;grid-template-columns:1fr 1fr;gap:13px;}
-  .hint{font-size:11.5px;color:var(--hint);margin-top:5px;}
-  .colorrow{display:flex;align-items:center;gap:10px;}
-  .colorrow input[type=color]{width:42px;height:38px;border:1px solid var(--line);border-radius:9px;background:#fff;padding:3px;cursor:pointer;}
-
-  .seg{display:inline-flex;background:#F1F3F6;border-radius:10px;padding:3px;margin-bottom:16px;}
-  .seg button{border:none;background:none;padding:8px 15px;border-radius:8px;font-size:13px;font-weight:600;color:var(--muted);}
-  .seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08);}
-
-  .search{display:flex;gap:8px;margin-bottom:6px;}
-  .search input{flex:1;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:13.5px;font-family:inherit;}
-
-  .catlist{display:flex;flex-direction:column;gap:7px;max-height:270px;overflow:auto;padding-right:2px;}
-  .catrow{display:flex;align-items:center;gap:11px;border:1px solid var(--line);border-radius:10px;padding:9px 11px;}
-  .catrow .ph{width:42px;height:34px;border-radius:6px;flex:none;}
-  .catrow .info{flex:1;min-width:0;}
-  .catrow .nm{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .catrow .or{font-size:11.5px;color:var(--muted);}
-  .kind{font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:99px;flex:none;}
-  .kind.prj{background:var(--tint);color:var(--blue);}
-  .kind.evt{background:var(--violet-bg);color:var(--violet);}
-  .addbtn{border:1.5px solid var(--blue);background:#fff;color:var(--blue);font-size:12px;font-weight:600;padding:6px 13px;border-radius:8px;flex:none;}
-  .addbtn.added{border-color:var(--green);color:#fff;background:var(--green);}
-  .autopill{font-size:10px;font-weight:600;color:var(--green-ink);background:var(--green-bg);padding:3px 8px;border-radius:99px;flex:none;}
-  .matchpill{font-size:10px;font-weight:600;color:var(--green-ink);background:var(--green-bg);padding:3px 8px;border-radius:99px;flex:none;}
-
-  .statusline{display:flex;align-items:flex-start;gap:8px;font-size:12.5px;padding:10px 12px;border-radius:9px;margin-top:8px;line-height:1.45;}
-  .statusline.on{background:var(--green-bg);color:var(--green-ink);border:1px solid #C6E7D6;}
-  .statusline.off{background:#F4F6F9;color:var(--muted);border:1px solid var(--line);}
-
-  .toggle-row{display:flex;align-items:flex-start;gap:12px;border:1px solid var(--line);border-radius:11px;padding:14px;margin-bottom:12px;}
-  .sw{width:40px;height:23px;border-radius:99px;background:#CBD2DB;position:relative;flex:none;margin-top:2px;border:none;}
-  .sw.on{background:var(--blue);}
-  .sw i{position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:50%;background:#fff;transition:.15s;}
-  .sw.on i{left:18px;}
-  .toggle-row .tt{flex:1;}
-  .toggle-row .tk{font-size:13.5px;font-weight:600;}
-  .toggle-row .ts{font-size:12px;color:var(--muted);margin-top:3px;}
-  .subfields{margin-top:12px;}
-
-  .reviewbox{border:1px solid var(--line);border-radius:11px;overflow:hidden;}
-  .rr{display:grid;grid-template-columns:140px 1fr;border-top:1px solid var(--line);}
-  .rr:first-child{border-top:none;}
-  .rr .k{padding:11px 14px;font-size:12.5px;color:var(--muted);font-weight:600;background:#FAFBFD;}
-  .rr .v{padding:11px 14px;font-size:13.5px;}
-
-  .nav{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:16px;margin-top:18px;}
-  .ghost{border:1.5px solid var(--line);background:#fff;color:var(--ink);padding:10px 18px;border-radius:9px;font-size:13.5px;font-weight:600;}
-  .ghost[disabled]{opacity:.4;cursor:default;}
-  .primary{border:none;background:var(--blue);color:#fff;padding:10px 22px;border-radius:9px;font-size:13.5px;font-weight:600;}
-
-  .preview{position:sticky;top:84px;}
-  .plabel{font-size:11px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:var(--hint);margin-bottom:9px;}
-  .phero{border-radius:var(--radius);padding:20px 18px;color:#fff;min-height:150px;display:flex;flex-direction:column;justify-content:flex-end;}
-  .phero .eb{font-size:10.5px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;opacity:.9;}
-  .phero h4{font-size:22px;margin:7px 0 5px;line-height:1.1;}
-  .phero p{font-size:12px;opacity:.92;line-height:1.45;}
-  .psum{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-top:12px;}
-  .psum .pr{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;padding:5px 0;}
-  .psum .pr .k{color:var(--muted);}
-  .psum .pr .v{font-weight:600;}
-  .pchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
-  .pchip{font-size:11px;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--tint);color:var(--blue);}
-  .pchip.off{background:#F1F3F6;color:var(--hint);}
-  .pchip.auto{background:var(--green-bg);color:var(--green-ink);}
-
-  .overlay{position:fixed;inset:0;background:rgba(18,22,32,.5);display:none;align-items:center;justify-content:center;z-index:20;padding:20px;}
-  .overlay.show{display:flex;}
-  .modal{background:#fff;border-radius:16px;padding:30px;max-width:420px;width:100%;text-align:center;}
-  .modal .tick{width:54px;height:54px;border-radius:50%;background:var(--green-bg);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 16px;}
-  .modal h3{font-size:20px;}
-  .modal p{font-size:13.5px;color:var(--muted);margin:8px 0 20px;}
-  .modal .deets{text-align:left;background:#FAFBFD;border:1px solid var(--line);border-radius:11px;padding:13px 15px;font-size:12.5px;margin-bottom:20px;}
-  .modal .deets div{display:flex;justify-content:space-between;padding:3px 0;}
-  .modal .deets .k{color:var(--muted);}
-  .modal .done{border:none;background:var(--blue);color:#fff;padding:11px 0;border-radius:10px;font-size:14px;font-weight:600;width:100%;}
-
-  @media(max-width:920px){
-    .shell{grid-template-columns:1fr;}
-    .rail{position:static;display:flex;overflow:auto;}
-    .rstep{flex:none;}
-    .preview{position:static;}
-  }
-</style>
+<link rel="stylesheet" href="assets/app.css">
 </head>
 <body>
 
-<div class="topbar">
-  <span class="logo">aga<span>t</span>hos</span>
-  <span class="crumb">Admin · <b>Create campaign</b></span>
-  <span class="spacer"></span>
-  <span class="draft">Draft · autosaved</span>
-  <button class="x">✕</button>
-</div>
+<div id="shell"></div>
 
-<div class="shell">
-  <div class="rail" id="rail"></div>
-  <div class="main">
-    <div class="body" id="stepbody"></div>
-    <div class="nav">
-      <button class="ghost" id="backbtn" onclick="back()">Back</button>
-      <button class="primary" id="nextbtn" onclick="next()">Next</button>
+<div class="overlay" id="delOverlay">
+  <div class="modal">
+    <div class="mh">
+      <span class="mi err" id="delIcon"></span>
+      <div>
+        <h3>Delete campaign?</h3>
+        <div class="mb" id="delMsg"></div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn" onclick="closeDelete()">Cancel</button>
+      <button class="btn solid-danger" id="delConfirm">Delete</button>
     </div>
   </div>
-  <div class="preview" id="preview"></div>
 </div>
 
-<div class="overlay" id="overlay">
-  <div class="modal">
-    <div class="tick">✓</div>
-    <h3>Campaign scheduled</h3>
-    <p id="successmsg"></p>
-    <div class="deets" id="successdeets"></div>
-    <button class="done" onclick="resetAll()">Create another</button>
-  </div>
-</div>
+<div class="toast" id="toast"></div>
 
+<script src="assets/mock-data.js"></script>
+<script src="assets/store.js"></script>
+<script src="assets/shell.js"></script>
 <script>
-  var STEPS = ['Basics','Add items','Schedule','Display','Promotion','Story','Review'];
+  var CONTENT = mountShell('campaign');
+  document.getElementById('delIcon').innerHTML = icon('warn', 22);
 
-  var CATALOGUE = [
-    {id:'p1', name:'Support for widows · grief counselling', org:'Wicare', kind:'project', c:'#2C6B53', matching:true},
-    {id:'p2', name:'Turning Barriers into Bridges', org:'SIL Global', kind:'project', c:'#3B5B86', matching:false},
-    {id:'p3', name:'Outreach @ displaced families', org:'Love Cambodia', kind:'project', c:'#7A5B2E', matching:false},
-    {id:'e1', name:'Benefit concert for the unseen', org:'RISE People', kind:'event', c:'#5B3B86', matching:false},
-    {id:'p4', name:'A Bible Movement in Every Language', org:'everylanguage', kind:'project', c:'#3a2f28', matching:false},
-    {id:'p5', name:'Living Waters Village', org:'agathos', kind:'project', c:'#2e4a55', matching:true},
-    {id:'e2', name:'Charity Gala Dinner 2026', org:"St Andrew's", kind:'event', c:'#86532e', matching:false}
+  var COLS = [
+    {key:'index',     label:'Index',        sortable:false, w:70},
+    {key:'id',        label:'ID',           sortable:true,  w:180},
+    {key:'name',      label:'Campaign',     sortable:true,  w:250},
+    {key:'status',    label:'Status',       sortable:true,  w:125},
+    {key:'start',     label:'Start Date',   sortable:true,  w:125},
+    {key:'end',       label:'End Date',     sortable:true,  w:125},
+    {key:'items',     label:'Items',        sortable:true,  w:85},
+    {key:'orgs',      label:'Organisations',sortable:true,  w:140},
+    {key:'matching',  label:'Matching',     sortable:true,  w:135},
+    {key:'promotion', label:'Promotion',    sortable:false, w:170},
+    {key:'spotlight', label:'Spotlight',    sortable:true,  w:110},
+    {key:'updatedAt', label:'Last Updated', sortable:true,  w:130},
+    {key:'action',    label:'Action',       sortable:false, w:155}
   ];
-  var S = {
-    step:0,
-    name:'Christmas Giving 2026', tagline:'Give the gift of hope',
-    intro:"This Christmas, stand with families and causes across our community — every gift carries hope into the new year.",
-    color:'#15479E',
-    items:['p2','p3','e1'],
-    start:'', end:'',
-    spotlight:false,       // monthly cadence (e.g. Hidden Causes) — optional, off for a normal campaign
-    featured:'p2',
-    promoHero:true, ctaLabel:'View campaign', link:'/campaigns/christmas-2026',
-    promoBanner:true,
-    story:'',
-    search:''
-  };
 
-  function setField(k,v){ S[k]=v; renderPreview(); }
-  function cat(id){ return CATALOGUE.find(function(x){return x.id===id;}); }
-  function orgsOf(){ var o={}; S.items.forEach(function(id){o[cat(id).org]=1;}); return Object.keys(o); }
-  function hasMatching(){ return S.items.some(function(id){return cat(id).matching;}); }
+  var V = { status:'All', q:'', searchOpen:false, sort:'updatedAt', dir:'desc', delId:null };
 
-  function toggleItem(id){
-    var i=S.items.indexOf(id);
-    if(i>=0){ S.items.splice(i,1); if(S.featured===id) S.featured=S.items[0]||''; }
-    else { S.items.push(id); if(!S.featured) S.featured=id; }
-    renderStep(); renderPreview();
-  }
-  function setSearch(v){ S.search=v; renderStep(); }
-  function toggle(k){ S[k]=!S[k]; renderStep(); renderPreview(); }
-
-  function renderRail(){
-    var h='';
-    STEPS.forEach(function(name,i){
-      var cls='rstep'+(i===S.step?' on':'')+(i<S.step?' done':'');
-      var num=(i<S.step)?'✓':(i+1);
-      h+='<button class="'+cls+'" onclick="goStep('+i+')"><span class="n">'+num+'</span>'+name+'</button>';
-    });
-    document.getElementById('rail').innerHTML=h;
-  }
-  function goStep(i){ S.step=i; renderAll(); }
-  function next(){ if(S.step<STEPS.length-1){ S.step++; renderAll(); } }
-  function back(){ if(S.step>0){ S.step--; renderAll(); } }
-
-  function renderStep(){
-    var b=document.getElementById('stepbody'), h='';
-    switch(S.step){
-
-      case 0:
-        h='<div class="sh">Basics</div><div class="sd">The theme and copy donors see on the hero and the campaign landing page. Any theme works — a season, a cause, an appeal.</div>'
-        +'<div class="field"><label>Campaign name</label><input type="text" value="'+esc(S.name)+'" oninput="setField(\'name\',this.value)" placeholder="e.g. Christmas Giving 2026"></div>'
-        +'<div class="field"><label>Tagline</label><input type="text" value="'+esc(S.tagline)+'" oninput="setField(\'tagline\',this.value)" placeholder="A short rallying line"></div>'
-        +'<div class="field"><label>Intro line</label><textarea oninput="setField(\'intro\',this.value)">'+esc(S.intro)+'</textarea></div>'
-        +'<div class="two"><div class="field"><label>Cover art</label><input type="text" value="christmas-2026-hero.jpg" readonly></div>'
-        +'<div class="field"><label>Theme colour</label><div class="colorrow"><input type="color" value="'+S.color+'" oninput="setField(\'color\',this.value)"><input type="text" value="'+S.color+'" oninput="setField(\'color\',this.value)"></div></div></div>';
-        break;
-
-      case 1:
-        h='<div class="sh">Add items</div><div class="sd">Pick the projects and events for this campaign. They can come from any organisation.</div>'
-        +'<div class="search"><input type="text" placeholder="Search projects or events…" value="'+esc(S.search)+'" oninput="setSearch(this.value)"></div>'
-        +'<div class="hint" style="margin-bottom:10px">'+S.items.length+' selected · '+orgsOf().length+' organisations</div>'
-        +'<div class="catlist">';
-        CATALOGUE.filter(function(x){ return !S.search || (x.name+' '+x.org).toLowerCase().indexOf(S.search.toLowerCase())>=0; }).forEach(function(x){
-          var added=S.items.indexOf(x.id)>=0;
-          h+='<div class="catrow"><div class="ph" style="background:'+x.c+'"></div>'
-          +'<div class="info"><div class="nm">'+esc(x.name)+'</div><div class="or">'+esc(x.org)+'</div></div>'
-          +(x.matching?'<span class="matchpill">matching</span>':'')
-          +'<span class="kind '+(x.kind==='project'?'prj':'evt')+'">'+(x.kind==='project'?'Project':'Event')+'</span>'
-          +'<button class="addbtn'+(added?' added':'')+'" onclick="toggleItem(\''+x.id+'\')">'+(added?'✓ Added':'Add')+'</button></div>';
-        });
-        h+='</div>';
-
-        h+= hasMatching()
-            ? '<div class="statusline on"><span>✓</span><span>Some included items have a matching grant — the landing page will automatically show a matching banner. Nothing to configure here.</span></div>'
-            : '<div class="statusline off"><span>○</span><span>No matched items included — this is a plain campaign, no matching banner.</span></div>';
-        break;
-
-      case 2:
-        h='<div class="sh">Schedule</div><div class="sd">Campaigns are seasonal. Outside this window every surface — hero slide, banner, badge — hides automatically.</div>'
-        +'<div class="two"><div class="field"><label>Start date</label><input type="date" value="'+S.start+'" oninput="setField(\'start\',this.value)"></div>'
-        +'<div class="field"><label>End date</label><input type="date" value="'+S.end+'" oninput="setField(\'end\',this.value)"></div></div>'
-        +'<div class="hint">Leave blank to keep it a draft with no live dates yet.</div>';
-        break;
-
-      case 3:
-        h='<div class="sh">Display</div><div class="sd">Optional behaviours on the landing page. A normal campaign leaves these off and simply shows all its items in the grid.</div>'
-        +'<div class="toggle-row"><button class="sw'+(S.spotlight?' on':'')+'" onclick="toggle(\'spotlight\')"><i></i></button>'
-        +'<div class="tt"><div class="tk">Spotlight one item at a time</div><div class="ts">Features a single item at the top and reveals others over time — the month-by-month cadence used by campaigns like Hidden Causes. Most campaigns leave this off.</div>';
-        if(S.spotlight){
-          h+='<div class="subfields"><div class="field" style="margin:0"><label>Featured item</label><select onchange="setField(\'featured\',this.value)">';
-          if(S.items.length===0) h+='<option>No items yet</option>';
-          S.items.forEach(function(id){ var x=cat(id); h+='<option value="'+id+'"'+(S.featured===id?' selected':'')+'>'+esc(x.name)+'</option>'; });
-          h+='</select></div></div>';
-        }
-        h+='</div></div>'
-        +'<div class="statusline '+(hasMatching()?'on':'off')+'"><span>'+(hasMatching()?'✓':'○')+'</span><span>Matching banner: <b>'+(hasMatching()?'on':'off')+'</b> — set automatically from the included items, not here.</span></div>';
-        break;
-
-      case 4:
-        h='<div class="sh">Promotion</div><div class="sd">Where this campaign appears. Both are optional and can be turned on later.</div>'
-        +'<div class="toggle-row"><button class="sw'+(S.promoHero?' on':'')+'" onclick="toggle(\'promoHero\')"><i></i></button>'
-        +'<div class="tt"><div class="tk">Show on homepage hero</div><div class="ts">Adds a rotating slide on the homepage.</div>'
-        +(S.promoHero?'<div class="subfields two"><div class="field" style="margin:0"><label>CTA label</label><input type="text" value="'+esc(S.ctaLabel)+'" oninput="setField(\'ctaLabel\',this.value)"></div><div class="field" style="margin:0"><label>Link</label><input type="text" value="'+esc(S.link)+'" oninput="setField(\'link\',this.value)"></div></div>':'')
-        +'</div></div>'
-        +'<div class="toggle-row"><button class="sw'+(S.promoBanner?' on':'')+'" onclick="toggle(\'promoBanner\')"><i></i></button>'
-        +'<div class="tt"><div class="tk">Show in-project / event banner</div><div class="ts">Injects a "Part of this campaign" band on every included project and event page.</div></div></div>';
-        break;
-
-      case 5:
-        h='<div class="sh">Story <span style="font-weight:400;color:var(--hint);font-size:13px">· optional</span></div><div class="sd">A "how it works" or "why this campaign" block on the landing page. Skip it for a simple campaign.</div>'
-        +'<div class="field"><textarea oninput="setField(\'story\',this.value)" placeholder="Explain the campaign in the brand voice (optional)">'+esc(S.story)+'</textarea></div>';
-        break;
-
-      case 6:
-        var promo=[]; if(S.promoHero)promo.push('Homepage hero'); if(S.promoBanner)promo.push('In-project banner');
-        h='<div class="sh">Review &amp; publish</div><div class="sd">Confirm before scheduling. The campaign references live items by ID — it never changes them.</div>'
-        +'<div class="reviewbox">'
-        +rr('Name', esc(S.name||'—'))
-        +rr('Items', S.items.length+' across '+orgsOf().length+' organisations · added manually')
-        +rr('Schedule', (S.start&&S.end)?(S.start+' → '+S.end):'<span style="color:var(--hint)">not set (draft)</span>')
-        +rr('Spotlight', S.spotlight?('on · '+(S.featured?esc(cat(S.featured).name):'—')):'<span style="color:var(--hint)">off</span>')
-        +rr('Matching banner', hasMatching()?'on (auto)':'<span style="color:var(--hint)">off</span>')
-        +rr('Promotion', promo.length?promo.join(' · '):'<span style="color:var(--hint)">none</span>')
-        +rr('Story', S.story?'included':'<span style="color:var(--hint)">none</span>')
-        +'</div>';
-        break;
+  /* ----- data shaping ----- */
+  function sortVal(c, key){
+    switch(key){
+      case 'id':        return c.id;
+      case 'name':      return (c.name || '').toLowerCase();
+      case 'status':    return STATUSES.indexOf(statusOf(c));
+      case 'start':     return c.start || '';
+      case 'end':       return c.end || '';
+      case 'items':     return c.items.length;
+      case 'orgs':      return orgsOf(c.items).length;
+      case 'matching':  return hasMatching(c.items) ? 1 : 0;
+      case 'spotlight': return c.spotlight ? 1 : 0;
+      case 'updatedAt': return c.updatedAt || '';
+      default:          return '';
     }
-    b.innerHTML=h;
-
-    document.getElementById('backbtn').disabled = (S.step===0);
-    var nb=document.getElementById('nextbtn');
-    if(S.step===STEPS.length-1){ nb.textContent='Schedule campaign'; nb.onclick=publish; }
-    else { nb.textContent='Next'; nb.onclick=next; }
-  }
-  function rr(k,v){ return '<div class="rr"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>'; }
-
-  function renderPreview(){
-    var h='<div class="plabel">Live preview</div>'
-    +'<div class="phero" style="background:'+S.color+'">'
-    +'<div class="eb">Seasonal campaign'+((S.start&&S.end)?' · '+S.start+'–'+S.end:'')+'</div>'
-    +'<h4>'+esc(S.name||'Campaign name')+'</h4>'
-    +'<p>'+esc(S.intro||'Your intro line appears here.')+'</p>'
-    +'</div>'
-    +'<div class="psum">'
-    +'<div class="pr"><span class="k">Items</span><span class="v">'+S.items.length+'</span></div>'
-    +'<div class="pr"><span class="k">Organisations</span><span class="v">'+orgsOf().length+'</span></div>'
-    +'<div class="pchips">'
-    +'<span class="pchip'+(S.promoHero?'':' off')+'">Homepage hero</span>'
-    +'<span class="pchip'+(S.promoBanner?'':' off')+'">In-project banner</span>'
-    +(S.spotlight?'<span class="pchip">Monthly spotlight</span>':'')
-    +(hasMatching()?'<span class="pchip auto">Matching banner · auto</span>':'')
-    +'</div></div>';
-    document.getElementById('preview').innerHTML=h;
   }
 
-  function publish(){
-    var promo=[]; if(S.promoHero)promo.push('Homepage hero'); if(S.promoBanner)promo.push('In-project banner');
-    document.getElementById('successmsg').textContent = (S.start&&S.end)
-      ? '"'+S.name+'" goes live '+S.start+' and runs through '+S.end+'.'
-      : '"'+S.name+'" is saved. Set start and end dates to make it live.';
-    document.getElementById('successdeets').innerHTML=
-      '<div><span class="k">Items</span><span>'+S.items.length+' · '+orgsOf().length+' orgs</span></div>'
-      +'<div><span class="k">Spotlight</span><span>'+(S.spotlight?'on':'off')+'</span></div>'
-      +'<div><span class="k">Matching banner</span><span>'+(hasMatching()?'on (auto)':'off')+'</span></div>'
-      +'<div><span class="k">Promotion</span><span>'+(promo.length?promo.join(', '):'none')+'</span></div>';
-    document.getElementById('overlay').classList.add('show');
+  function rows(){
+    var list = listCampaigns().filter(function(c){
+      if(V.status !== 'All' && statusOf(c) !== V.status) return false;
+      if(!V.q) return true;
+      var hay = (c.id + ' ' + c.name + ' ' + c.tagline + ' ' + orgsOf(c.items).join(' ')).toLowerCase();
+      return hay.indexOf(V.q.toLowerCase()) >= 0;
+    });
+    var d = V.dir === 'asc' ? 1 : -1;
+    return list.sort(function(a, b){
+      var x = sortVal(a, V.sort), y = sortVal(b, V.sort);
+      if(x < y) return -1 * d;
+      if(x > y) return 1 * d;
+      return 0;
+    });
   }
-  function resetAll(){ document.getElementById('overlay').classList.remove('show'); S.step=0; renderAll(); }
 
-  function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-  function renderAll(){ renderRail(); renderStep(); renderPreview(); }
-  renderAll();
+  /* ----- toolbar ----- */
+  function toggleSearch(){ V.searchOpen = !V.searchOpen; render(); }
+  function applySearch(){
+    V.q      = document.getElementById('fq').value.trim();
+    V.status = document.getElementById('fstatus').value;
+    render();
+  }
+  function resetSearch(){ V.q = ''; V.status = 'All'; render(); }
+  function refreshList(){ render(); toast('List refreshed'); }
+
+  function sortBy(key){
+    if(V.sort === key){ V.dir = V.dir === 'asc' ? 'desc' : 'asc'; }
+    else { V.sort = key; V.dir = 'asc'; }
+    render();
+  }
+
+  /* ----- render ----- */
+  function render(){
+    var all = listCampaigns();
+    var counts = {};
+    all.forEach(function(c){ var s = statusOf(c); counts[s] = (counts[s] || 0) + 1; });
+
+    var h = '<div class="pagehead">'
+      + '<h1>Campaigns</h1>'
+      + '<span class="spacer"></span>'
+      + '<div class="acts">'
+      +   '<button class="btn" onclick="refreshList()">' + icon('refresh', 16) + 'Refresh list</button>'
+      +   '<a class="btn primary" href="create.html">' + icon('plus', 16) + 'Create a new Campaign</a>'
+      + '</div></div>';
+
+    h += '<div class="searchbar">'
+      + '<button class="btn blue" onclick="toggleSearch()">' + icon('search', 16) + 'Toggle Search</button>'
+      + '<span class="spacer" style="flex:1"></span>'
+      + '<span class="tfoot" style="padding:0">' + all.length + ' total · '
+      +   (counts.Live || 0) + ' live · ' + (counts.Scheduled || 0) + ' scheduled · '
+      +   (counts.Draft || 0) + ' draft</span>'
+      + '</div>';
+
+    h += '<div class="searchpanel' + (V.searchOpen ? ' show' : '') + '">'
+      + '<div class="row">'
+      +   '<div class="field" style="margin:0"><label>Keyword</label>'
+      +     '<input class="ctl" type="text" id="fq" value="' + esc(V.q) + '" placeholder="ID, name, tagline or organisation"'
+      +     ' onkeydown="if(event.key===\'Enter\')applySearch()"></div>'
+      +   '<div class="field" style="margin:0"><label>Status</label><select class="ctl" id="fstatus">'
+      +     ['All'].concat(STATUSES).map(function(s){
+              return '<option value="' + s + '"' + (V.status === s ? ' selected' : '') + '>'
+                + (s === 'All' ? 'All' : s.toUpperCase()) + (s === 'All' ? ' (' + all.length + ')' : ' (' + (counts[s] || 0) + ')') + '</option>';
+            }).join('')
+      +   '</select></div>'
+      + '</div>'
+      + '<div class="foot"><button class="btn" onclick="resetSearch()">Reset</button>'
+      + '<button class="btn primary" onclick="applySearch()">' + icon('search', 16) + 'Search</button></div>'
+      + '</div>';
+
+    var list = rows();
+
+    if(!list.length){
+      h += '<div class="tablewrap"><div class="empty">'
+        + '<div class="ei">' + icon('inbox', 40) + '</div><h4>No campaigns match</h4>'
+        + '<p>' + (V.q ? 'Nothing matches “' + esc(V.q) + '”' : 'No campaigns with status ' + V.status) + '.</p>'
+        + '<button class="btn" onclick="resetSearch()">Reset filters</button>'
+        + '</div></div>';
+      CONTENT.innerHTML = h;
+      return;
+    }
+
+    h += '<div class="tablewrap"><table class="ct">'
+      + '<colgroup>' + COLS.map(function(c){ return '<col style="width:' + c.w + 'px">'; }).join('') + '</colgroup>'
+      + '<thead><tr>'
+      + COLS.map(function(c){
+          if(!c.sortable) return '<th>' + c.label + '</th>';
+          var cls = 'caret' + (V.sort === c.key ? ' ' + V.dir : '');
+          return '<th class="sortable" onclick="sortBy(\'' + c.key + '\')"><span class="thin">' + c.label
+            + '<span class="' + cls + '"><i class="up"></i><i class="dn"></i></span></span></th>';
+        }).join('')
+      + '</tr></thead><tbody>';
+
+    list.forEach(function(c, i){
+      var st     = statusOf(c);
+      var orgs   = orgsOf(c.items);
+      var promo  = promoLabels(c);
+      var detail = 'campaign.html?id=' + encodeURIComponent(c.id);
+      var edit   = 'create.html?id=' + encodeURIComponent(c.id);
+
+      h += '<tr class="' + (c.archived ? 'archived' : '') + '">'
+        + '<td class="num">' + (i + 1) + '</td>'
+        + '<td><a class="idlink" href="' + detail + '">' + esc(c.id) + '</a></td>'
+
+        + '<td><a class="tname" href="' + detail + '">' + esc(c.name || 'Untitled campaign') + '</a>'
+        +   '<div class="tsub">' + (c.tagline ? esc(c.tagline) : '<span class="dash">no tagline</span>') + '</div></td>'
+
+        + '<td>' + stText(st) + '</td>'
+        + '<td class="nowrap num">' + (c.start ? fmtDate(c.start) : '<span class="dash">—</span>') + '</td>'
+        + '<td class="nowrap num">' + (c.end   ? fmtDate(c.end)   : '<span class="dash">—</span>') + '</td>'
+        + '<td class="num">' + c.items.length + '</td>'
+        + '<td class="num">' + orgs.length + '</td>'
+
+        + '<td>' + (hasMatching(c.items)
+            ? '<span class="tag green">ON · AUTO</span>'
+            : '<span class="dash">—</span>') + '</td>'
+
+        + '<td>' + (promo.length
+            ? '<div class="tagrow">' + promo.map(function(p){
+                return '<span class="tag blue">' + (p === 'Homepage hero' ? 'HERO' : 'BANNER') + '</span>';
+              }).join('') + '</div>'
+            : '<span class="dash">—</span>') + '</td>'
+
+        + '<td>' + (c.spotlight ? '<span class="tag violet">ON</span>' : '<span class="dash">—</span>') + '</td>'
+        + '<td class="nowrap">' + fmtAgo(c.updatedAt) + '</td>'
+
+        + '<td><div class="rowacts">'
+        +   '<button title="View detail" onclick="location.href=\'' + detail + '\'">' + icon('eye', 18) + '</button>'
+        +   '<button title="Edit" onclick="location.href=\'' + edit + '\'">' + icon('pencil', 18) + '</button>'
+        +   '<button title="' + (c.archived ? 'Restore' : 'Archive') + '" onclick="doArchive(\'' + c.id + '\',' + (c.archived ? 'false' : 'true') + ')">' + icon('archive', 18) + '</button>'
+        +   '<button class="del" title="Delete" onclick="askDelete(\'' + c.id + '\')">' + icon('trash', 18) + '</button>'
+        + '</div></td>'
+        + '</tr>';
+    });
+
+    h += '</tbody></table></div>'
+      + '<div class="tfoot"><span>Showing ' + list.length + ' of ' + all.length + ' campaigns</span>'
+      + '<button class="linkbtn" onclick="doReset()">Reset prototype data</button></div>';
+
+    CONTENT.innerHTML = h;
+  }
+
+  /* ----- actions ----- */
+  function doArchive(id, archived){
+    var c = setArchived(id, archived);
+    render();
+    toast('“' + (c.name || 'Untitled campaign') + '” ' + (archived ? 'archived' : 'restored'));
+  }
+
+  function askDelete(id){
+    var c = getCampaign(id);
+    V.delId = id;
+    document.getElementById('delMsg').innerHTML =
+      '<b>' + esc(c.name || 'Untitled campaign') + '</b> will be removed permanently. '
+      + 'The ' + c.items.length + ' referenced project(s) / event(s) are not affected.';
+    document.getElementById('delConfirm').onclick = function(){
+      deleteCampaign(id);
+      closeDelete();
+      render();
+      toast('“' + (c.name || 'Untitled campaign') + '” deleted');
+    };
+    document.getElementById('delOverlay').classList.add('show');
+  }
+  function closeDelete(){ V.delId = null; document.getElementById('delOverlay').classList.remove('show'); }
+
+  function doReset(){ resetStore(); resetSearch(); toast('Seed data restored'); }
+
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeDelete(); });
+  render();
 </script>
 </body>
 </html>

@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agathos Admin — Campaign builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+
+<div id="shell"></div>
+
+<input type="file" id="coverpick" accept="image/*" style="display:none" onchange="pickedCover(this)">
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="mh">
+      <span class="mi ok" id="okIcon"></span>
+      <div style="min-width:0">
+        <h3 id="successtitle">Campaign scheduled</h3>
+        <div class="mb" id="successmsg"></div>
+        <div class="deets" id="successdeets"></div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn" onclick="location.href='index.html'">All campaigns</button>
+      <button class="btn primary" id="viewbtn">View campaign</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="assets/mock-data.js"></script>
+<script src="assets/store.js"></script>
+<script src="assets/shell.js"></script>
+<script>
+  var CONTENT = mountShell('campaign');
+  document.getElementById('okIcon').innerHTML = icon('check', 22);
+
+  var STEPS = ['Basics','Add items','Schedule','Display','Promotion','Story','Review'];
+  var NAME_MAX = 100, TAGLINE_MAX = 120;
+
+  /* S = the campaign being edited. U = UI-only state, never saved. */
+  var S, U = { step:0, search:'', dirty:false };
+
+  (function boot(){
+    var p = new URLSearchParams(location.search);
+    var id = p.get('id');
+
+    if(id){
+      S = getCampaign(id);
+      if(!S){
+        /* Bad link — say so instead of silently starting a blank campaign. */
+        CONTENT.innerHTML =
+          '<div class="pagehead"><button class="back" onclick="location.href=\'index.html\'">' + icon('back', 20) + '</button>'
+          + '<h1>Campaign not found</h1></div>'
+          + '<div class="alert warn" style="margin:0 0 20px">' + icon('warn', 16)
+          + '<span>No campaign with id <b>' + esc(id) + '</b> exists in the local store.</span></div>'
+          + '<a class="btn primary" href="index.html">Back to campaigns</a>';
+        return;
+      }
+    } else {
+      S = newCampaign();
+    }
+
+    var step = parseInt(p.get('step'), 10);
+    if(step >= 0 && step < STEPS.length) U.step = step;
+
+    document.title = 'Agathos Admin — ' + (S.id ? (S.name || 'Edit campaign') : 'Create a Campaign');
+    renderFrame();
+    renderAll();
+  })();
+
+  /* ----- frame (page header + wizard columns) ----- */
+  function renderFrame(){
+    CONTENT.innerHTML =
+        '<div class="pagehead">'
+      +   '<button class="back" title="Back to campaigns" onclick="leave()">' + icon('back', 20) + '</button>'
+      +   '<h1 id="pagetitle"></h1>'
+      +   '<span class="meta" id="savestate"></span>'
+      +   '<span class="spacer"></span>'
+      +   '<div class="acts"><button class="btn primary" onclick="saveDraft()">' + icon('save', 16) + 'Save</button></div>'
+      + '</div>'
+      + '<div class="wiz">'
+      +   '<div class="steps" id="steps"></div>'
+      +   '<div class="panel"><div class="pbody" id="stepbody"></div>'
+      +     '<div class="wiznav">'
+      +       '<button class="btn" id="backbtn" onclick="back()">Back</button>'
+      +       '<div class="right"><button class="btn primary" id="nextbtn" onclick="next()">Next</button></div>'
+      +     '</div>'
+      +   '</div>'
+      +   '<div class="aside" id="aside"></div>'
+      + '</div>';
+
+    document.getElementById('pagetitle').textContent = S.id ? 'Edit Campaign' : 'Create a Campaign';
+    setSaveState(S.id ? 'Saved · ' + fmtAgo(S.updatedAt) : 'Draft · not saved yet');
+  }
+
+  function setSaveState(txt){ document.getElementById('savestate').textContent = txt; }
+  function markDirty(){ U.dirty = true; setSaveState('Unsaved changes'); }
+  function leave(){ location.href = 'index.html'; }
+
+  /* ----- field mutation ----- */
+  function setField(k, v){ S[k] = v; markDirty(); renderAside(); }
+  function setCounted(k, v, max, el){
+    S[k] = v; markDirty();
+    el.parentNode.querySelector('.count').textContent = v.length + ' / ' + max;
+    renderAside();
+  }
+  function toggle(k){ S[k] = !S[k]; markDirty(); renderStep(); renderAside(); }
+  function setSearch(v){ U.search = v; renderStep(); }
+
+  function toggleItem(id){
+    var i = S.items.indexOf(id);
+    if(i >= 0){
+      S.items.splice(i, 1);
+      if(S.featured === id) S.featured = S.items[0] || '';
+    } else {
+      S.items.push(id);
+      if(!S.featured) S.featured = id;
+    }
+    markDirty(); renderStep(); renderAside();
+  }
+
+  function openCoverPicker(){ document.getElementById('coverpick').click(); }
+  function pickedCover(input){
+    /* Upload is mocked — the prototype keeps the filename only. */
+    if(input.files && input.files[0]) setField('cover', input.files[0].name);
+    input.value = '';
+    renderStep();
+  }
+  function clearCover(){ setField('cover', ''); renderStep(); }
+
+  /* ----- navigation ----- */
+  function renderSteps(){
+    document.getElementById('steps').innerHTML = STEPS.map(function(name, i){
+      var cls = 'step' + (i === U.step ? ' on' : '') + (i < U.step ? ' done' : '');
+      var num = (i < U.step) ? '✓' : (i + 1);
+      return '<button class="' + cls + '" onclick="goStep(' + i + ')"><span class="n">' + num + '</span>' + name + '</button>';
+    }).join('');
+  }
+  function goStep(i){ U.step = i; renderAll(); window.scrollTo(0, 0); }
+  function next(){ if(U.step < STEPS.length - 1) goStep(U.step + 1); }
+  function back(){ if(U.step > 0) goStep(U.step - 1); }
+
+  /* ----- steps ----- */
+  function renderStep(){
+    var h = '';
+    switch(U.step){
+
+      case 0:
+        h = head('Basics', 'The theme and copy donors see on the hero and the campaign landing page. Any theme works — a season, a cause, an appeal.')
+          + '<div class="field"><label><span class="req">*</span>Campaign name</label>'
+          +   '<div class="counted"><input class="ctl" type="text" value="' + esc(S.name) + '" maxlength="' + NAME_MAX + '"'
+          +   ' oninput="setCounted(\'name\',this.value,' + NAME_MAX + ',this)" placeholder="e.g. Christmas Giving 2026">'
+          +   '<span class="count">' + S.name.length + ' / ' + NAME_MAX + '</span></div></div>'
+
+          + '<div class="field"><label>Tagline</label>'
+          +   '<div class="counted"><input class="ctl" type="text" value="' + esc(S.tagline) + '" maxlength="' + TAGLINE_MAX + '"'
+          +   ' oninput="setCounted(\'tagline\',this.value,' + TAGLINE_MAX + ',this)" placeholder="A short rallying line">'
+          +   '<span class="count">' + S.tagline.length + ' / ' + TAGLINE_MAX + '</span></div></div>'
+
+          + '<div class="field"><label>Intro line</label>'
+          +   '<textarea class="ctl" oninput="setField(\'intro\',this.value)" placeholder="One or two sentences for the hero">' + esc(S.intro) + '</textarea></div>'
+
+          + '<div class="field"><label>Cover Photo</label>'
+          +   '<div class="upload">'
+          +     (S.cover
+                  ? '<span class="fn">' + esc(S.cover) + '</span><button type="button" title="Remove" onclick="clearCover()">✕</button>'
+                  : '<button type="button" title="Choose file" onclick="openCoverPicker()">' + icon('plus', 20) + '</button>')
+          +   '</div><div class="hint">Filename only — upload is mocked in this prototype.</div></div>'
+
+          + '<div class="field"><label>Theme colour</label><div class="colorrow">'
+          +   '<input type="color" value="' + esc(S.color) + '" oninput="setField(\'color\',this.value)">'
+          +   '<input class="ctl" type="text" value="' + esc(S.color) + '" oninput="setField(\'color\',this.value)" style="max-width:140px">'
+          + '</div></div>';
+        break;
+
+      case 1:
+        h = head('Add items', 'Pick the projects and events for this campaign. They can come from any organisation.')
+          + '<div class="field"><label>Search catalogue</label>'
+          +   '<input class="ctl" type="text" placeholder="Search projects or events…" value="' + esc(U.search) + '" oninput="setSearch(this.value)"></div>'
+          + '<div class="hint" style="margin:-10px 0 12px">' + S.items.length + ' selected · ' + orgsOf(S.items).length + ' organisations</div>'
+          + '<div class="picklist scroll">';
+
+        var visible = CATALOGUE.filter(function(x){
+          return !U.search || (x.name + ' ' + x.org).toLowerCase().indexOf(U.search.toLowerCase()) >= 0;
+        });
+
+        if(!visible.length){
+          h += '<div class="hint" style="padding:22px 0;text-align:center">Nothing matches “' + esc(U.search) + '”.</div>';
+        }
+        visible.forEach(function(x){
+          var added = S.items.indexOf(x.id) >= 0;
+          h += '<div class="pickrow"><div class="thumb" style="background:' + x.c + '"></div>'
+             + '<div class="info"><div class="nm">' + esc(x.name) + '</div><div class="or">' + esc(x.org) + '</div></div>'
+             + (x.matching ? '<span class="tag green">MATCHING</span>' : '')
+             + '<span class="tag ' + (x.kind === 'project' ? 'blue' : 'violet') + '">' + x.kind.toUpperCase() + '</span>'
+             + '<button class="btn ' + (added ? 'primary' : 'blue') + '" style="height:32px;padding:0 12px" onclick="toggleItem(\'' + x.id + '\')">'
+             + (added ? '✓ Added' : 'Add') + '</button></div>';
+        });
+        h += '</div>';
+
+        h += hasMatching(S.items)
+          ? alert_('ok', 'Some included items have a matching grant — the landing page will automatically show a matching banner. Nothing to configure here.')
+          : alert_('neutral', 'No matched items included — this is a plain campaign, no matching banner.');
+        break;
+
+      case 2:
+        h = head('Schedule', 'Campaigns are seasonal. Outside this window every surface — hero slide, banner, badge — hides automatically.')
+          + '<div class="grid2">'
+          +   '<div class="field"><label>Start date</label><input class="ctl" type="date" value="' + esc(S.start) + '" oninput="setField(\'start\',this.value)"></div>'
+          +   '<div class="field"><label>End date</label><input class="ctl" type="date" value="' + esc(S.end) + '" oninput="setField(\'end\',this.value)"></div>'
+          + '</div>'
+          + '<div class="hint" style="margin-top:-8px">Leave blank to keep it a draft with no live dates yet.</div>'
+          + alert_(S.start && S.end ? 'ok' : 'neutral',
+              'Status: <b>' + statusOf(S) + '</b>'
+              + (S.start && S.end ? ' · ' + fmtRange(S.start, S.end) : ' — derived from the dates above, never set by hand'));
+        break;
+
+      case 3:
+        h = head('Display', 'Optional behaviours on the landing page. A normal campaign leaves these off and simply shows all its items in the grid.')
+          + '<div class="switchrow"><button class="sw' + (S.spotlight ? ' on' : '') + '" onclick="toggle(\'spotlight\')"><i></i></button>'
+          + '<div class="tt"><div class="tk">Spotlight one item at a time</div>'
+          + '<div class="ts">Features a single item at the top and reveals others over time — the month-by-month cadence used by campaigns like Hidden Causes. Most campaigns leave this off.</div>';
+        if(S.spotlight){
+          h += '<div class="subfields"><div class="field"><label>Featured item</label><select class="ctl" onchange="setField(\'featured\',this.value)">';
+          if(!S.items.length) h += '<option>No items yet</option>';
+          S.items.forEach(function(id){
+            var x = catItem(id);
+            if(x) h += '<option value="' + id + '"' + (S.featured === id ? ' selected' : '') + '>' + esc(x.name) + '</option>';
+          });
+          h += '</select></div></div>';
+        }
+        h += '</div></div>'
+          + alert_(hasMatching(S.items) ? 'ok' : 'neutral',
+              'Matching banner: <b>' + (hasMatching(S.items) ? 'on' : 'off') + '</b> — set automatically from the included items, not here.');
+        break;
+
+      case 4:
+        h = head('Promotion', 'Where this campaign appears. Both are optional and can be turned on later.')
+          + '<div class="switchrow"><button class="sw' + (S.promoHero ? ' on' : '') + '" onclick="toggle(\'promoHero\')"><i></i></button>'
+          + '<div class="tt"><div class="tk">Show on homepage hero</div><div class="ts">Adds a rotating slide on the homepage.</div>'
+          + (S.promoHero
+              ? '<div class="subfields grid2">'
+                + '<div class="field"><label>CTA label</label><input class="ctl" type="text" value="' + esc(S.ctaLabel) + '" oninput="setField(\'ctaLabel\',this.value)"></div>'
+                + '<div class="field"><label>Link</label><input class="ctl" type="text" value="' + esc(S.link) + '" oninput="setField(\'link\',this.value)" placeholder="/campaigns/…"></div>'
+                + '</div>'
+              : '')
+          + '</div></div>'
+          + '<div class="switchrow"><button class="sw' + (S.promoBanner ? ' on' : '') + '" onclick="toggle(\'promoBanner\')"><i></i></button>'
+          + '<div class="tt"><div class="tk">Show in-project / event banner</div>'
+          + '<div class="ts">Injects a “Part of this campaign” band on every included project and event page.</div></div></div>';
+        break;
+
+      case 5:
+        h = head('Story <span style="font-weight:400;color:var(--hint);font-size:14px">· optional</span>',
+                 'A “how it works” or “why this campaign” block on the landing page. Skip it for a simple campaign.')
+          + '<div class="field"><label>Story</label><textarea class="ctl" style="min-height:180px" oninput="setField(\'story\',this.value)"'
+          + ' placeholder="Explain the campaign in the brand voice (optional)">' + esc(S.story) + '</textarea></div>';
+        break;
+
+      case 6:
+        var promo = promoLabels(S);
+        h = head('Review &amp; publish', 'Confirm before scheduling. The campaign references live items by ID — it never changes them.')
+          + '<div class="review">'
+          + rr('Campaign name', esc(S.name) || '<span class="dash">—</span>')
+          + rr('Tagline', esc(S.tagline) || '<span class="dash">none</span>')
+          + rr('Cover Photo', esc(S.cover) || '<span class="dash">none</span>')
+          + rr('Items', S.items.length + ' across ' + orgsOf(S.items).length + ' organisations · added manually')
+          + rr('Schedule', (S.start && S.end) ? fmtRange(S.start, S.end) : '<span class="dash">not set (draft)</span>')
+          + rr('Status', stText(statusOf(S)))
+          + rr('Spotlight', S.spotlight
+              ? ('on · ' + (S.featured && catItem(S.featured) ? esc(catItem(S.featured).name) : '—'))
+              : '<span class="dash">off</span>')
+          + rr('Matching banner', hasMatching(S.items) ? 'on (auto)' : '<span class="dash">off</span>')
+          + rr('Promotion', promo.length ? promo.join(' · ') : '<span class="dash">none</span>')
+          + rr('Story', S.story ? 'included' : '<span class="dash">none</span>')
+          + '</div>'
+          + (S.name ? '' : alert_('warn', 'Campaign name is required before this can be scheduled.'));
+        break;
+    }
+
+    document.getElementById('stepbody').innerHTML = h;
+    document.getElementById('backbtn').disabled = (U.step === 0);
+
+    var nb = document.getElementById('nextbtn');
+    if(U.step === STEPS.length - 1){
+      nb.innerHTML = icon('save', 16) + (S.id ? 'Save changes' : 'Schedule campaign');
+      nb.onclick = publish;
+      nb.disabled = !S.name;
+    } else {
+      nb.textContent = 'Next';
+      nb.onclick = next;
+      nb.disabled = false;
+    }
+  }
+
+  function head(t, d){ return '<div class="ph">' + t + '</div><div class="pd">' + d + '</div>'; }
+  function rr(k, v){ return '<div class="rr"><div class="k">' + k + '</div><div class="v">' + v + '</div></div>'; }
+  function alert_(kind, html){
+    var ic = kind === 'ok' ? icon('check', 16) : kind === 'warn' ? icon('warn', 16) : icon('inbox', 16);
+    return '<div class="alert ' + kind + '">' + ic + '<span>' + html + '</span></div>';
+  }
+
+  /* ----- preview aside ----- */
+  function renderAside(){
+    document.getElementById('aside').innerHTML =
+        '<div class="alabel">Live preview</div>'
+      + '<div class="hero" style="background:' + esc(S.color) + '">'
+      +   '<div class="eb">Seasonal campaign' + ((S.start && S.end) ? ' · ' + fmtRange(S.start, S.end) : '') + '</div>'
+      +   '<h4>' + (esc(S.name) || 'Campaign name') + '</h4>'
+      +   '<p>' + (esc(S.intro) || 'Your intro line appears here.') + '</p>'
+      + '</div>'
+      + '<div class="summary">'
+      +   '<div class="sr"><span class="k">Status</span><span class="v">' + stText(statusOf(S)) + '</span></div>'
+      +   '<div class="sr"><span class="k">Items</span><span class="v">' + S.items.length + '</span></div>'
+      +   '<div class="sr"><span class="k">Organisations</span><span class="v">' + orgsOf(S.items).length + '</span></div>'
+      +   '<div class="tagrow">'
+      +     '<span class="tag ' + (S.promoHero ? 'blue' : 'grey') + '">HERO</span>'
+      +     '<span class="tag ' + (S.promoBanner ? 'blue' : 'grey') + '">BANNER</span>'
+      +     (S.spotlight ? '<span class="tag violet">SPOTLIGHT</span>' : '')
+      +     (hasMatching(S.items) ? '<span class="tag green">MATCHING · AUTO</span>' : '')
+      +   '</div>'
+      + '</div>';
+  }
+
+  /* ----- persistence ----- */
+  function afterSave(wasNew){
+    U.dirty = false;
+    setSaveState('Saved · just now');
+    document.getElementById('pagetitle').textContent = 'Edit Campaign';
+    /* Keep the URL pointing at the saved record so a browser-back does not
+       land on a blank form. */
+    if(wasNew) history.replaceState(null, '', 'create.html?id=' + encodeURIComponent(S.id) + '&step=' + U.step);
+    renderStep();
+  }
+
+  function saveDraft(){
+    var wasNew = !S.id;
+    S = saveCampaign(S);
+    afterSave(wasNew);
+    toast('Draft saved');
+  }
+
+  function publish(){
+    var wasNew = !S.id;
+    S = saveCampaign(S);
+    afterSave(wasNew);
+
+    var promo = promoLabels(S);
+    document.getElementById('successtitle').textContent =
+      wasNew ? ((S.start && S.end) ? 'Campaign scheduled' : 'Campaign saved') : 'Changes saved';
+    document.getElementById('successmsg').textContent = (S.start && S.end)
+      ? '“' + S.name + '” goes live ' + fmtDate(S.start) + ' and runs through ' + fmtDate(S.end) + '.'
+      : '“' + S.name + '” is saved. Set start and end dates to make it live.';
+    document.getElementById('successdeets').innerHTML =
+        '<div><span class="k">Status</span><span>' + statusOf(S) + '</span></div>'
+      + '<div><span class="k">Items</span><span>' + S.items.length + ' · ' + orgsOf(S.items).length + ' orgs</span></div>'
+      + '<div><span class="k">Spotlight</span><span>' + (S.spotlight ? 'on' : 'off') + '</span></div>'
+      + '<div><span class="k">Matching banner</span><span>' + (hasMatching(S.items) ? 'on (auto)' : 'off') + '</span></div>'
+      + '<div><span class="k">Promotion</span><span>' + (promo.length ? promo.join(', ') : 'none') + '</span></div>';
+    document.getElementById('viewbtn').onclick = function(){
+      location.href = 'campaign.html?id=' + encodeURIComponent(S.id);
+    };
+    document.getElementById('overlay').classList.add('show');
+  }
+
+  window.addEventListener('beforeunload', function(e){
+    if(U.dirty){ e.preventDefault(); e.returnValue = ''; }
+  });
+
+  function renderAll(){ renderSteps(); renderStep(); renderAside(); }
+</script>
+</body>
+</html>

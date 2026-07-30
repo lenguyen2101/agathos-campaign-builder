@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agathos Admin — Campaign</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+
+<div id="shell"></div>
+
+<div class="overlay" id="delOverlay">
+  <div class="modal">
+    <div class="mh">
+      <span class="mi err" id="delIcon"></span>
+      <div>
+        <h3>Delete campaign?</h3>
+        <div class="mb" id="delMsg"></div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn" onclick="closeDelete()">Cancel</button>
+      <button class="btn solid-danger" id="delConfirm">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="assets/mock-data.js"></script>
+<script src="assets/store.js"></script>
+<script src="assets/shell.js"></script>
+<script>
+  var CONTENT = mountShell('campaign');
+  document.getElementById('delIcon').innerHTML = icon('warn', 22);
+
+  var C = null;
+
+  (function boot(){
+    var id = new URLSearchParams(location.search).get('id');
+    C = id ? getCampaign(id) : null;
+    if(!C){
+      CONTENT.innerHTML =
+          '<div class="pagehead"><button class="back" onclick="location.href=\'index.html\'">' + icon('back', 20) + '</button>'
+        + '<h1>Campaign not found</h1></div>'
+        + '<div class="alert warn" style="margin:0 0 20px">' + icon('warn', 16) + '<span>'
+        + (id ? 'No campaign with id <b>' + esc(id) + '</b> exists in the local store.' : 'No campaign id in the URL.')
+        + '</span></div><a class="btn primary" href="index.html">Back to campaigns</a>';
+      return;
+    }
+    document.title = 'Agathos Admin — ' + (C.name || 'Campaign');
+    render();
+  })();
+
+  function editLink(step){ return 'create.html?id=' + encodeURIComponent(C.id) + '&step=' + step; }
+
+  /* Read-only fields render as disabled inputs, matching the Event detail screen. */
+  function ro(label, value, opts){
+    opts = opts || {};
+    var v = value == null ? '' : String(value);
+    var ctl = opts.area
+      ? '<textarea class="ctl" disabled>' + esc(v) + '</textarea>'
+      : '<input class="ctl" type="text" disabled value="' + esc(v) + '">';
+    return '<div class="field"><label>' + label + '</label>' + ctl + '</div>';
+  }
+
+  function block(step, title, inner){
+    return '<div class="block"><div class="blockhead">'
+      + '<span class="n">' + (step + 1) + '</span><h3>' + title + '</h3><span class="spacer"></span>'
+      + '<a class="linkbtn" href="' + editLink(step) + '">Edit</a>'
+      + '</div>' + inner + '</div>';
+  }
+
+  function render(){
+    var st       = statusOf(C);
+    var orgs     = orgsOf(C.items);
+    var promo    = promoLabels(C);
+    var matching = hasMatching(C.items);
+    var featured = C.featured ? catItem(C.featured) : null;
+
+    var h = '<div class="pagehead">'
+      + '<button class="back" title="Back to campaigns" onclick="location.href=\'index.html\'">' + icon('back', 20) + '</button>'
+      + '<h1>Campaign</h1>'
+      + '<span class="meta">' + stText(st) + '</span>'
+      + '<span class="spacer"></span>'
+      + '<div class="acts">'
+      +   '<button class="btn" onclick="doArchive(' + (C.archived ? 'false' : 'true') + ')">' + icon('archive', 16) + (C.archived ? 'Restore' : 'Archive') + '</button>'
+      +   '<button class="btn dangerbtn" onclick="askDelete()">' + icon('trash', 16) + 'Delete</button>'
+      +   '<a class="btn primary" href="' + editLink(0) + '">' + icon('pencil', 16) + 'Edit</a>'
+      + '</div></div>';
+
+    if(C.archived){
+      h += '<div class="alert warn" style="margin:0 0 22px">' + icon('archive', 16)
+        + '<span>This campaign is archived — it is hidden from every public surface.</span></div>';
+    }
+
+    h += '<div class="detailcols"><div class="formcard">';
+
+    /* 0 — Basics */
+    h += block(0, 'Basics',
+        ro('ID', C.id)
+      + ro('Campaign name', C.name)
+      + ro('Tagline', C.tagline)
+      + ro('Intro line', C.intro, {area:true})
+      + ro('Cover Photo', C.cover)
+      + '<div class="field"><label>Theme colour</label><div class="swatchbox">'
+      +   '<i style="background:' + esc(C.color) + '"></i>'
+      +   '<input class="ctl" type="text" disabled value="' + esc(C.color) + '" style="max-width:160px">'
+      + '</div></div>');
+
+    /* 1 — Items */
+    var itemsInner = '<div class="grid2">'
+      + ro('Included items', C.items.length)
+      + ro('Organisations', orgs.length)
+      + '</div>'
+      + ro('Organisation list', orgs.length ? orgs.join(' · ') : '');
+
+    if(!C.items.length){
+      itemsInner += '<div class="alert neutral">' + icon('inbox', 16)
+        + '<span>No items added yet — the landing page grid would be empty.</span></div>';
+    } else {
+      itemsInner += '<div class="field"><label>Items</label><div class="picklist">';
+      C.items.forEach(function(id){
+        var x = catItem(id);
+        if(!x){
+          /* A referenced item vanishing from the catalogue is a real data problem — show it. */
+          itemsInner += '<div class="pickrow"><div class="thumb" style="background:var(--danger)"></div>'
+            + '<div class="info"><div class="nm">Unknown item</div>'
+            + '<div class="or">id ' + esc(id) + ' is not in the catalogue</div></div></div>';
+          return;
+        }
+        itemsInner += '<div class="pickrow"><div class="thumb" style="background:' + x.c + '"></div>'
+          + '<div class="info"><div class="nm">' + esc(x.name) + '</div><div class="or">' + esc(x.org) + '</div></div>'
+          + (C.spotlight && C.featured === id ? '<span class="tag gold">FEATURED</span>' : '')
+          + (x.matching ? '<span class="tag green">MATCHING</span>' : '')
+          + '<span class="tag ' + (x.kind === 'project' ? 'blue' : 'violet') + '">' + x.kind.toUpperCase() + '</span>'
+          + '</div>';
+      });
+      itemsInner += '</div></div>'
+        + (matching
+            ? '<div class="alert ok">' + icon('check', 16) + '<span>At least one item has a matching grant — the matching banner is on automatically.</span></div>'
+            : '<div class="alert neutral">' + icon('inbox', 16) + '<span>No matched items — no matching banner.</span></div>');
+    }
+    h += block(1, 'Items', itemsInner);
+
+    /* 2 — Schedule */
+    h += block(2, 'Schedule',
+        '<div class="grid2">'
+      +   ro('Start date', C.start ? fmtDate(C.start) : '')
+      +   ro('End date', C.end ? fmtDate(C.end) : '')
+      + '</div>'
+      + ro('Status', st.toUpperCase())
+      + '<div class="hint" style="margin-top:-14px">Derived from the dates — never set by hand.</div>');
+
+    /* 3 — Display */
+    h += block(3, 'Display',
+        '<div class="grid2">'
+      +   ro('Spotlight one item at a time', C.spotlight ? 'ON' : 'OFF')
+      +   ro('Featured item', C.spotlight ? (featured ? featured.name : 'not set') : '')
+      + '</div>'
+      + ro('Matching banner', matching ? 'ON (automatic)' : 'OFF'));
+
+    /* 4 — Promotion */
+    h += block(4, 'Promotion',
+        '<div class="grid2">'
+      +   ro('Homepage hero slide', C.promoHero ? 'ON' : 'OFF')
+      +   ro('In-project / event banner', C.promoBanner ? 'ON' : 'OFF')
+      + '</div>'
+      + '<div class="grid2">'
+      +   ro('CTA label', C.promoHero ? C.ctaLabel : '')
+      +   ro('Link', C.promoHero ? C.link : '')
+      + '</div>');
+
+    /* 5 — Story */
+    h += block(5, 'Story', C.story
+      ? ro('Story', C.story, {area:true})
+      : '<div class="alert neutral">' + icon('inbox', 16)
+        + '<span>No story block — the landing page shows the intro line and the item grid only.</span></div>');
+
+    /* aside */
+    h += '</div><div class="aside">'
+      + '<div class="alabel">Landing page hero</div>'
+      + '<div class="hero" style="background:' + esc(C.color) + '">'
+      +   '<div class="eb">Seasonal campaign' + (C.start && C.end ? ' · ' + fmtRange(C.start, C.end) : '') + '</div>'
+      +   '<h4>' + (esc(C.name) || 'Campaign name') + '</h4>'
+      +   '<p>' + (esc(C.intro) || 'No intro line set.') + '</p>'
+      + '</div>'
+      + '<div class="summary">'
+      +   '<div class="sr"><span class="k">Status</span><span class="v">' + stText(st) + '</span></div>'
+      +   '<div class="sr"><span class="k">Items</span><span class="v">' + C.items.length + '</span></div>'
+      +   '<div class="sr"><span class="k">Organisations</span><span class="v">' + orgs.length + '</span></div>'
+      +   '<div class="tagrow">'
+      +     '<span class="tag ' + (C.promoHero ? 'blue' : 'grey') + '">HERO</span>'
+      +     '<span class="tag ' + (C.promoBanner ? 'blue' : 'grey') + '">BANNER</span>'
+      +     (C.spotlight ? '<span class="tag violet">SPOTLIGHT</span>' : '')
+      +     (matching ? '<span class="tag green">MATCHING · AUTO</span>' : '')
+      +   '</div>'
+      + '</div>'
+      + '<div class="metabox">'
+      +   '<div class="mr"><span class="k">Campaign ID</span><span class="v">' + esc(C.id) + '</span></div>'
+      +   '<div class="mr"><span class="k">Created</span><span class="v">' + fmtDate(C.createdAt) + '</span></div>'
+      +   '<div class="mr"><span class="k">Last updated</span><span class="v">' + fmtAgo(C.updatedAt) + '</span></div>'
+      + '</div>'
+      + '</div></div>';
+
+    CONTENT.innerHTML = h;
+  }
+
+  function doArchive(archived){
+    C = setArchived(C.id, archived);
+    render();
+    toast('“' + (C.name || 'Untitled campaign') + '” ' + (archived ? 'archived' : 'restored'));
+  }
+
+  function askDelete(){
+    document.getElementById('delMsg').innerHTML =
+      '<b>' + esc(C.name || 'Untitled campaign') + '</b> will be removed permanently. '
+      + 'The ' + C.items.length + ' referenced project(s) / event(s) are not affected.';
+    document.getElementById('delConfirm').onclick = function(){
+      deleteCampaign(C.id);
+      location.href = 'index.html';
+    };
+    document.getElementById('delOverlay').classList.add('show');
+  }
+  function closeDelete(){ document.getElementById('delOverlay').classList.remove('show'); }
+
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeDelete(); });
+</script>
+</body>
+</html>
