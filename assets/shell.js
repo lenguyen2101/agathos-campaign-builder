@@ -27,7 +27,8 @@ var ICON = {
   search:   '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
   check:    '<path d="M4 12.5l5 5L20 6.5"/>',
   warn:     '<path d="M12 3l9.5 17H2.5z"/><path d="M12 9v5M12 17h.01"/>',
-  inbox:    '<path d="M4 13h4l1.5 3h5L16 13h4"/><path d="M4 13L6.5 5h11L20 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/>'
+  inbox:    '<path d="M4 13h4l1.5 3h5L16 13h4"/><path d="M4 13L6.5 5h11L20 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/>',
+  doc:      '<path d="M5 3h9l5 5v13H5z"/><path d="M14 3v5h5"/><path d="M8 8h3M8 11.5h3"/><circle cx="15" cy="16" r="3.2"/><path d="M13.7 16l1 1 1.8-2"/>'
 };
 
 function icon(name, size){

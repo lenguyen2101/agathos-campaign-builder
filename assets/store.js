@@ -10,9 +10,10 @@
      getCampaign(id)        GET    /admin/campaigns/:id         -> Campaign
      saveCampaign(c)        POST   /admin/campaigns             -> Campaign   (no c.id)
                             PATCH  /admin/campaigns/:id         -> Campaign   (has c.id)
-     setArchived(id, bool)  POST   /admin/campaigns/:id/archive
-                            POST   /admin/campaigns/:id/unarchive
      deleteCampaign(id)     DELETE /admin/campaigns/:id
+
+   Status is part of the Campaign record, so it changes through saveCampaign()
+   like any other field — there is no separate archive/publish endpoint.
 
    These are synchronous in the prototype. Against a real API they become
    async — wrap call sites in await / .then().
@@ -27,6 +28,7 @@
      cover      string            filename only (upload is mocked)
      items      string[]          catalogue IDs — referenced, never mutated
      featured   string            item ID, only meaningful when spotlight=true
+     status     string            one of STATUSES — set explicitly by the admin
      start      string            'YYYY-MM-DD' or '' when not scheduled
      end        string            'YYYY-MM-DD' or ''
      spotlight  boolean
@@ -35,16 +37,18 @@
      link       string            only meaningful when promoHero=true
      promoBanner boolean
      story      string
-     archived   boolean
      createdAt  string            ISO 8601
      updatedAt  string            ISO 8601
 
-   Status is NOT stored. It is derived from start/end/archived by statusOf() —
-   the dates are the single source of truth. The backend should derive it the
-   same way (or return it as a read-only computed field).
+   Status is a stored enum chosen by the admin, matching the Event layer:
+   REVIEW / ONGOING / COMPLETED / ARCHIVED / DRAFT. It is not derived from the
+   dates — start/end control when the campaign's surfaces appear, status
+   controls its workflow state, and the two are independent.
    ============================================================================ */
 
-var STORE_KEY = 'agathos.campaigns.v1';
+/* Bumped when the Campaign shape changes, so stale localStorage reseeds
+   instead of silently rendering records that miss the new fields. */
+var STORE_KEY = 'agathos.campaigns.v2';
 
 /* ---------------------------------------------------------------- DATA ACCESS */
 
@@ -91,16 +95,6 @@ function saveCampaign(c){
   return c;
 }
 
-function setArchived(id, archived){
-  var list = _read(), hit = null;
-  list.forEach(function(c){
-    if(c.id === id){ c.archived = archived; c.updatedAt = new Date().toISOString(); hit = c; }
-  });
-  if(!hit) throw new Error('[store] setArchived: no campaign with id ' + id);
-  _write(list);
-  return hit;
-}
-
 function deleteCampaign(id){
   var list = _read();
   var kept = list.filter(function(c){ return c.id !== id; });
@@ -113,27 +107,25 @@ function resetStore(){ localStorage.removeItem(STORE_KEY); }
 
 /* ------------------------------------------------- DERIVED / PURE (no backend) */
 
-var STATUSES = ['Draft','Scheduled','Live','Ended','Archived'];
+/* Same enum and dropdown order as the Event layer. */
+var STATUSES = ['REVIEW','ONGOING','COMPLETED','ARCHIVED','DRAFT'];
+var STATUS_DEFAULT = 'DRAFT';
 
 function newCampaign(){
   return {
     name:'', tagline:'', intro:'', color:'#15479E', cover:'',
     items:[], featured:'',
+    status:STATUS_DEFAULT,
     start:'', end:'',
     spotlight:false,
     promoHero:false, ctaLabel:'View campaign', link:'',
     promoBanner:false,
-    story:'', archived:false
+    story:''
   };
 }
 
 function statusOf(c){
-  if(c.archived) return 'Archived';
-  if(!c.start || !c.end) return 'Draft';
-  var today = new Date().toISOString().slice(0,10);
-  if(today < c.start) return 'Scheduled';
-  if(today > c.end)   return 'Ended';
-  return 'Live';
+  return STATUSES.indexOf(c.status) >= 0 ? c.status : STATUS_DEFAULT;
 }
 
 function catItem(id){ return CATALOGUE.filter(function(x){ return x.id === id; })[0] || null; }

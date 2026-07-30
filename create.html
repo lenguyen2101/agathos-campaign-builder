@@ -167,17 +167,24 @@
           + '<div class="field"><label>Intro line</label>'
           +   '<textarea class="ctl" oninput="setField(\'intro\',this.value)" placeholder="One or two sentences for the hero">' + esc(S.intro) + '</textarea></div>'
 
+          + '<div class="grid2">'
+          +   '<div class="field"><label>Status</label><select class="ctl" onchange="setField(\'status\',this.value)">'
+          +     STATUSES.map(function(s){
+                  return '<option value="' + s + '"' + (statusOf(S) === s ? ' selected' : '') + '>' + s + '</option>';
+                }).join('')
+          +   '</select></div>'
+          +   '<div class="field"><label>Theme colour</label><div class="colorrow">'
+          +     '<input type="color" value="' + esc(S.color) + '" oninput="setField(\'color\',this.value)">'
+          +     '<input class="ctl" type="text" value="' + esc(S.color) + '" oninput="setField(\'color\',this.value)">'
+          +   '</div></div>'
+          + '</div>'
+
           + '<div class="field"><label>Cover Photo</label>'
           +   '<div class="upload">'
           +     (S.cover
                   ? '<span class="fn">' + esc(S.cover) + '</span><button type="button" title="Remove" onclick="clearCover()">✕</button>'
                   : '<button type="button" title="Choose file" onclick="openCoverPicker()">' + icon('plus', 20) + '</button>')
-          +   '</div><div class="hint">Filename only — upload is mocked in this prototype.</div></div>'
-
-          + '<div class="field"><label>Theme colour</label><div class="colorrow">'
-          +   '<input type="color" value="' + esc(S.color) + '" oninput="setField(\'color\',this.value)">'
-          +   '<input class="ctl" type="text" value="' + esc(S.color) + '" oninput="setField(\'color\',this.value)" style="max-width:140px">'
-          + '</div></div>';
+          +   '</div><div class="hint">Filename only — upload is mocked in this prototype.</div></div>';
         break;
 
       case 1:
@@ -216,10 +223,11 @@
           +   '<div class="field"><label>Start date</label><input class="ctl" type="date" value="' + esc(S.start) + '" oninput="setField(\'start\',this.value)"></div>'
           +   '<div class="field"><label>End date</label><input class="ctl" type="date" value="' + esc(S.end) + '" oninput="setField(\'end\',this.value)"></div>'
           + '</div>'
-          + '<div class="hint" style="margin-top:-8px">Leave blank to keep it a draft with no live dates yet.</div>'
+          + '<div class="hint" style="margin-top:-8px">Leave blank if the run dates are not fixed yet.</div>'
           + alert_(S.start && S.end ? 'ok' : 'neutral',
-              'Status: <b>' + statusOf(S) + '</b>'
-              + (S.start && S.end ? ' · ' + fmtRange(S.start, S.end) : ' — derived from the dates above, never set by hand'));
+              S.start && S.end
+                ? 'Runs ' + fmtRange(S.start, S.end) + '. Outside this window every surface hides automatically.'
+                : 'No dates set — no surface will show. Dates control <b>when</b> the campaign appears; <b>Status</b> (set in Basics, currently ' + statusOf(S) + ') is its workflow state. The two are independent.');
         break;
 
       case 3:
@@ -267,7 +275,7 @@
       case 6:
         var promo = promoLabels(S);
         h = head('Review &amp; publish', 'Confirm before scheduling. The campaign references live items by ID — it never changes them.')
-          + '<div class="review">'
+          + '<div class="reviewbox">'
           + rr('Campaign name', esc(S.name) || '<span class="dash">—</span>')
           + rr('Tagline', esc(S.tagline) || '<span class="dash">none</span>')
           + rr('Cover Photo', esc(S.cover) || '<span class="dash">none</span>')

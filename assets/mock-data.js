@@ -30,7 +30,7 @@ var SEED_CAMPAIGNS = [
     promoHero:true, ctaLabel:'View campaign', link:'/campaigns/christmas-2026',
     promoBanner:true,
     story:'',
-    archived:false,
+    status:'REVIEW',
     createdAt:'2026-06-02T09:14:00Z', updatedAt:'2026-07-28T16:40:00Z'
   },
   {
@@ -46,7 +46,7 @@ var SEED_CAMPAIGNS = [
     promoHero:true, ctaLabel:'Meet this month’s cause', link:'/campaigns/hidden-causes',
     promoBanner:true,
     story:'Each month a different project takes the spotlight. The others stay visible in the grid, waiting their turn — so nothing gets lost and nothing gets rushed.',
-    archived:false,
+    status:'ONGOING',
     createdAt:'2025-12-08T11:02:00Z', updatedAt:'2026-07-01T08:15:00Z'
   },
   {
@@ -62,7 +62,7 @@ var SEED_CAMPAIGNS = [
     promoHero:true, ctaLabel:'Give now', link:'/campaigns/monsoon-relief',
     promoBanner:true,
     story:'',
-    archived:false,
+    status:'ONGOING',
     createdAt:'2026-06-18T14:30:00Z', updatedAt:'2026-07-29T10:05:00Z'
   },
   {
@@ -78,7 +78,7 @@ var SEED_CAMPAIGNS = [
     promoHero:false, ctaLabel:'View campaign', link:'/campaigns/clean-water-month',
     promoBanner:true,
     story:'',
-    archived:false,
+    status:'REVIEW',
     createdAt:'2026-07-11T07:48:00Z', updatedAt:'2026-07-22T13:20:00Z'
   },
   {
@@ -94,7 +94,7 @@ var SEED_CAMPAIGNS = [
     promoHero:false, ctaLabel:'View campaign', link:'/campaigns/lunar-new-year-2026',
     promoBanner:false,
     story:'',
-    archived:false,
+    status:'COMPLETED',
     createdAt:'2025-11-30T10:00:00Z', updatedAt:'2026-02-23T09:00:00Z'
   },
   {
@@ -110,7 +110,7 @@ var SEED_CAMPAIGNS = [
     promoHero:false, ctaLabel:'View campaign', link:'',
     promoBanner:false,
     story:'',
-    archived:false,
+    status:'DRAFT',
     createdAt:'2026-07-25T15:12:00Z', updatedAt:'2026-07-25T15:12:00Z'
   },
   {
@@ -126,7 +126,7 @@ var SEED_CAMPAIGNS = [
     promoHero:false, ctaLabel:'View campaign', link:'/campaigns/gala-2026',
     promoBanner:false,
     story:'',
-    archived:true,
+    status:'ARCHIVED',
     createdAt:'2026-01-15T09:30:00Z', updatedAt:'2026-06-10T11:45:00Z'
   },
   {
@@ -142,7 +142,7 @@ var SEED_CAMPAIGNS = [
     promoHero:false, ctaLabel:'View campaign', link:'/campaigns/easter-2026',
     promoBanner:true,
     story:'',
-    archived:false,
+    status:'COMPLETED',
     createdAt:'2026-02-20T13:00:00Z', updatedAt:'2026-04-13T08:30:00Z'
   }
 ];

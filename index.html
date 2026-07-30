@@ -54,7 +54,57 @@
     {key:'action',    label:'Action',       sortable:false, w:155}
   ];
 
-  var V = { status:'All', q:'', searchOpen:false, sort:'updatedAt', dir:'desc', delId:null };
+  var PAGE_SIZES = [10, 20, 50, 100];
+  var V = { status:'All', q:'', searchOpen:false, sort:'updatedAt', dir:'desc',
+            page:1, pageSize:20, delId:null };
+
+  /* Ant-style page list: first, last, a window around the current page, and
+     ellipses for the gaps. */
+  function pageList(cur, total){
+    var out = [], i;
+    if(total <= 7){
+      for(i = 1; i <= total; i++) out.push(i);
+      return out;
+    }
+    var lo = Math.max(2, cur - 1), hi = Math.min(total - 1, cur + 1);
+    if(cur <= 4){ lo = 2; hi = 5; }
+    if(cur >= total - 3){ lo = total - 4; hi = total - 1; }
+    out.push(1);
+    if(lo > 2) out.push('gap');
+    for(i = lo; i <= hi; i++) out.push(i);
+    if(hi < total - 1) out.push('gap');
+    out.push(total);
+    return out;
+  }
+
+  /* Drop the sticky-column shadow once the table is scrolled fully right —
+     at that point the Action column is not covering anything. */
+  function updateScrollShadow(){
+    var w = CONTENT.querySelector('.tablewrap');
+    if(!w) return;
+    w.classList.toggle('pin-right', w.scrollWidth - w.clientWidth - w.scrollLeft > 1);
+  }
+  window.addEventListener('resize', updateScrollShadow);
+
+  function gotoPage(p){ V.page = p; render(); window.scrollTo(0, 0); }
+  function setPageSize(n){ V.pageSize = Number(n); V.page = 1; render(); }
+
+  function pager(totalPages){
+    var h = '<div class="pager">'
+      + '<button class="arw" onclick="gotoPage(' + (V.page - 1) + ')"' + (V.page === 1 ? ' disabled' : '') + '>‹</button>';
+    pageList(V.page, totalPages).forEach(function(p){
+      h += p === 'gap'
+        ? '<span class="gap">•••</span>'
+        : '<button class="pg' + (p === V.page ? ' on' : '') + '" onclick="gotoPage(' + p + ')">' + p + '</button>';
+    });
+    h += '<button class="arw" onclick="gotoPage(' + (V.page + 1) + ')"' + (V.page === totalPages ? ' disabled' : '') + '>›</button>'
+      + '<select onchange="setPageSize(this.value)">'
+      + PAGE_SIZES.map(function(n){
+          return '<option value="' + n + '"' + (V.pageSize === n ? ' selected' : '') + '>' + n + ' / page</option>';
+        }).join('')
+      + '</select></div>';
+    return h;
+  }
 
   /* ----- data shaping ----- */
   function sortVal(c, key){
@@ -94,14 +144,16 @@
   function applySearch(){
     V.q      = document.getElementById('fq').value.trim();
     V.status = document.getElementById('fstatus').value;
+    V.page   = 1;
     render();
   }
-  function resetSearch(){ V.q = ''; V.status = 'All'; render(); }
+  function resetSearch(){ V.q = ''; V.status = 'All'; V.page = 1; render(); }
   function refreshList(){ render(); toast('List refreshed'); }
 
   function sortBy(key){
     if(V.sort === key){ V.dir = V.dir === 'asc' ? 'desc' : 'asc'; }
     else { V.sort = key; V.dir = 'asc'; }
+    V.page = 1;
     render();
   }
 
@@ -123,8 +175,8 @@
       + '<button class="btn blue" onclick="toggleSearch()">' + icon('search', 16) + 'Toggle Search</button>'
       + '<span class="spacer" style="flex:1"></span>'
       + '<span class="tfoot" style="padding:0">' + all.length + ' total · '
-      +   (counts.Live || 0) + ' live · ' + (counts.Scheduled || 0) + ' scheduled · '
-      +   (counts.Draft || 0) + ' draft</span>'
+      +   (counts.ONGOING || 0) + ' ongoing · ' + (counts.REVIEW || 0) + ' review · '
+      +   (counts.DRAFT || 0) + ' draft</span>'
       + '</div>';
 
     h += '<div class="searchpanel' + (V.searchOpen ? ' show' : '') + '">'
@@ -144,6 +196,10 @@
       + '</div>';
 
     var list = rows();
+    var totalPages = Math.max(1, Math.ceil(list.length / V.pageSize));
+    if(V.page > totalPages) V.page = totalPages;
+    var offset = (V.page - 1) * V.pageSize;
+    var page   = list.slice(offset, offset + V.pageSize);
 
     if(!list.length){
       h += '<div class="tablewrap"><div class="empty">'
@@ -166,19 +222,18 @@
         }).join('')
       + '</tr></thead><tbody>';
 
-    list.forEach(function(c, i){
+    page.forEach(function(c, i){
       var st     = statusOf(c);
       var orgs   = orgsOf(c.items);
       var promo  = promoLabels(c);
       var detail = 'campaign.html?id=' + encodeURIComponent(c.id);
       var edit   = 'create.html?id=' + encodeURIComponent(c.id);
 
-      h += '<tr class="' + (c.archived ? 'archived' : '') + '">'
-        + '<td class="num">' + (i + 1) + '</td>'
+      h += '<tr class="' + (st === 'ARCHIVED' ? 'archived' : '') + '">'
+        + '<td class="num">' + (offset + i + 1) + '</td>'
         + '<td><a class="idlink" href="' + detail + '">' + esc(c.id) + '</a></td>'
 
-        + '<td><a class="tname" href="' + detail + '">' + esc(c.name || 'Untitled campaign') + '</a>'
-        +   '<div class="tsub">' + (c.tagline ? esc(c.tagline) : '<span class="dash">no tagline</span>') + '</div></td>'
+        + '<td><a class="tname" href="' + detail + '">' + esc(c.name || 'Untitled campaign') + '</a></td>'
 
         + '<td>' + stText(st) + '</td>'
         + '<td class="nowrap num">' + (c.start ? fmtDate(c.start) : '<span class="dash">—</span>') + '</td>'
@@ -200,26 +255,36 @@
         + '<td class="nowrap">' + fmtAgo(c.updatedAt) + '</td>'
 
         + '<td><div class="rowacts">'
+        +   '<button title="Publish view" onclick="publishView(\'' + c.id + '\')">' + icon('doc', 18) + '</button>'
         +   '<button title="View detail" onclick="location.href=\'' + detail + '\'">' + icon('eye', 18) + '</button>'
         +   '<button title="Edit" onclick="location.href=\'' + edit + '\'">' + icon('pencil', 18) + '</button>'
-        +   '<button title="' + (c.archived ? 'Restore' : 'Archive') + '" onclick="doArchive(\'' + c.id + '\',' + (c.archived ? 'false' : 'true') + ')">' + icon('archive', 18) + '</button>'
         +   '<button class="del" title="Delete" onclick="askDelete(\'' + c.id + '\')">' + icon('trash', 18) + '</button>'
         + '</div></td>'
         + '</tr>';
     });
 
     h += '</tbody></table></div>'
-      + '<div class="tfoot"><span>Showing ' + list.length + ' of ' + all.length + ' campaigns</span>'
-      + '<button class="linkbtn" onclick="doReset()">Reset prototype data</button></div>';
+      + '<div class="tfoot">'
+      +   '<span class="left">Showing ' + (offset + 1) + '–' + (offset + page.length) + ' of ' + list.length
+      +     (list.length === all.length ? '' : ' (filtered from ' + all.length + ')')
+      +     ' campaigns'
+      +     '<button class="linkbtn" onclick="doReset()">Reset prototype data</button></span>'
+      +   pager(totalPages)
+      + '</div>';
 
     CONTENT.innerHTML = h;
+
+    /* Wrapper is recreated on every render, so rebind its scroll listener. */
+    CONTENT.querySelector('.tablewrap').addEventListener('scroll', updateScrollShadow);
+    updateScrollShadow();
   }
 
   /* ----- actions ----- */
-  function doArchive(id, archived){
-    var c = setArchived(id, archived);
-    render();
-    toast('“' + (c.name || 'Untitled campaign') + '” ' + (archived ? 'archived' : 'restored'));
+  /* Opens the public-facing campaign page. The front-end route is not part of
+     this prototype — the BE dev wires it up during integration. */
+  function publishView(id){
+    var c = getCampaign(id);
+    toast('Publish view → ' + (c.link || '/campaigns/' + c.id));
   }
 
   function askDelete(id){

@@ -88,21 +88,22 @@
       + '<span class="meta">' + stText(st) + '</span>'
       + '<span class="spacer"></span>'
       + '<div class="acts">'
-      +   '<button class="btn" onclick="doArchive(' + (C.archived ? 'false' : 'true') + ')">' + icon('archive', 16) + (C.archived ? 'Restore' : 'Archive') + '</button>'
+      +   '<button class="btn" onclick="publishView()">' + icon('doc', 16) + 'Publish view</button>'
       +   '<button class="btn dangerbtn" onclick="askDelete()">' + icon('trash', 16) + 'Delete</button>'
       +   '<a class="btn primary" href="' + editLink(0) + '">' + icon('pencil', 16) + 'Edit</a>'
       + '</div></div>';
 
-    if(C.archived){
+    if(st === 'ARCHIVED'){
       h += '<div class="alert warn" style="margin:0 0 22px">' + icon('archive', 16)
-        + '<span>This campaign is archived — it is hidden from every public surface.</span></div>';
+        + '<span>This campaign is archived — it is hidden from every public surface. '
+        + 'Change the status in <a class="linkbtn" href="' + editLink(0) + '">Basics</a> to bring it back.</span></div>';
     }
 
     h += '<div class="detailcols"><div class="formcard">';
 
     /* 0 — Basics */
     h += block(0, 'Basics',
-        ro('ID', C.id)
+        '<div class="grid2">' + ro('ID', C.id) + ro('Status', st) + '</div>'
       + ro('Campaign name', C.name)
       + ro('Tagline', C.tagline)
       + ro('Intro line', C.intro, {area:true})
@@ -153,8 +154,7 @@
       +   ro('Start date', C.start ? fmtDate(C.start) : '')
       +   ro('End date', C.end ? fmtDate(C.end) : '')
       + '</div>'
-      + ro('Status', st.toUpperCase())
-      + '<div class="hint" style="margin-top:-14px">Derived from the dates — never set by hand.</div>');
+      + '<div class="hint" style="margin-top:-14px">Run window only — outside it every surface hides. Workflow state lives in Status.</div>');
 
     /* 3 — Display */
     h += block(3, 'Display',
@@ -210,10 +210,10 @@
     CONTENT.innerHTML = h;
   }
 
-  function doArchive(archived){
-    C = setArchived(C.id, archived);
-    render();
-    toast('“' + (C.name || 'Untitled campaign') + '” ' + (archived ? 'archived' : 'restored'));
+  /* Opens the public-facing campaign page. The front-end route is not part of
+     this prototype — the BE dev wires it up during integration. */
+  function publishView(){
+    toast('Publish view → ' + (C.link || '/campaigns/' + C.id));
   }
 
   function askDelete(){

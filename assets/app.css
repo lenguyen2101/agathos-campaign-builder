@@ -188,6 +188,23 @@ table.ct tbody tr:last-child td{border-bottom:none;}
 table.ct tbody tr:hover{background:#FAFAFA;}
 table.ct tbody tr.archived td{color:var(--muted);}
 
+/* Action column pinned to the right edge while the rest scrolls under it.
+   The shadow lives on a pseudo-element, not box-shadow on the cell: Chrome
+   does not paint box-shadow on table cells while border-collapse is collapse. */
+table.ct th:last-child,
+table.ct td:last-child{position:sticky;right:0;background:#fff;z-index:1;border-left:1px solid var(--split);}
+table.ct th:last-child{background:#FAFAFA;z-index:2;}
+table.ct tbody tr:hover td:last-child{background:#FAFAFA;}
+/* Shadow only while there is still content to scroll past — it fades out once
+   the Action column stops covering anything. .pin-right is toggled in JS. */
+table.ct th:last-child::after,
+table.ct td:last-child::after{content:'';position:absolute;top:0;bottom:0;left:0;width:30px;
+  transform:translateX(-100%);pointer-events:none;
+  box-shadow:inset -12px 0 10px -8px rgba(0,0,0,.11);
+  opacity:0;transition:opacity .25s ease;}
+.tablewrap.pin-right table.ct th:last-child::after,
+.tablewrap.pin-right table.ct td:last-child::after{opacity:1;}
+
 .caret{display:inline-flex;flex-direction:column;gap:1px;color:var(--hint);flex:none;}
 .caret i{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;}
 .caret i.up{border-bottom:5px solid currentColor;}
@@ -208,10 +225,10 @@ td .tagrow{flex-wrap:nowrap;}
 /* status as plain uppercase text, matching the Project / Event tables */
 .st{font-size:13px;font-weight:600;letter-spacing:0.02em;white-space:nowrap;}
 .st.draft{color:var(--muted);}
-.st.scheduled{color:var(--link);}
-.st.live{color:#389E0D;}
-.st.ended{color:var(--hint);}
-.st.archived{color:#D48806;}
+.st.review{color:#D48806;}
+.st.ongoing{color:#389E0D;}
+.st.completed{color:#0958D9;}
+.st.archived{color:var(--hint);}
 
 .rowacts{display:flex;align-items:center;gap:4px;}
 .rowacts button{width:30px;height:30px;border:none;background:none;border-radius:var(--radius);color:var(--ink-2);display:flex;align-items:center;justify-content:center;}
@@ -219,7 +236,23 @@ td .tagrow{flex-wrap:nowrap;}
 .rowacts button.del{color:var(--danger);}
 .rowacts button.del:hover{background:#FFF1F0;color:var(--danger-hover);}
 
-.tfoot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 2px 0;font-size:14px;color:var(--muted);}
+.tfoot{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 2px 0;font-size:14px;color:var(--muted);flex-wrap:wrap;}
+.tfoot .left{display:flex;align-items:center;gap:12px;}
+
+/* ---------- pagination ---------- */
+.pager{display:flex;align-items:center;gap:8px;}
+.pager .pg,.pager .arw{min-width:32px;height:32px;padding:0 6px;border:1px solid transparent;border-radius:var(--radius);background:none;font-size:14px;color:var(--ink);display:flex;align-items:center;justify-content:center;}
+.pager .pg:hover,.pager .arw:hover:not([disabled]){color:var(--link);}
+.pager .pg.on{border-color:var(--link);color:var(--link);font-weight:600;}
+.pager .pg.on:hover{border-color:var(--link-hover);color:var(--link-hover);}
+.pager .arw{color:var(--muted);}
+.pager .arw[disabled]{color:var(--hint);cursor:default;}
+.pager .gap{min-width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--hint);letter-spacing:2px;}
+.pager select{height:32px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;font-size:14px;color:var(--ink);background:#fff;padding:0 30px 0 11px;margin-left:4px;
+  appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238C8C8C' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat:no-repeat;background-position:right 10px center;}
+.pager select:hover{border-color:var(--link);}
 
 .empty{padding:64px 24px;text-align:center;color:var(--muted);}
 .empty .ei{color:var(--hint);margin:0 auto 12px;}
@@ -286,7 +319,9 @@ td .tagrow{flex-wrap:nowrap;}
 .alert.warn{background:var(--gold-bg);border-color:var(--gold-line);color:#AD6800;}
 
 /* ---------- review table ---------- */
-.review{border:1px solid var(--split);border-radius:var(--radius);overflow:hidden;}
+/* Not `.review` — that also matched the REVIEW status span (class="st review")
+   and drew a border around it. */
+.reviewbox{border:1px solid var(--split);border-radius:var(--radius);overflow:hidden;}
 .rr{display:grid;grid-template-columns:190px minmax(0,1fr);border-top:1px solid var(--split);}
 .rr:first-child{border-top:none;}
 .rr .k{padding:12px 16px;font-size:14px;color:var(--muted);background:#FAFAFA;}
