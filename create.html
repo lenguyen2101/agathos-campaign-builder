@@ -341,10 +341,9 @@
           + '<div class="switchrow"><button class="sw' + (S.promoHero ? ' on' : '') + '" onclick="toggle(\'promoHero\')"><i></i></button>'
           + '<div class="tt"><div class="tk">Show on homepage hero</div><div class="ts">Adds a rotating slide on the homepage.</div>'
           + (S.promoHero
-              ? '<div class="subfields grid2">'
-                + '<div class="field"><label>CTA label</label><input class="ctl" type="text" value="' + esc(S.ctaLabel) + '" oninput="setField(\'ctaLabel\',this.value)"></div>'
-                + '<div class="field"><label>Link</label><input class="ctl" type="text" value="' + esc(S.link) + '" oninput="setField(\'link\',this.value)" placeholder="/campaigns/…"></div>'
-                + '</div>'
+              ? '<div class="subfields"><div class="field" style="max-width:340px"><label>CTA label</label>'
+                + '<input class="ctl" type="text" value="' + esc(S.ctaLabel) + '" oninput="setField(\'ctaLabel\',this.value)">'
+                + '<div class="hint">The slide links to the campaign page automatically.</div></div></div>'
               : '')
           + '</div></div>'
           + '<div class="switchrow"><button class="sw' + (S.promoBanner ? ' on' : '') + '" onclick="toggle(\'promoBanner\')"><i></i></button>'

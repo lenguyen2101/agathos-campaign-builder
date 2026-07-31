@@ -189,7 +189,6 @@
       + '</div>'
       + '<div class="grid2">'
       +   ro('CTA label', C.promoHero ? C.ctaLabel : '')
-      +   ro('Link', C.promoHero ? C.link : '')
       + '</div>');
 
     /* 5 — About */
@@ -209,7 +208,7 @@
   /* Opens the public-facing campaign page. The front-end route is not part of
      this prototype — the BE dev wires it up during integration. */
   function publishView(){
-    toast('Publish view → ' + (C.link || '/campaigns/' + C.id));
+    toast('Opens the public campaign page');
   }
 
   function askDelete(){

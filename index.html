@@ -280,8 +280,7 @@
   /* Opens the public-facing campaign page. The front-end route is not part of
      this prototype — the BE dev wires it up during integration. */
   function publishView(id){
-    var c = getCampaign(id);
-    toast('Publish view → ' + (c.link || '/campaigns/' + c.id));
+    toast('Opens the public campaign page');
   }
 
   function askDelete(id){
