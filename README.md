@@ -113,7 +113,14 @@ async function getCampaign(id){
 | `spotlight` | boolean | feature one item at a time |
 | `promoHero` | boolean | offer this campaign to the homepage carousel |
 | `ctaLabel` | string | button wording on the hero slide; only meaningful when `promoHero` is on |
+| `heroEyebrow` | string | the slide's own copy — see below |
+| `heroTitle` | string | **required once `promoHero` is on** |
+| `heroSubtitle` | string | |
+| `heroBannerDesktop` | string | **required once `promoHero` is on** — 1920×1080 (16:9) |
+| `heroBannerMobile` | string | 375×667 (9:16) |
 | `promoBanner` | boolean | show a "part of this campaign" band on every included item page |
+| `bannerPromoDesktop` | string | the band image — 764×254 (3:1) |
+| `bannerPromoMobile` | string | 375×250 (3:2) |
 | `aboutTitle` | string | heading of the ABOUT THIS CAMPAIGN block |
 | `aboutBody` | string | **rich-text HTML** — see the security note below |
 | `createdAt`, `updatedAt` | string | ISO 8601 |
@@ -227,6 +234,15 @@ and `slideLive()`.
 > ⚠️ The live rule above was inferred from the design, not specified. Confirm it
 > with product before implementing.
 
+**The homepage slide has its own copy.** `heroEyebrow` / `heroTitle` /
+`heroSubtitle` / `heroBannerDesktop` / `heroBannerMobile` are separate fields
+from the campaign page's `eyebrow` / `name` / `subtitle` / `bannerDesktop` /
+`bannerMobile`. They are seeded from Basics the first time the admin switches
+`promoHero` on (`seedHeroFromBasics()`), and nothing copies between them again —
+a later rename on the campaign page must not silently rewrite the homepage.
+`slideCopy()` reads the hero fields only, and a campaign slide missing its title
+or desktop banner is held back exactly like an incomplete free slide.
+
 **A campaign never mutates the items it references.** It holds IDs only.
 
 ---
@@ -275,7 +291,10 @@ following it keeps the Campaign layer consistent:
   screen. Each section links back to the matching wizard step.
 - **Wizard** — 7 steps: `Basics · Add items · Schedule · Display · Promotion ·
   About · Review`. A step is ticked when it actually holds content, never
-  because you walked past it.
+  because you walked past it. **Save** sits both in the page header and next to
+  the step buttons, because the header one gets missed. Creating shows
+  `Back · Save · Next`; editing drops Next — the rail is the navigation there,
+  so each section just saves.
 
 Two details worth keeping because they took iterations to get right:
 
@@ -290,7 +309,7 @@ Two details worth keeping because they took iterations to get right:
 ## Prototype-only — do not port
 
 - `localStorage` persistence, and the `STORE_KEY` / `HERO_KEY` / `FREE_KEY`
-  version bumps (`agathos.campaigns.v8`, `agathos.hero.v2`,
+  version bumps (`agathos.campaigns.v9`, `agathos.hero.v2`,
   `agathos.freeslides.v1`). The version suffix exists so stale local data
   reseeds during prototyping.
 - Every **Reset** button, `resetStore()`, `resetHero()` and `resetFreeSlides()`.

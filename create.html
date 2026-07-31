@@ -42,6 +42,9 @@
   document.getElementById('okIcon').innerHTML = icon('check', 22);
 
   var STEPS = ['Basics','Add items','Schedule','Display','Promotion','About','Review'];
+
+  /* Each upload slot is locked to the ratio the surface actually renders at. */
+  var RATIO_CLASS = { '16:9':'', '9:16':'mob', '3:1':'r31', '3:2':'r32' };
   var NAME_MAX = 100, SUBTITLE_MAX = 200, EYEBROW_MAX = 40, ABOUT_TITLE_MAX = 90;
 
   /* S = the campaign being edited. U = UI-only state, never saved. */
@@ -97,7 +100,10 @@
       +   '<div class="panel"><div class="pbody" id="stepbody"></div>'
       +     '<div class="wiznav">'
       +       '<button class="btn" id="backbtn" onclick="back()">Back</button>'
-      +       '<div class="right"><button class="btn primary" id="nextbtn" onclick="next()">Next</button></div>'
+      +       '<div class="right">'
+      +         '<button class="btn" id="savebtn" onclick="saveDraft()">' + icon('save', 16) + 'Save</button>'
+      +         '<button class="btn primary" id="nextbtn" onclick="next()">Next</button>'
+      +       '</div>'
       +     '</div>'
       +   '</div>'
       +   '<div class="aside" id="aside"></div>'
@@ -123,6 +129,9 @@
   function toggle(k){
     S[k] = !S[k];
     if(k === 'spotlight') U.dropped = '';
+    /* Switching the hero on for the first time starts the slide off as a copy of
+       Basics; from then on the two drift apart on purpose. */
+    if(k === 'promoHero' && S.promoHero) seedHeroFromBasics(S);
     markDirty(); renderStep(); renderAside();
   }
   function setSearch(v){ U.search = v; renderStep(); }
@@ -198,7 +207,7 @@
   function uploadBox(field, ratio, dims){
     var v = S[field];
     var src = localPreview[field] || v;
-    return '<div class="upload' + (ratio === '9:16' ? ' mob' : '') + '">'
+    return '<div class="upload' + (RATIO_CLASS[ratio] ? ' ' + RATIO_CLASS[ratio] : '') + '">'
       + (v
           ? '<img src="' + esc(src) + '" alt="" onerror="imgBroken(this)">'
             + '<div class="fallback">' + esc(v) + '</div>'
@@ -400,16 +409,66 @@
       case 4:
         h = head('Promotion', 'Where this campaign appears. Both are optional and can be turned on later.')
           + '<div class="switchrow"><button class="sw' + (S.promoHero ? ' on' : '') + '" onclick="toggle(\'promoHero\')"><i></i></button>'
-          + '<div class="tt"><div class="tk">Show on homepage hero</div><div class="ts">Adds a rotating slide on the homepage.</div>'
-          + (S.promoHero
-              ? '<div class="subfields"><div class="field" style="max-width:340px"><label>CTA label</label>'
-                + '<input class="ctl" type="text" value="' + esc(S.ctaLabel) + '" oninput="setField(\'ctaLabel\',this.value)">'
-                + '<div class="hint">The slide links to the campaign page automatically.</div></div></div>'
-              : '')
-          + '</div></div>'
+          + '<div class="tt"><div class="tk">Show on homepage hero</div>'
+          + '<div class="ts">Adds a rotating slide on the homepage.</div>';
+
+        if(S.promoHero){
+          var gaps = heroSlideMissing(S);
+          h += '<div class="subfields">'
+             + '<div class="hint" style="margin:-4px 0 14px">These fields are copied from Basics the first time you '
+             + 'switch this on, then belong to the slide. Editing them changes the homepage only — the campaign page '
+             + 'keeps its own hero.</div>'
+
+             + '<div class="grid2">'
+             +   '<div class="field"><label>Eyebrow</label>'
+             +     '<div class="counted"><input class="ctl" type="text" value="' + esc(S.heroEyebrow) + '" maxlength="' + EYEBROW_MAX + '"'
+             +     ' oninput="setCounted(\'heroEyebrow\',this.value,' + EYEBROW_MAX + ',this)" placeholder="e.g. EMERGENCY APPEAL">'
+             +     '<span class="count">' + S.heroEyebrow.length + ' / ' + EYEBROW_MAX + '</span></div></div>'
+             +   '<div class="field"><label>CTA label</label>'
+             +     '<input class="ctl" type="text" value="' + esc(S.ctaLabel) + '" oninput="setField(\'ctaLabel\',this.value)">'
+             +     '<div class="hint">The slide links to the campaign page automatically.</div></div>'
+             + '</div>'
+
+             + '<div class="field"><label><span class="req">*</span>Slide title</label>'
+             +   '<div class="counted"><input class="ctl' + (S.promoHero && !S.heroTitle ? ' bad' : '') + '" type="text"'
+             +   ' value="' + esc(S.heroTitle) + '" maxlength="' + NAME_MAX + '"'
+             +   ' oninput="setCounted(\'heroTitle\',this.value,' + NAME_MAX + ',this)" placeholder="Headline on the homepage slide">'
+             +   '<span class="count">' + S.heroTitle.length + ' / ' + NAME_MAX + '</span></div></div>'
+
+             + '<div class="field"><label>Slide subtitle</label>'
+             +   '<div class="counted"><textarea class="ctl" style="min-height:78px;padding-right:74px" maxlength="' + SUBTITLE_MAX + '"'
+             +   ' oninput="setCounted(\'heroSubtitle\',this.value,' + SUBTITLE_MAX + ',this)"'
+             +   ' placeholder="One or two sentences on the slide">' + esc(S.heroSubtitle) + '</textarea>'
+             +   '<span class="count" style="top:18px;transform:none">' + S.heroSubtitle.length + ' / ' + SUBTITLE_MAX + '</span></div></div>'
+
+             + '<div class="grid2">'
+             +   '<div class="field"><label><span class="req">*</span>Slide desktop banner</label>'
+             +     uploadBox('heroBannerDesktop', '16:9', '1920 × 1080px') + '</div>'
+             +   '<div class="field"><label>Slide mobile banner <span style="color:var(--hint)">· optional</span></label>'
+             +     uploadBox('heroBannerMobile', '9:16', '375 × 667px') + '</div>'
+             + '</div>'
+
+             + (gaps.length
+                 ? alert_('warn', 'The slide stays off the homepage until it has a <b>'
+                     + gaps.join('</b> and a <b>') + '</b>.')
+                 : '')
+             + '</div>';
+        }
+
+        h += '</div></div>'
+
           + '<div class="switchrow"><button class="sw' + (S.promoBanner ? ' on' : '') + '" onclick="toggle(\'promoBanner\')"><i></i></button>'
           + '<div class="tt"><div class="tk">Show in-project / event banner</div>'
-          + '<div class="ts">Injects a “Part of this campaign” band on every included project and event page.</div></div></div>';
+          + '<div class="ts">Injects a “Part of this campaign” band on every included project and event page.</div>'
+          + (S.promoBanner
+              ? '<div class="subfields"><div class="grid2">'
+                + '<div class="field"><label>Band desktop</label>'
+                +   uploadBox('bannerPromoDesktop', '3:1', '764 × 254px') + '</div>'
+                + '<div class="field"><label>Band mobile</label>'
+                +   uploadBox('bannerPromoMobile', '3:2', '375 × 250px') + '</div>'
+                + '</div></div>'
+              : '')
+          + '</div></div>';
         break;
 
       case 5:
@@ -462,6 +521,16 @@
                   : 'on · ' + esc(catItem(S.featured).name))
               : '<span class="dash">off</span>')
           + rr('Promotion', promo.length ? promo.join(' · ') : '<span class="dash">none</span>')
+          + (S.promoHero
+              ? rr('Homepage slide', heroSlideMissing(S).length
+                    ? '<span class="bad">incomplete — ' + heroSlideMissing(S).join(', ').toLowerCase() + ' missing</span>'
+                    : esc(S.heroTitle) + ' <span style="color:var(--hint)">· button “' + esc(S.ctaLabel) + '”</span>')
+              : '')
+          + (S.promoBanner
+              ? rr('In-project band', S.bannerPromoDesktop
+                    ? esc(S.bannerPromoDesktop) + (S.bannerPromoMobile ? '' : ' <span style="color:var(--hint)">· no mobile version</span>')
+                    : '<span class="dash">no image uploaded</span>')
+              : '')
           + rr('About block', (S.aboutTitle || !richEmpty(S.aboutBody))
               ? esc(S.aboutTitle || '(no heading)')
               : '<span class="dash">hidden</span>')
@@ -482,15 +551,33 @@
     document.getElementById('stepbody').innerHTML = h;
     document.getElementById('backbtn').disabled = (U.step === 0);
 
+    /* Creating walks the steps in order, so Next leads and Save sits beside it.
+       Editing is a jump-to-the-section job — the rail is the navigation, so Next
+       goes away and each section just saves. */
     var nb = document.getElementById('nextbtn');
-    if(U.step === STEPS.length - 1){
-      nb.innerHTML = icon('save', 16) + (S.id ? 'Save changes' : 'Schedule campaign');
-      nb.onclick = publish;
-      nb.disabled = missingRequired().length > 0;
+    var sb = document.getElementById('savebtn');
+    var last = (U.step === STEPS.length - 1);
+
+    if(S.id){
+      nb.style.display = last ? '' : 'none';
+      sb.className = last ? 'btn' : 'btn primary';
+      if(last){
+        nb.innerHTML = icon('save', 16) + 'Save changes';
+        nb.onclick = publish;
+        nb.disabled = missingRequired().length > 0;
+      }
     } else {
-      nb.textContent = 'Next';
-      nb.onclick = next;
-      nb.disabled = false;
+      nb.style.display = '';
+      sb.className = 'btn';
+      if(last){
+        nb.innerHTML = icon('save', 16) + 'Schedule campaign';
+        nb.onclick = publish;
+        nb.disabled = missingRequired().length > 0;
+      } else {
+        nb.textContent = 'Next';
+        nb.onclick = next;
+        nb.disabled = false;
+      }
     }
   }
 

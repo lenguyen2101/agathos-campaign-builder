@@ -35,7 +35,16 @@
      spotlight     boolean
      promoHero     boolean
      ctaLabel      string      only meaningful when promoHero=true
-     promoBanner   boolean
+
+     heroEyebrow        string  the homepage slide's own copy — independent of
+     heroTitle          string  the five fields above it, because the slide and
+     heroSubtitle       string  the campaign page often need to say different
+     heroBannerDesktop  string  things. Seeded from Basics the moment promoHero
+     heroBannerMobile   string  is switched on, then never touched again.
+
+     promoBanner        boolean
+     bannerPromoDesktop string  the 'part of this campaign' band — 764x254 (3:1)
+     bannerPromoMobile  string  375x250 (3:2)
      aboutTitle    string      heading of the ABOUT THIS CAMPAIGN block
      aboutBody     string      body of that block, as rich-text HTML
      createdAt     string      ISO 8601
@@ -70,7 +79,7 @@
 
 /* Bumped when the Campaign shape changes, so stale localStorage reseeds
    instead of silently rendering records that miss the new fields. */
-var STORE_KEY = 'agathos.campaigns.v8';
+var STORE_KEY = 'agathos.campaigns.v9';
 
 /* ---------------------------------------------------------------- DATA ACCESS */
 
@@ -143,9 +152,32 @@ function newCampaign(){
     start:'', end:'',
     spotlight:false,
     promoHero:false, ctaLabel:'View Campaign',
+    heroEyebrow:'', heroTitle:'', heroSubtitle:'',
+    heroBannerDesktop:'', heroBannerMobile:'',
     promoBanner:false,
+    bannerPromoDesktop:'', bannerPromoMobile:'',
     aboutTitle:'', aboutBody:''
   };
+}
+
+/* The hero slide starts as a copy of the campaign page's own hero, then goes
+   its own way. Only ever called when the admin switches promoHero on, so
+   editing Basics later never overwrites slide copy the admin has since tuned. */
+function seedHeroFromBasics(c){
+  c.heroEyebrow       = c.heroEyebrow       || c.eyebrow;
+  c.heroTitle         = c.heroTitle         || c.name;
+  c.heroSubtitle      = c.heroSubtitle      || c.subtitle;
+  c.heroBannerDesktop = c.heroBannerDesktop || c.bannerDesktop;
+  c.heroBannerMobile  = c.heroBannerMobile  || c.bannerMobile;
+  return c;
+}
+
+/* What a campaign slide is missing before it can render on the homepage. */
+function heroSlideMissing(c){
+  var out = [];
+  if(!c.heroTitle)         out.push('Slide title');
+  if(!c.heroBannerDesktop) out.push('Slide desktop banner');
+  return out;
 }
 
 function statusOf(c){
@@ -450,6 +482,8 @@ function slideLive(s){
 
   var c = s.campaign;
   var st = statusOf(c);
+  var slideGaps = heroSlideMissing(c);
+  if(slideGaps.length)          return { live:false, why:'incomplete — ' + slideGaps.join(', ').toLowerCase() + ' missing' };
   if(st !== 'ONGOING')          return { live:false, why:'status is ' + st };
   if(!c.start || !c.end)        return { live:false, why:'no run dates set' };
   if(today < c.start)           return { live:false, why:'starts ' + fmtDate(c.start) };
@@ -460,10 +494,12 @@ function slideLive(s){
 /* Normalised view of a slide, whichever source it came from. */
 function slideCopy(s){
   if(s.kind === 'default' || s.kind === 'free') return s.slide;
+  /* The slide's own copy, not the campaign page's — the two are independent
+     fields precisely so a campaign can say something different on the homepage. */
   var c = s.campaign;
   return {
-    eyebrow:c.eyebrow, title:c.name, subtitle:c.subtitle,
-    bannerDesktop:c.bannerDesktop, bannerMobile:c.bannerMobile,
+    eyebrow:c.heroEyebrow, title:c.heroTitle, subtitle:c.heroSubtitle,
+    bannerDesktop:c.heroBannerDesktop, bannerMobile:c.heroBannerMobile,
     ctaLabel:c.ctaLabel
   };
 }

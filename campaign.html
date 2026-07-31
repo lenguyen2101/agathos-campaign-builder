@@ -188,14 +188,37 @@
           : ''));
 
     /* 4 — Promotion */
+    var slideGaps = heroSlideMissing(C);
     h += block(4, 'Promotion',
         '<div class="grid2">'
       +   ro('Homepage hero slide', C.promoHero ? 'ON' : 'OFF')
       +   ro('In-project / event banner', C.promoBanner ? 'ON' : 'OFF')
       + '</div>'
-      + '<div class="grid2">'
-      +   ro('CTA label', C.promoHero ? C.ctaLabel : '')
-      + '</div>');
+      /* The slide's copy is its own, so it is shown in full rather than implied
+         from Basics. */
+      + (C.promoHero
+          ? '<div class="grid2">'
+            +   ro('Slide eyebrow', C.heroEyebrow)
+            +   ro('CTA label', C.ctaLabel)
+            + '</div>'
+            + ro('Slide title', C.heroTitle)
+            + ro('Slide subtitle', C.heroSubtitle, {area:true})
+            + '<div class="grid2">'
+            +   '<div class="field"><label>Slide desktop banner</label>' + shot(C.heroBannerDesktop, '', 'Not set') + '</div>'
+            +   '<div class="field"><label>Slide mobile banner</label>' + shot(C.heroBannerMobile, ' mob', 'Falls back to desktop') + '</div>'
+            + '</div>'
+            + (slideGaps.length
+                ? '<div class="alert warn">' + icon('warn', 16)
+                  + '<span>The slide is missing its ' + esc(slideGaps.join(' and ').toLowerCase())
+                  + ', so it stays off the homepage.</span></div>'
+                : '')
+          : '')
+      + (C.promoBanner
+          ? '<div class="grid2">'
+            +   '<div class="field"><label>Band desktop · 764×254</label>' + shot(C.bannerPromoDesktop, ' r31', 'Not set') + '</div>'
+            +   '<div class="field"><label>Band mobile · 375×250</label>' + shot(C.bannerPromoMobile, ' r32', 'Not set') + '</div>'
+            + '</div>'
+          : ''));
 
     /* 5 — About */
     h += block(5, 'About this campaign', (C.aboutTitle || !richEmpty(C.aboutBody))

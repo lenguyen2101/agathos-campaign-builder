@@ -244,6 +244,9 @@ select.ctl{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xm
 .upload{position:relative;width:100%;max-width:290px;aspect-ratio:16/9;border:1px solid var(--border);
   border-radius:var(--radius);background:var(--fill);overflow:hidden;display:flex;align-items:center;justify-content:center;}
 .upload.mob{aspect-ratio:9/16;max-width:150px;}
+/* In-project band: 764x254 on desktop, 375x250 on mobile. */
+.upload.r31{aspect-ratio:3/1;}
+.upload.r32{aspect-ratio:3/2;max-width:200px;}
 .upload img{width:100%;height:100%;object-fit:cover;display:block;}
 .upload .add{width:44px;height:44px;border-radius:50%;border:none;background:#fff;
   box-shadow:0 1px 4px rgba(0,0,0,.14);color:var(--ink-2);display:flex;align-items:center;justify-content:center;}
