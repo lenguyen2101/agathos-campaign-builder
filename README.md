@@ -125,8 +125,15 @@ async function getCampaign(id){
 | `aboutBody` | string | **rich-text HTML** — see the security note below |
 | `createdAt`, `updatedAt` | string | ISO 8601 |
 
-`name` and `bannerDesktop` are the only required fields. The wizard blocks
-scheduling until both are set; saving an incomplete draft is always allowed.
+`name` and `bannerDesktop` are the only fields required to schedule a campaign;
+the wizard blocks the Schedule button until both are set, and saving an
+incomplete draft is always allowed.
+
+Two more become required conditionally, and neither blocks saving — they gate
+the surface instead. `heroTitle` and `heroBannerDesktop` are required once
+`promoHero` is on, or the slide is held off the homepage
+(`heroSlideMissing()`). `featured` is required once `spotlight` is on, or the
+spotlight section renders empty.
 
 ### Status
 
@@ -220,7 +227,7 @@ A **campaign slide** reaches the public homepage only when:
 status === 'ONGOING'  AND  start ≤ today ≤ end
 ```
 
-A **other slide** follows the same rule with two differences: a blank date is not
+An **other slide** follows the same rule with two differences: a blank date is not
 a bound (`ONGOING` with no dates = always live), and an incomplete slide is held
 back — no title, no desktop banner, or a button with no URL means it would
 render as a broken band, so it never ships. See `otherSlideMissing()`.
@@ -231,8 +238,9 @@ visible ones, so a slide that goes live again returns to the carousel instead of
 vanishing. Anything newly created or switched on is appended. See `heroSlides()`
 and `slideLive()`.
 
-> ⚠️ The live rule above was inferred from the design, not specified. Confirm it
-> with product before implementing.
+> ⚠️ The live rule above was inferred from the design, not specified, and the
+> completeness gate on top of it is an engineering decision rather than a
+> product one. Confirm both before implementing.
 
 **The homepage slide has its own copy.** `heroEyebrow` / `heroTitle` /
 `heroSubtitle` / `heroBannerDesktop` / `heroBannerMobile` are separate fields
@@ -243,6 +251,12 @@ a later rename on the campaign page must not silently rewrite the homepage.
 `slideCopy()` reads the hero fields only, and a campaign slide missing its title
 or desktop banner is held back exactly like an incomplete other slide.
 
+**`featured` is never reassigned for the admin.** It must be one of the IDs in
+`items`. Remove that item and the spotlight is *cleared*, not handed to the next
+item in the list — the admin is told which item went and picks the replacement.
+Treat a `featured` that is not in `items` as unset wherever you render it; the
+detail page already does.
+
 **A campaign never mutates the items it references.** It holds IDs only.
 
 ---
@@ -251,7 +265,7 @@ or desktop banner is held back exactly like an incomplete other slide.
 
 | Area | In the prototype | What is needed |
 |---|---|---|
-| Image upload | The file picker stores a path under `assets/img/` and previews the chosen file via `URL.createObjectURL`. Nothing is uploaded | Real upload + storage, returning a URL. Enforce 16:9 and 9:16 |
+| Image upload | The file picker stores a path under `assets/img/` and previews the chosen file via `URL.createObjectURL`. Nothing is uploaded | Real upload + storage, returning a URL. Four ratios are in play and each slot is locked to one: 16:9 (1920×1080), 9:16 (375×667), 3:1 (764×254) and 3:2 (375×250) |
 | `aboutBody` | Rich text via `contenteditable` + `execCommand`, chosen only because the prototype has no build step | Use the portal's own editor |
 | Publish view | Shows a toast | Open the generated public campaign URL |
 | Catalogue | Static array in `mock-data.js` | The real Project / Event list, with search and paging |
@@ -266,7 +280,7 @@ it that way and it is a stored XSS hole. Sanitise on write in the backend and
 render through a sanitiser in the front end. Every other field goes through
 `esc()`.
 
-The other admin-authored value that escapes plain text is a other slide's
+The other admin-authored value that escapes plain text is an other slide's
 `ctaUrl`, which becomes an `href` on the public homepage. Allow only `http(s)`
 and site-relative paths; reject `javascript:` and `data:` on write.
 
@@ -282,7 +296,9 @@ following it keeps the Campaign layer consistent:
 - **List table** — `Index | ID | Campaign | Status | Start Date | End Date |
   Items | Total Goal | Promotion | Spotlight | Last Updated | Action`, sortable
   headers with carets, Toggle Search panel, Refresh list, Ant-style pagination
-  with a page-size select.
+  with a page-size select. The Other Slides list is the same machinery with its
+  own columns: `Index | ID | Slide | Status | Start Date | End Date | Links to |
+  Homepage | Last Updated | Action`.
 - **Action column** — pinned right with a shadow that fades once the table is
   scrolled fully right; four icons: publish view, view, edit, delete.
 - **Status** — plain uppercase text, not a badge.
@@ -295,6 +311,9 @@ following it keeps the Campaign layer consistent:
   the step buttons, because the header one gets missed. Creating shows
   `Back · Save · Next`; editing drops Next — the rail is the navigation there,
   so each section just saves.
+- **Add items** — what is already in the campaign is listed above the catalogue,
+  in campaign order, each row removable. Reading the selection out of a scattered
+  set of "Added" buttons was the thing this step got wrong first.
 
 Two details worth keeping because they took iterations to get right:
 
@@ -332,7 +351,7 @@ slides.html           Other slide list
 slide.html            Other slide create / edit
 
 assets/store.js       ★ backend boundary + all derived rules and formatting
-assets/mock-data.js   seed campaigns, catalogue, hero config
+assets/mock-data.js   seed campaigns, catalogue, hero config, other slides
 assets/shell.js       left nav + top bar, shared by every page
 assets/app.css        design tokens and every component
 assets/img/           placeholder banners and item thumbnails
