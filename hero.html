@@ -176,18 +176,24 @@
         + '<div class="side">'
         +   (s.kind === 'default'
               ? '<span class="tag gold">DEFAULT</span>'
-              : '<span class="tag blue">CAMPAIGN</span>'
-                + '<a class="linkbtn" href="create.html?id=' + encodeURIComponent(s.id) + '&step=4">Edit</a>')
+              : s.kind === 'free'
+                ? '<span class="tag green">FREE</span>'
+                  + '<a class="linkbtn" href="slide.html?id=' + encodeURIComponent(s.id) + '">Edit</a>'
+                : '<span class="tag blue">CAMPAIGN</span>'
+                  + '<a class="linkbtn" href="create.html?id=' + encodeURIComponent(s.id) + '&step=4">Edit</a>')
         + '</div></div>';
     });
     list += '</div>';
 
     if(waiting.length){
+      /* Reads from slideCopy / slideLive rather than the campaign record, so a
+         free slide lists the same way a campaign one does. */
       list += '<div class="alert neutral" style="margin-top:14px">' + icon('inbox', 16)
-        + '<span>' + plural(waiting.length, 'campaign') + ' with the hero switch on '
-        + (waiting.length === 1 ? 'is' : 'are') + ' not running yet, so '
-        + (waiting.length === 1 ? 'it is' : 'they are') + ' not in the carousel: '
-        + waiting.map(function(s){ return '<b>' + esc(s.campaign.name) + '</b>'; }).join(', ')
+        + '<span>' + plural(waiting.length, 'slide') + ' held back — kept in the order, '
+        + 'but not on the homepage: '
+        + waiting.map(function(s){
+            return '<b>' + (esc(slideCopy(s).title) || 'Untitled') + '</b> (' + esc(slideLive(s).why) + ')';
+          }).join(', ')
         + '.</span></div>';
     }
 
@@ -219,7 +225,10 @@
 
     document.getElementById('body').innerHTML =
         block(1, 'Carousel order',
-              'Drag the rows to change the order donors see. ' + plural(live.length, 'slide') + ' running.', list)
+              'Drag the rows to change the order donors see. ' + plural(live.length, 'slide') + ' running. '
+              + 'Copy is edited where each slide lives: campaign slides in '
+              + '<a class="idlink" href="index.html">Campaign</a>, free slides in '
+              + '<a class="idlink" href="slides.html">Free Slides</a>, the default one below.', list)
       + block(2, 'Default agathos slide',
               'Always in the carousel and cannot be removed, so the homepage never runs empty. It belongs to no campaign, so its copy is edited here.',
               editor);

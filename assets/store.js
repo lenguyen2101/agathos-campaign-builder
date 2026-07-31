@@ -252,15 +252,15 @@ function toast(msg){
      defaultSlide  { eyebrow, title, subtitle, bannerDesktop, bannerMobile, ctaLabel }
      order         string[]   'default' plus campaign IDs, in carousel order
 
-   Campaign slides are NOT stored here. heroSlides() joins the stored order
-   against the campaigns that currently have promoHero on, so the campaign
-   record stays the single source of truth for a slide's copy and whether it
-   appears at all. Anything in `order` that no longer qualifies is skipped, and
-   anything newly switched on is appended — the stored order self-heals rather
-   than going stale.
+   Neither campaign slides nor free slides are stored here. heroSlides() joins
+   the stored order against the campaigns that currently have promoHero on and
+   against the free slides, so each record stays the single source of truth for
+   its own copy. Anything in `order` that no longer qualifies is skipped, and
+   anything new is appended — the stored order self-heals rather than going
+   stale.
    ============================================================================ */
 
-var HERO_KEY = 'agathos.hero.v1';
+var HERO_KEY = 'agathos.hero.v2';
 
 function getHero(){
   var raw = localStorage.getItem(HERO_KEY);
@@ -280,20 +280,133 @@ function saveHero(cfg){ localStorage.setItem(HERO_KEY, JSON.stringify(cfg)); ret
 
 function resetHero(){ localStorage.removeItem(HERO_KEY); }
 
+/* ============================================================================
+   FREE SLIDES — third backend boundary
+
+     listFreeSlides()     GET    /admin/free-slides         -> FreeSlide[]
+     getFreeSlide(id)     GET    /admin/free-slides/:id     -> FreeSlide
+     saveFreeSlide(s)     POST   /admin/free-slides         -> FreeSlide  (no s.id)
+                          PATCH  /admin/free-slides/:id     -> FreeSlide  (has s.id)
+     deleteFreeSlide(id)  DELETE /admin/free-slides/:id
+
+   A homepage slide that belongs to no campaign — an announcement, a partner, a
+   brand message. Same shape of copy as a campaign slide, but the admin owns the
+   link because there is no campaign page to generate one from.
+
+   FreeSlide shape
+   ---------------
+     id            string      server-assigned, 'f_' prefix
+     title         string      required — the slide headline
+     eyebrow       string      kicker above the title, rendered in caps
+     subtitle      string      the paragraph under the title
+     bannerDesktop string      required — image path, 1920x1080 (16:9)
+     bannerMobile  string      image path, 375x667 (9:16), optional
+     ctaLabel      string      button wording, optional
+     ctaUrl        string      where the button goes — required when ctaLabel is
+                               set. Internal ('/causes') or external ('https://…')
+     status        string      one of STATUSES, same enum as campaigns
+     start         string      'YYYY-MM-DD' or '' — blank means no start bound
+     end           string      'YYYY-MM-DD' or '' — blank means runs indefinitely
+     createdAt     string      ISO 8601
+     updatedAt     string      ISO 8601
+
+   Dates are optional here, unlike campaigns: a brand slide often runs with no
+   end in sight. Status still gates it, so ONGOING with no dates = always live.
+
+   SECURITY — ctaUrl is admin-typed and becomes an href on the public homepage.
+   The prototype only trims it. The backend must reject anything that is not
+   http(s) or a site-relative path, or it is a javascript: injection hole.
+   ============================================================================ */
+
+var FREE_KEY = 'agathos.freeslides.v1';
+
+function _readFree(){
+  var raw = localStorage.getItem(FREE_KEY);
+  if(!raw){
+    localStorage.setItem(FREE_KEY, JSON.stringify(SEED_FREE_SLIDES));
+    return JSON.parse(JSON.stringify(SEED_FREE_SLIDES));
+  }
+  try { return JSON.parse(raw); }
+  catch(e){
+    console.error('[store] cannot parse ' + FREE_KEY + ' — reseeding.', e);
+    localStorage.setItem(FREE_KEY, JSON.stringify(SEED_FREE_SLIDES));
+    return JSON.parse(JSON.stringify(SEED_FREE_SLIDES));
+  }
+}
+function _writeFree(list){ localStorage.setItem(FREE_KEY, JSON.stringify(list)); }
+
+function listFreeSlides(){ return _readFree(); }
+
+function getFreeSlide(id){
+  var found = _readFree().filter(function(s){ return s.id === id; })[0];
+  return found || null;
+}
+
+function saveFreeSlide(s){
+  var list = _readFree();
+  var now = new Date().toISOString();
+  if(s.id){
+    var i = -1;
+    list.forEach(function(x, ix){ if(x.id === s.id) i = ix; });
+    if(i < 0) throw new Error('[store] saveFreeSlide: no free slide with id ' + s.id);
+    s.createdAt = list[i].createdAt;
+    s.updatedAt = now;
+    list[i] = s;
+  } else {
+    s.id = 'f_' + Math.random().toString(36).slice(2, 10);
+    s.createdAt = now;
+    s.updatedAt = now;
+    list.unshift(s);
+  }
+  _writeFree(list);
+  return s;
+}
+
+function deleteFreeSlide(id){
+  var list = _readFree();
+  var kept = list.filter(function(s){ return s.id !== id; });
+  if(kept.length === list.length) throw new Error('[store] deleteFreeSlide: no free slide with id ' + id);
+  _writeFree(kept);
+}
+
+function resetFreeSlides(){ localStorage.removeItem(FREE_KEY); }
+
+function newFreeSlide(){
+  return {
+    eyebrow:'', title:'', subtitle:'',
+    bannerDesktop:'', bannerMobile:'',
+    ctaLabel:'', ctaUrl:'',
+    status:STATUS_DEFAULT,
+    start:'', end:''
+  };
+}
+
+/* The fields a free slide cannot go live without. A CTA is optional, but half a
+   CTA is not — a button with no destination is worse than no button. */
+function freeSlideMissing(s){
+  var out = [];
+  if(!s.title)          out.push('Title');
+  if(!s.bannerDesktop)  out.push('Desktop banner');
+  if(s.ctaLabel && !s.ctaUrl) out.push('Link URL');
+  return out;
+}
+
 /* The carousel as it will actually be built, in order. Pass a config to preview
    unsaved edits; omit it to read what is currently persisted. */
 function heroSlides(cfg){
   cfg = cfg || getHero();
   var pending = {};
   var promo   = listCampaigns().filter(function(c){ return c.promoHero; });
-  promo.forEach(function(c){ pending[c.id] = c; });
+  var free    = listFreeSlides();
+  promo.forEach(function(c){ pending[c.id] = { kind:'campaign', campaign:c }; });
+  free.forEach(function(f){ pending[f.id]  = { kind:'free', slide:f }; });
 
   var out = [];
   cfg.order.forEach(function(id){
     if(id === 'default'){
       out.push({ id:'default', kind:'default', slide:cfg.defaultSlide });
     } else if(pending[id]){
-      out.push({ id:id, kind:'campaign', campaign:pending[id] });
+      out.push({ id:id, kind:pending[id].kind, campaign:pending[id].campaign, slide:pending[id].slide });
       delete pending[id];
     }
   });
@@ -302,8 +415,14 @@ function heroSlides(cfg){
   if(!out.some(function(s){ return s.id === 'default'; })){
     out.unshift({ id:'default', kind:'default', slide:cfg.defaultSlide });
   }
-  /* Campaigns switched on since the order was last saved go to the back. */
-  promo.forEach(function(c){ if(pending[c.id]) out.push({ id:c.id, kind:'campaign', campaign:c }); });
+  /* Anything created or switched on since the order was last saved goes to the
+     back, in the same sweep for both sources. */
+  promo.forEach(function(c){
+    if(pending[c.id]) out.push({ id:c.id, kind:'campaign', campaign:c });
+  });
+  free.forEach(function(f){
+    if(pending[f.id]) out.push({ id:f.id, kind:'free', slide:f });
+  });
 
   return out;
 }
@@ -313,11 +432,26 @@ function heroSlides(cfg){
    window. Read-only — this page never changes it. */
 function slideLive(s){
   if(s.kind === 'default') return { live:true, why:'' };
+  var today = new Date().toISOString().slice(0,10);
+
+  /* A free slide is scheduled the same way, except its dates are optional:
+     a blank bound simply is not a bound. It also has to be complete — a slide
+     with no banner would render as an empty band. */
+  if(s.kind === 'free'){
+    var f  = s.slide;
+    var fs = statusOf(f);
+    var gaps = freeSlideMissing(f);
+    if(gaps.length)             return { live:false, why:'incomplete — ' + gaps.join(', ').toLowerCase() + ' missing' };
+    if(fs !== 'ONGOING')        return { live:false, why:'status is ' + fs };
+    if(f.start && today < f.start) return { live:false, why:'starts ' + fmtDate(f.start) };
+    if(f.end   && today > f.end)   return { live:false, why:'ended ' + fmtDate(f.end) };
+    return { live:true, why:'' };
+  }
+
   var c = s.campaign;
   var st = statusOf(c);
   if(st !== 'ONGOING')          return { live:false, why:'status is ' + st };
   if(!c.start || !c.end)        return { live:false, why:'no run dates set' };
-  var today = new Date().toISOString().slice(0,10);
   if(today < c.start)           return { live:false, why:'starts ' + fmtDate(c.start) };
   if(today > c.end)             return { live:false, why:'ended ' + fmtDate(c.end) };
   return { live:true, why:'' };
@@ -325,7 +459,7 @@ function slideLive(s){
 
 /* Normalised view of a slide, whichever source it came from. */
 function slideCopy(s){
-  if(s.kind === 'default') return s.slide;
+  if(s.kind === 'default' || s.kind === 'free') return s.slide;
   var c = s.campaign;
   return {
     eyebrow:c.eyebrow, title:c.name, subtitle:c.subtitle,

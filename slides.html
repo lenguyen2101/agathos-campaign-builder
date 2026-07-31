@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agathos Admin — Free Slides</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+
+<div id="shell"></div>
+
+<div class="overlay" id="delOverlay">
+  <div class="modal">
+    <div class="mh">
+      <span class="mi err" id="delIcon"></span>
+      <div>
+        <h3>Delete free slide?</h3>
+        <div class="mb" id="delMsg"></div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn" onclick="closeDelete()">Cancel</button>
+      <button class="btn solid-danger" id="delConfirm">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="assets/mock-data.js"></script>
+<script src="assets/store.js"></script>
+<script src="assets/shell.js"></script>
+<script>
+  var CONTENT = mountShell('free-slides');
+  document.getElementById('delIcon').innerHTML = icon('warn', 22);
+
+  var COLS = [
+    {key:'index',     label:'Index',        sortable:false, w:70},
+    {key:'id',        label:'ID',           sortable:true,  w:170},
+    {key:'title',     label:'Slide',        sortable:true,  w:290},
+    {key:'status',    label:'Status',       sortable:true,  w:125},
+    {key:'start',     label:'Start Date',   sortable:true,  w:125},
+    {key:'end',       label:'End Date',     sortable:true,  w:125},
+    {key:'cta',       label:'Links to',     sortable:false, w:230},
+    {key:'homepage',  label:'Homepage',     sortable:true,  w:150},
+    {key:'updatedAt', label:'Last Updated', sortable:true,  w:130},
+    {key:'action',    label:'Action',       sortable:false, w:120}
+  ];
+
+  var PAGE_SIZES = [10, 20, 50, 100];
+  var V = { status:'All', q:'', searchOpen:false, sort:'updatedAt', dir:'desc',
+            page:1, pageSize:20, delId:null };
+
+  /* Whether a slide reaches the homepage is decided by the hero rules, not by
+     this screen — ask slideLive() rather than re-deriving it here. */
+  function liveOf(f){ return slideLive({ id:f.id, kind:'free', slide:f }); }
+
+  function pageList(cur, total){
+    var out = [], i;
+    if(total <= 7){
+      for(i = 1; i <= total; i++) out.push(i);
+      return out;
+    }
+    var lo = Math.max(2, cur - 1), hi = Math.min(total - 1, cur + 1);
+    if(cur <= 4){ lo = 2; hi = 5; }
+    if(cur >= total - 3){ lo = total - 4; hi = total - 1; }
+    out.push(1);
+    if(lo > 2) out.push('gap');
+    for(i = lo; i <= hi; i++) out.push(i);
+    if(hi < total - 1) out.push('gap');
+    out.push(total);
+    return out;
+  }
+
+  function updateScrollShadow(){
+    var w = CONTENT.querySelector('.tablewrap');
+    if(!w) return;
+    w.classList.toggle('pin-right', w.scrollWidth - w.clientWidth - w.scrollLeft > 1);
+  }
+  window.addEventListener('resize', updateScrollShadow);
+
+  function gotoPage(p){ V.page = p; render(); window.scrollTo(0, 0); }
+  function setPageSize(n){ V.pageSize = Number(n); V.page = 1; render(); }
+
+  function pager(totalPages){
+    var h = '<div class="pager">'
+      + '<button class="arw" onclick="gotoPage(' + (V.page - 1) + ')"' + (V.page === 1 ? ' disabled' : '') + '>‹</button>';
+    pageList(V.page, totalPages).forEach(function(p){
+      h += p === 'gap'
+        ? '<span class="gap">•••</span>'
+        : '<button class="pg' + (p === V.page ? ' on' : '') + '" onclick="gotoPage(' + p + ')">' + p + '</button>';
+    });
+    h += '<button class="arw" onclick="gotoPage(' + (V.page + 1) + ')"' + (V.page === totalPages ? ' disabled' : '') + '>›</button>'
+      + '<select onchange="setPageSize(this.value)">'
+      + PAGE_SIZES.map(function(n){
+          return '<option value="' + n + '"' + (V.pageSize === n ? ' selected' : '') + '>' + n + ' / page</option>';
+        }).join('')
+      + '</select></div>';
+    return h;
+  }
+
+  /* ----- data shaping ----- */
+  function sortVal(f, key){
+    switch(key){
+      case 'id':        return f.id;
+      case 'title':     return (f.title || '').toLowerCase();
+      case 'status':    return STATUSES.indexOf(statusOf(f));
+      case 'start':     return f.start || '';
+      case 'end':       return f.end || '';
+      case 'homepage':  return liveOf(f).live ? 1 : 0;
+      case 'updatedAt': return f.updatedAt || '';
+      default:          return '';
+    }
+  }
+
+  function rows(){
+    var list = listFreeSlides().filter(function(f){
+      if(V.status !== 'All' && statusOf(f) !== V.status) return false;
+      if(!V.q) return true;
+      var hay = (f.id + ' ' + f.title + ' ' + f.eyebrow + ' ' + f.subtitle + ' ' + f.ctaUrl).toLowerCase();
+      return hay.indexOf(V.q.toLowerCase()) >= 0;
+    });
+    var d = V.dir === 'asc' ? 1 : -1;
+    return list.sort(function(a, b){
+      var x = sortVal(a, V.sort), y = sortVal(b, V.sort);
+      if(x < y) return -1 * d;
+      if(x > y) return 1 * d;
+      return 0;
+    });
+  }
+
+  /* ----- toolbar ----- */
+  function toggleSearch(){ V.searchOpen = !V.searchOpen; render(); }
+  function applySearch(){
+    V.q      = document.getElementById('fq').value.trim();
+    V.status = document.getElementById('fstatus').value;
+    V.page   = 1;
+    render();
+  }
+  function resetSearch(){ V.q = ''; V.status = 'All'; V.page = 1; render(); }
+  function refreshList(){ render(); toast('List refreshed'); }
+
+  function sortBy(key){
+    if(V.sort === key){ V.dir = V.dir === 'asc' ? 'desc' : 'asc'; }
+    else { V.sort = key; V.dir = 'asc'; }
+    V.page = 1;
+    render();
+  }
+
+  /* ----- render ----- */
+  function render(){
+    var all = listFreeSlides();
+    var counts = {};
+    all.forEach(function(f){ var s = statusOf(f); counts[s] = (counts[s] || 0) + 1; });
+    var liveCount = all.filter(function(f){ return liveOf(f).live; }).length;
+
+    var h = '<div class="pagehead">'
+      + '<h1>Free Slides</h1>'
+      + '<span class="spacer"></span>'
+      + '<div class="acts">'
+      +   '<button class="btn" onclick="refreshList()">' + icon('refresh', 16) + 'Refresh list</button>'
+      +   '<a class="btn primary" href="slide.html">' + icon('plus', 16) + 'Create a new Slide</a>'
+      + '</div></div>';
+
+    h += '<div class="alert neutral" style="margin-bottom:16px">' + icon('inbox', 16)
+      + '<span>Homepage slides that belong to no campaign — an announcement, a partner, a brand message. '
+      + 'Campaign slides are not managed here: they come from the campaign itself. '
+      + 'The running order of the whole carousel lives in '
+      + '<a class="idlink" href="hero.html">Homepage Hero</a>.</span></div>';
+
+    h += '<div class="searchbar">'
+      + '<button class="btn blue" onclick="toggleSearch()">' + icon('search', 16) + 'Toggle Search</button>'
+      + '<span class="spacer" style="flex:1"></span>'
+      + '<span class="tfoot" style="padding:0">' + all.length + ' total · '
+      +   liveCount + ' on the homepage now</span>'
+      + '</div>';
+
+    h += '<div class="searchpanel' + (V.searchOpen ? ' show' : '') + '">'
+      + '<div class="row">'
+      +   '<div class="field" style="margin:0"><label>Keyword</label>'
+      +     '<input class="ctl" type="text" id="fq" value="' + esc(V.q) + '" placeholder="ID, eyebrow, title, subtitle or URL"'
+      +     ' onkeydown="if(event.key===\'Enter\')applySearch()"></div>'
+      +   '<div class="field" style="margin:0"><label>Status</label><select class="ctl" id="fstatus">'
+      +     ['All'].concat(STATUSES).map(function(s){
+              return '<option value="' + s + '"' + (V.status === s ? ' selected' : '') + '>'
+                + (s === 'All' ? 'All' : s.toUpperCase()) + (s === 'All' ? ' (' + all.length + ')' : ' (' + (counts[s] || 0) + ')') + '</option>';
+            }).join('')
+      +   '</select></div>'
+      + '</div>'
+      + '<div class="foot"><button class="btn" onclick="resetSearch()">Reset</button>'
+      + '<button class="btn primary" onclick="applySearch()">' + icon('search', 16) + 'Search</button></div>'
+      + '</div>';
+
+    var list = rows();
+    var totalPages = Math.max(1, Math.ceil(list.length / V.pageSize));
+    if(V.page > totalPages) V.page = totalPages;
+    var offset = (V.page - 1) * V.pageSize;
+    var page   = list.slice(offset, offset + V.pageSize);
+
+    if(!list.length){
+      h += '<div class="tablewrap"><div class="empty">'
+        + '<div class="ei">' + icon('inbox', 40) + '</div>'
+        + '<h4>' + (all.length ? 'No slides match' : 'No free slides yet') + '</h4>'
+        + '<p>' + (all.length
+            ? (V.q ? 'Nothing matches “' + esc(V.q) + '”' : 'No slides with status ' + V.status) + '.'
+            : 'The carousel is running on the default slide and campaign slides only.') + '</p>'
+        + (all.length
+            ? '<button class="btn" onclick="resetSearch()">Reset filters</button>'
+            : '<a class="btn primary" href="slide.html">' + icon('plus', 16) + 'Create a new Slide</a>')
+        + '</div></div>';
+      CONTENT.innerHTML = h;
+      return;
+    }
+
+    h += '<div class="tablewrap"><table class="ct">'
+      + '<colgroup>' + COLS.map(function(c){ return '<col style="width:' + c.w + 'px">'; }).join('') + '</colgroup>'
+      + '<thead><tr>'
+      + COLS.map(function(c){
+          if(!c.sortable) return '<th>' + c.label + '</th>';
+          var cls = 'caret' + (V.sort === c.key ? ' ' + V.dir : '');
+          return '<th class="sortable" onclick="sortBy(\'' + c.key + '\')"><span class="thin">' + c.label
+            + '<span class="' + cls + '"><i class="up"></i><i class="dn"></i></span></span></th>';
+        }).join('')
+      + '</tr></thead><tbody>';
+
+    page.forEach(function(f, i){
+      var st   = statusOf(f);
+      var edit = 'slide.html?id=' + encodeURIComponent(f.id);
+      var lv   = liveOf(f);
+
+      h += '<tr class="' + (st === 'ARCHIVED' ? 'archived' : '') + '">'
+        + '<td class="num">' + (offset + i + 1) + '</td>'
+        + '<td><a class="idlink" href="' + edit + '">' + esc(f.id) + '</a></td>'
+
+        + '<td><a class="tname" href="' + edit + '">' + esc(f.title || 'Untitled slide') + '</a>'
+        +   (f.eyebrow ? '<div class="sub">' + esc(f.eyebrow) + '</div>' : '') + '</td>'
+
+        + '<td>' + stText(st) + '</td>'
+        + '<td class="nowrap num">' + (f.start ? fmtDate(f.start) : '<span class="dash" title="No start bound">—</span>') + '</td>'
+        + '<td class="nowrap num">' + (f.end   ? fmtDate(f.end)   : '<span class="dash" title="Runs indefinitely">—</span>') + '</td>'
+
+        + '<td>' + (f.ctaLabel
+            ? (f.ctaUrl
+                ? '<span class="url" title="' + esc(f.ctaUrl) + '">' + esc(f.ctaUrl) + '</span>'
+                : '<span class="bad">no URL set</span>')
+            : '<span class="dash">no button</span>') + '</td>'
+
+        + '<td>' + (lv.live
+            ? '<span class="tag green">ON HOMEPAGE</span>'
+            : '<span class="tag grey" title="' + esc(lv.why) + '">HELD BACK</span>') + '</td>'
+
+        + '<td class="nowrap">' + fmtAgo(f.updatedAt) + '</td>'
+
+        + '<td><div class="rowacts">'
+        +   '<button title="Edit" onclick="location.href=\'' + edit + '\'">' + icon('pencil', 18) + '</button>'
+        +   '<button class="del" title="Delete" onclick="askDelete(\'' + f.id + '\')">' + icon('trash', 18) + '</button>'
+        + '</div></td>'
+        + '</tr>';
+    });
+
+    h += '</tbody></table></div>'
+      + '<div class="tfoot">'
+      +   '<span class="left">Showing ' + (offset + 1) + '–' + (offset + page.length) + ' of ' + list.length
+      +     (list.length === all.length ? '' : ' (filtered from ' + all.length + ')')
+      +     ' slides'
+      +     '<button class="linkbtn" onclick="doReset()">Reset prototype data</button></span>'
+      +   pager(totalPages)
+      + '</div>';
+
+    CONTENT.innerHTML = h;
+
+    CONTENT.querySelector('.tablewrap').addEventListener('scroll', updateScrollShadow);
+    updateScrollShadow();
+  }
+
+  /* ----- actions ----- */
+  function askDelete(id){
+    var f = getFreeSlide(id);
+    var inOrder = getHero().order.indexOf(id) >= 0;
+    V.delId = id;
+    document.getElementById('delMsg').innerHTML =
+      '<b>' + esc(f.title || 'Untitled slide') + '</b> will be removed permanently.'
+      + (inOrder ? ' It also leaves the homepage carousel.' : '');
+    document.getElementById('delConfirm').onclick = function(){
+      deleteFreeSlide(id);
+      closeDelete();
+      render();
+      toast('“' + (f.title || 'Untitled slide') + '” deleted');
+    };
+    document.getElementById('delOverlay').classList.add('show');
+  }
+  function closeDelete(){ V.delId = null; document.getElementById('delOverlay').classList.remove('show'); }
+
+  function doReset(){ resetFreeSlides(); resetSearch(); toast('Seed data restored'); }
+
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeDelete(); });
+  render();
+</script>
+</body>
+</html>

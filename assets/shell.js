@@ -63,8 +63,9 @@ function mountShell(activeKey){
     + navSub('Event Management',   navLeaf('Event')   + navLeaf('Ticket'), false)
     + navSub('Campaign Management', navLeaf('Campaign', 'index.html', activeKey === 'campaign'), activeKey === 'campaign')
     + navSub('Site Content',
-        navLeaf('Homepage Hero', 'hero.html', activeKey === 'homepage-hero'),
-        activeKey === 'homepage-hero');
+        navLeaf('Homepage Hero', 'hero.html', activeKey === 'homepage-hero')
+        + navLeaf('Free Slides', 'slides.html', activeKey === 'free-slides'),
+        activeKey === 'homepage-hero' || activeKey === 'free-slides');
 
   var nav =
       '<a href="#" onclick="return false"><span>' + icon('gauge') + '</span><span class="lbl">Dashboard</span></a>'

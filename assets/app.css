@@ -299,6 +299,10 @@ table.ct td:last-child::after{content:'';position:absolute;top:0;bottom:0;left:0
 .idlink:hover{text-decoration:underline;}
 .tname{font-weight:500;}
 .tname:hover{color:var(--link);}
+/* Second line under a table row's name, and a URL shown in a fixed-width cell. */
+.ct .sub{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ct .url{display:block;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .tsub{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 td .tagrow{flex-wrap:nowrap;}
 .dash{color:var(--hint);}

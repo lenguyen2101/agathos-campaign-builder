@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agathos Admin — Free Slide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+
+<div id="shell"></div>
+
+<input type="file" id="coverpick" accept="image/*" style="display:none" onchange="pickedCover(this)">
+
+<div class="toast" id="toast"></div>
+
+<script src="assets/mock-data.js"></script>
+<script src="assets/store.js"></script>
+<script src="assets/shell.js"></script>
+<script>
+  var CONTENT = mountShell('free-slides');
+
+  var TITLE_MAX = 60, SUBTITLE_MAX = 160, EYEBROW_MAX = 40;
+
+  /* S = the slide being edited. U = UI-only state, never saved. */
+  var S, U = { dirty:false };
+  var pendingBanner = null;
+  var localPreview  = {};
+
+  (function boot(){
+    var id = new URLSearchParams(location.search).get('id');
+    if(id){
+      S = getFreeSlide(id);
+      if(!S){
+        /* A stale link is worth saying out loud rather than silently opening a
+           blank create form. */
+        CONTENT.innerHTML = '<div class="pagehead"><h1>Free Slide</h1></div>'
+          + '<div class="tablewrap"><div class="empty"><div class="ei">' + icon('warn', 40) + '</div>'
+          + '<h4>No slide with ID ' + esc(id) + '</h4>'
+          + '<p>It may have been deleted.</p>'
+          + '<a class="btn" href="slides.html">Back to free slides</a></div></div>';
+        return;
+      }
+    } else {
+      S = newFreeSlide();
+    }
+    renderFrame();
+    render();
+  })();
+
+  function renderFrame(){
+    CONTENT.innerHTML =
+        '<div class="pagehead">'
+      +   '<button class="back" title="Back to free slides" onclick="leave()">' + icon('back', 20) + '</button>'
+      +   '<h1 id="pagetitle">' + (S.id ? 'Edit Free Slide' : 'Create Free Slide') + '</h1>'
+      +   '<span class="meta" id="savestate"></span>'
+      +   '<span class="spacer"></span>'
+      +   '<div class="acts"><button class="btn primary" onclick="save()">' + icon('save', 16) + 'Save</button></div>'
+      + '</div>'
+      + '<div class="detailcols"><div class="formcard" id="body"></div>'
+      +   '<div class="aside" id="aside"></div></div>';
+    setSaveState(S.id ? 'Saved · ' + fmtAgo(S.updatedAt) : 'Draft · not saved yet');
+  }
+
+  function setSaveState(t){ document.getElementById('savestate').textContent = t; }
+  function markDirty(){ U.dirty = true; setSaveState('Unsaved changes'); }
+  function leave(){ location.href = 'slides.html'; }
+
+  /* ----- field mutation -----
+     Text inputs patch the preview only. Re-rendering the form while the admin
+     types would destroy the caret — the same rule the hero page follows. */
+  function setField(k, v){ S[k] = v; markDirty(); renderAside(); }
+  function setCounted(k, v, max, el){
+    S[k] = v; markDirty();
+    el.parentNode.querySelector('.count').textContent = v.length + ' / ' + max;
+    renderAside();
+  }
+  /* Fields that other parts of the form react to have to re-render it. */
+  function setStructural(k, v){ S[k] = v; markDirty(); render(); }
+
+  function openPicker(field){ pendingBanner = field; document.getElementById('coverpick').click(); }
+  function pickedCover(input){
+    if(pendingBanner && input.files && input.files[0]){
+      var f = input.files[0];
+      localPreview[pendingBanner] = URL.createObjectURL(f);
+      S[pendingBanner] = 'assets/img/banners/' + f.name;
+      markDirty();
+    }
+    pendingBanner = null;
+    input.value = '';
+    render();
+  }
+  function clearBanner(field){
+    delete localPreview[field];
+    S[field] = '';
+    markDirty(); render();
+  }
+  function imgBroken(el){ el.parentNode.classList.add('broken'); }
+
+  function uploadBox(field, ratio, dims){
+    var v   = S[field];
+    var src = localPreview[field] || v;
+    return '<div class="upload' + (ratio === '9:16' ? ' mob' : '') + '">'
+      + (v
+          ? '<img src="' + esc(src) + '" alt="" onerror="imgBroken(this)">'
+            + '<div class="fallback">' + esc(v) + '</div>'
+            + '<button type="button" class="rm" title="Remove" onclick="clearBanner(\'' + field + '\')">✕</button>'
+          : '<button type="button" class="add" title="Choose file" onclick="openPicker(\'' + field + '\')">' + icon('plus', 20) + '</button>')
+      + '</div><div class="hint">' + dims + ' · ratio ' + ratio + (v ? ' · ' + esc(v) : '') + '</div>';
+  }
+
+  function block(n, title, sub, inner){
+    return '<div class="block"><div class="blockhead">'
+      + '<span class="n">' + n + '</span><h3>' + title + '</h3></div>'
+      + (sub ? '<div class="hint" style="margin:-10px 0 16px">' + sub + '</div>' : '')
+      + inner + '</div>';
+  }
+
+  function alert_(kind, html){
+    var ic = kind === 'ok' ? icon('check', 16) : kind === 'warn' ? icon('warn', 16) : icon('inbox', 16);
+    return '<div class="alert ' + kind + '">' + ic + '<span>' + html + '</span></div>';
+  }
+
+  /* ----- render ----- */
+  function render(){
+    var content =
+        '<div class="grid2">'
+      +   '<div class="field"><label>Status</label><select class="ctl" onchange="setStructural(\'status\',this.value)">'
+      +     STATUSES.map(function(s){
+              return '<option value="' + s + '"' + (statusOf(S) === s ? ' selected' : '') + '>' + s + '</option>';
+            }).join('')
+      +   '</select>'
+      +   '<div class="hint">Only ONGOING slides reach the homepage.</div></div>'
+      +   '<div class="field"><label>Eyebrow</label>'
+      +     '<div class="counted"><input class="ctl" type="text" value="' + esc(S.eyebrow) + '" maxlength="' + EYEBROW_MAX + '"'
+      +     ' oninput="setCounted(\'eyebrow\',this.value,' + EYEBROW_MAX + ',this)" placeholder="e.g. JOIN US">'
+      +     '<span class="count">' + S.eyebrow.length + ' / ' + EYEBROW_MAX + '</span></div>'
+      +     '<div class="hint">Small kicker above the title. Rendered in caps exactly as typed.</div></div>'
+      + '</div>'
+
+      + '<div class="field"><label><span class="req">*</span>Title</label>'
+      +   '<div class="counted"><input class="ctl" type="text" value="' + esc(S.title) + '" maxlength="' + TITLE_MAX + '"'
+      +   ' oninput="setCounted(\'title\',this.value,' + TITLE_MAX + ',this)" placeholder="e.g. Give an hour, not just a gift">'
+      +   '<span class="count">' + S.title.length + ' / ' + TITLE_MAX + '</span></div></div>'
+
+      + '<div class="field"><label>Subtitle</label>'
+      +   '<div class="counted"><textarea class="ctl" style="min-height:78px;padding-right:74px" maxlength="' + SUBTITLE_MAX + '"'
+      +   ' oninput="setCounted(\'subtitle\',this.value,' + SUBTITLE_MAX + ',this)"'
+      +   ' placeholder="One or two sentences under the title">' + esc(S.subtitle) + '</textarea>'
+      +   '<span class="count" style="top:18px;transform:none">' + S.subtitle.length + ' / ' + SUBTITLE_MAX + '</span></div></div>'
+
+      + '<div class="grid2">'
+      +   '<div class="field"><label><span class="req">*</span>Desktop banner</label>' + uploadBox('bannerDesktop', '16:9', '1920 × 1080px') + '</div>'
+      +   '<div class="field"><label>Mobile banner <span style="color:var(--hint)">· optional</span></label>' + uploadBox('bannerMobile', '9:16', '375 × 667px')
+      +     '<div class="hint">Leave empty to crop the desktop banner automatically.</div></div>'
+      + '</div>';
+
+    /* A campaign slide gets its destination from the campaign page. This one has
+       no campaign, so the admin owns the link. */
+    var link =
+        '<div class="grid2">'
+      +   '<div class="field"><label>Button label</label>'
+      /* Typed with setField so the caret survives; the required-URL state it
+         drives only has to be right once the admin leaves the field. */
+      +     '<input class="ctl" type="text" value="' + esc(S.ctaLabel) + '"'
+      +     ' oninput="setField(\'ctaLabel\',this.value)" onblur="render()" placeholder="e.g. See volunteer roles">'
+      +     '<div class="hint">Leave empty for a slide with no button.</div></div>'
+      +   '<div class="field"><label>' + (S.ctaLabel ? '<span class="req">*</span>' : '') + 'Link URL</label>'
+      +     '<input class="ctl' + (S.ctaLabel && !S.ctaUrl ? ' bad' : '') + '" type="text" value="' + esc(S.ctaUrl) + '"'
+      +     ' oninput="setField(\'ctaUrl\',this.value.trim())" placeholder="/volunteer or https://…">'
+      +     '<div class="hint">A path on the site, or a full external address.</div></div>'
+      + '</div>'
+      + (S.ctaLabel && !S.ctaUrl
+          ? alert_('warn', 'The button has no destination, so this slide stays off the homepage until a URL is set.')
+          : '');
+
+    var schedule =
+        '<div class="grid2">'
+      +   '<div class="field"><label>Start date</label><input class="ctl" type="date" value="' + esc(S.start) + '"'
+      +     ' onchange="setStructural(\'start\',this.value)"></div>'
+      +   '<div class="field"><label>End date</label><input class="ctl" type="date" value="' + esc(S.end) + '"'
+      +     ' onchange="setStructural(\'end\',this.value)"></div>'
+      + '</div>'
+      + '<div class="hint" style="margin-top:-8px">Both are optional, unlike a campaign: leave them blank and the slide runs '
+      + 'for as long as its status is ONGOING.</div>'
+      + liveNote();
+
+    document.getElementById('body').innerHTML =
+        block(1, 'Slide content', 'What donors read on the homepage carousel.', content)
+      + block(2, 'Button', 'This slide has no campaign behind it, so it needs its own destination.', link)
+      + block(3, 'Schedule', 'When the slide is allowed on the homepage.', schedule);
+
+    renderAside();
+  }
+
+  /* One sentence on whether this slide is on the homepage right now, and if not,
+     why not — read from the same rule the hero page uses. */
+  function liveNote(){
+    var gaps = freeSlideMissing(S);
+    if(gaps.length){
+      return alert_('warn', 'Still needed before this slide can run: <b>' + gaps.join('</b>, <b>') + '</b>.');
+    }
+    var lv = slideLive({ id:S.id, kind:'free', slide:S });
+    if(lv.live){
+      return alert_('ok', 'Live on the homepage now'
+        + (S.start || S.end
+            ? ' · ' + (S.start ? 'from ' + fmtDate(S.start) : 'no start bound')
+              + (S.end ? ' until ' + fmtDate(S.end) : ', runs indefinitely')
+            : ' · runs indefinitely')
+        + '. Its position in the carousel is set in <a class="idlink" href="hero.html">Homepage Hero</a>.');
+    }
+    return alert_('neutral', 'Not on the homepage — ' + esc(lv.why) + '.');
+  }
+
+  function renderAside(){
+    var banner = localPreview.bannerMobile || S.bannerMobile
+              || localPreview.bannerDesktop || S.bannerDesktop;
+
+    document.getElementById('aside').innerHTML =
+        '<div class="alabel">Homepage slide · mobile</div>'
+      + '<div class="hcar">'
+      +   (banner ? '<img src="' + esc(banner) + '" alt="" onerror="imgBroken(this)">' : '')
+      +   '<div class="scrim"></div>'
+      +   '<div class="none">No banner</div>'
+      +   '<div class="copy">'
+      +     '<div class="eb"><i></i>' + (esc(S.eyebrow) || 'EYEBROW') + '</div>'
+      +     '<h4>' + (esc(S.title) || 'Slide title') + '</h4>'
+      +     '<p>' + (esc(S.subtitle) || 'Subtitle appears here.') + '</p>'
+      +     (S.ctaLabel ? '<button class="cta" type="button">' + esc(S.ctaLabel) + '</button>' : '')
+      +   '</div>'
+      + '</div>'
+      + '<div class="summary">'
+      +   '<div class="sr"><span class="k">Status</span><span class="v">' + stText(statusOf(S)) + '</span></div>'
+      +   '<div class="sr"><span class="k">Runs</span><span class="v">'
+      +     (S.start || S.end
+          ? esc((S.start ? fmtDate(S.start) : 'no start') + ' → ' + (S.end ? fmtDate(S.end) : 'no end'))
+          : 'always') + '</span></div>'
+      +   '<div class="sr"><span class="k">Links to</span><span class="v">'
+      +     (S.ctaUrl ? esc(S.ctaUrl) : '<span class="dash">—</span>') + '</span></div>'
+      + '</div>';
+  }
+
+  /* ----- persistence ----- */
+  function save(){
+    var wasNew = !S.id;
+    S = saveFreeSlide(S);
+    U.dirty = false;
+    setSaveState('Saved · just now');
+    document.getElementById('pagetitle').textContent = 'Edit Free Slide';
+    /* Keep the URL on the saved record so a browser-back does not land on a
+       blank create form. */
+    if(wasNew) history.replaceState(null, '', 'slide.html?id=' + encodeURIComponent(S.id));
+    render();
+
+    var gaps = freeSlideMissing(S);
+    toast(gaps.length
+      ? 'Saved — not on the homepage yet, ' + gaps.join(' and ').toLowerCase() + ' missing'
+      : (slideLive({ id:S.id, kind:'free', slide:S }).live
+          ? 'Saved — live on the homepage'
+          : 'Saved'));
+  }
+
+  window.addEventListener('beforeunload', function(e){
+    if(U.dirty){ e.preventDefault(); e.returnValue = ''; }
+  });
+</script>
+</body>
+</html>
