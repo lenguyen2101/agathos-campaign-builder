@@ -45,7 +45,7 @@
   var NAME_MAX = 100, SUBTITLE_MAX = 200, EYEBROW_MAX = 40, ABOUT_TITLE_MAX = 90;
 
   /* S = the campaign being edited. U = UI-only state, never saved. */
-  var S, U = { step:0, search:'', dirty:false };
+  var S, U = { step:0, search:'', dirty:false, dropped:'' };
 
   var pendingBanner = null;
   /* Blob URLs for files picked this session, so the box previews the real image
@@ -120,17 +120,39 @@
     el.parentNode.querySelector('.count').textContent = v.length + ' / ' + max;
     renderAside();
   }
-  function toggle(k){ S[k] = !S[k]; markDirty(); renderStep(); renderAside(); }
+  function toggle(k){
+    S[k] = !S[k];
+    if(k === 'spotlight') U.dropped = '';
+    markDirty(); renderStep(); renderAside();
+  }
   function setSearch(v){ U.search = v; renderStep(); }
+
+  /* Spotlight is on but points at nothing, so the section would render empty on
+     the campaign page. Covers both a removed item and a never-chosen one. */
+  function featuredMissing(){
+    return !!S.spotlight && !(S.featured && S.items.indexOf(S.featured) >= 0);
+  }
+
+  function setFeatured(v){
+    S.featured = v;
+    if(v) U.dropped = '';
+    markDirty(); renderStep(); renderAside();
+  }
 
   function toggleItem(id){
     var i = S.items.indexOf(id);
     if(i >= 0){
       S.items.splice(i, 1);
-      if(S.featured === id) S.featured = S.items[0] || '';
+      /* Never move the spotlight to another item behind the admin's back —
+         clear it and say which item went. */
+      if(S.featured === id){
+        S.featured = '';
+        /* Only worth saying when spotlight is actually on — otherwise the
+           featured field is inert and nobody needs to know. */
+        if(S.spotlight) U.dropped = (catItem(id) ? catItem(id).name : '');
+      }
     } else {
       S.items.push(id);
-      if(!S.featured) S.featured = id;
     }
     markDirty(); renderStep(); renderAside();
   }
@@ -203,7 +225,7 @@
       case 0: return !missingRequired().length;
       case 1: return S.items.length > 0;
       case 2: return !!(S.start && S.end);
-      case 3: return !!S.spotlight;
+      case 3: return !!S.spotlight && !featuredMissing();
       case 4: return !!(S.promoHero || S.promoBanner);
       case 5: return !!S.aboutTitle || !richEmpty(S.aboutBody);
       default: return false;   /* Review has nothing of its own to fill in */
@@ -263,11 +285,39 @@
 
       case 1:
         h = head('Add items', 'Pick the projects and events for this campaign. They can come from any organisation.')
-          + '<div class="field"><label>Search catalogue</label>'
+
+          + (U.dropped
+              ? alert_('warn', '<b>' + esc(U.dropped) + '</b> was the spotlight item. It has been removed, and the '
+                  + 'spotlight has <b>not</b> been moved to another item — '
+                  + '<button class="linkbtn" onclick="goStep(3)">pick a new one in Display</button> '
+                  + 'or turn Spotlight off.')
+              : '')
+
+          /* What is already in the campaign comes first, so the admin never has
+             to scan the catalogue to find out what they picked. */
+          + '<div class="pickhead"><span class="ph-t">In this campaign</span>'
+          +   '<span class="ph-m">' + itemMix(S.items) + ' · total goal '
+          +   (totalGoal(S.items) ? fmtMoney(totalGoal(S.items)) : 'none (events have no goal)') + '</span></div>';
+
+        if(!S.items.length){
+          h += '<div class="pickempty">Nothing added yet. Pick from the catalogue below.</div>';
+        } else {
+          h += '<div class="picklist chosen">';
+          S.items.forEach(function(id){
+            var x = catItem(id);
+            if(!x) return;
+            h += '<div class="pickrow on"><div class="thumb" style="background:' + x.c + '">'
+               + '<img src="' + esc(x.img) + '" alt=""></div>'
+               + '<div class="info"><div class="nm">' + esc(x.name) + '</div>'
+               + '<div class="or">' + esc(x.org) + (x.goal ? ' · goal ' + fmtMoney(x.goal) : ' · no goal') + '</div></div>'
+               + '<span class="tag ' + (x.kind === 'project' ? 'blue' : 'violet') + '">' + x.kind.toUpperCase() + '</span>'
+               + '<button class="iconbtn" title="Remove from campaign" onclick="toggleItem(\'' + id + '\')">✕</button></div>';
+          });
+          h += '</div>';
+        }
+
+        h += '<div class="field" style="margin-top:18px"><label>Search catalogue</label>'
           +   '<input class="ctl" type="text" placeholder="Search projects or events…" value="' + esc(U.search) + '" oninput="setSearch(this.value)"></div>'
-          + '<div class="hint" style="margin:-10px 0 12px">'
-          +   itemMix(S.items) + ' · total goal '
-          +   (totalGoal(S.items) ? fmtMoney(totalGoal(S.items)) : 'none (events have no goal)') + '</div>'
           + '<div class="picklist scroll">';
 
         var visible = CATALOGUE.filter(function(x){
@@ -279,7 +329,7 @@
         }
         visible.forEach(function(x){
           var added = S.items.indexOf(x.id) >= 0;
-          h += '<div class="pickrow"><div class="thumb" style="background:' + x.c + '">'
+          h += '<div class="pickrow' + (added ? ' on' : '') + '"><div class="thumb" style="background:' + x.c + '">'
              + '<img src="' + esc(x.img) + '" alt=""></div>'
              + '<div class="info"><div class="nm">' + esc(x.name) + '</div>'
              + '<div class="or">' + esc(x.org) + (x.goal ? ' · goal ' + fmtMoney(x.goal) : '') + '</div></div>'
@@ -325,13 +375,24 @@
           + '<div class="tt"><div class="tk">Spotlight one item at a time</div>'
           + '<div class="ts">Features a single item at the top and reveals others over time — the month-by-month cadence used by campaigns like Hidden Causes. Most campaigns leave this off.</div>';
         if(S.spotlight){
-          h += '<div class="subfields"><div class="field"><label>Featured item</label><select class="ctl" onchange="setField(\'featured\',this.value)">';
-          if(!S.items.length) h += '<option>No items yet</option>';
+          h += '<div class="subfields"><div class="field"><label>Featured item</label>'
+             + '<select class="ctl' + (featuredMissing() ? ' bad' : '') + '" onchange="setFeatured(this.value)">';
+          /* An unset select must say so rather than letting the browser show the
+             first option as if it had been chosen. */
+          if(featuredMissing()) h += '<option value="" selected>— Select an item —</option>';
           S.items.forEach(function(id){
             var x = catItem(id);
             if(x) h += '<option value="' + id + '"' + (S.featured === id ? ' selected' : '') + '>' + esc(x.name) + '</option>';
           });
-          h += '</select></div></div>';
+          h += '</select>';
+          if(featuredMissing()){
+            h += alert_('warn', S.items.length
+              ? (U.dropped
+                  ? 'The spotlight item was removed from this campaign. Pick a new one, or turn Spotlight off — otherwise the spotlight section renders empty.'
+                  : 'No item is featured yet, so the spotlight section renders empty on the campaign page.')
+              : 'This campaign has no items yet. <button class="linkbtn" onclick="goStep(1)">Add items</button> before choosing a featured one.');
+          }
+          h += '</div></div>';
         }
         h += '</div></div>';
         break;
@@ -396,7 +457,9 @@
               : '<span class="dash">hidden on the campaign page</span>')
           + rr('Schedule', (S.start && S.end) ? fmtRange(S.start, S.end) : '<span class="dash">not set</span>')
           + rr('Spotlight', S.spotlight
-              ? ('on · ' + (S.featured && catItem(S.featured) ? esc(catItem(S.featured).name) : '—'))
+              ? (featuredMissing()
+                  ? 'on · <span class="bad">no featured item</span>'
+                  : 'on · ' + esc(catItem(S.featured).name))
               : '<span class="dash">off</span>')
           + rr('Promotion', promo.length ? promo.join(' · ') : '<span class="dash">none</span>')
           + rr('About block', (S.aboutTitle || !richEmpty(S.aboutBody))
@@ -406,6 +469,12 @@
           + (missingRequired().length
               ? alert_('warn', 'Still required before this can be scheduled: <b>'
                   + missingRequired().join('</b>, <b>') + '</b>.')
+              : '')
+          /* Not a blocker — the campaign is publishable, it just has a section
+             with nothing in it. */
+          + (featuredMissing()
+              ? alert_('warn', 'Spotlight is on but no item is featured, so that section renders empty. '
+                  + '<button class="linkbtn" onclick="goStep(3)">Fix in Display</button>')
               : '');
         break;
     }

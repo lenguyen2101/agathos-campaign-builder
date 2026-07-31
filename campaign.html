@@ -89,7 +89,9 @@
   function render(){
     var st       = statusOf(C);
     var promo    = promoLabels(C);
-    var featured = C.featured ? catItem(C.featured) : null;
+    /* A featured ID that is no longer in items counts as unset — the spotlight
+       section would render empty. */
+    var featured = (C.featured && C.items.indexOf(C.featured) >= 0) ? catItem(C.featured) : null;
 
     var h = '<div class="pagehead">'
       + '<button class="back" title="Back to campaigns" onclick="location.href=\'index.html\'">' + icon('back', 20) + '</button>'
@@ -179,7 +181,11 @@
       + '<div class="grid2">'
       +   ro('Spotlight one item at a time', C.spotlight ? 'ON' : 'OFF')
       +   ro('Featured item', C.spotlight ? (featured ? featured.name : 'not set') : '')
-      + '</div>');
+      + '</div>'
+      + (C.spotlight && !featured
+          ? '<div class="alert warn">' + icon('warn', 16)
+            + '<span>Spotlight is on but no item is featured, so that section renders empty on the campaign page.</span></div>'
+          : ''));
 
     /* 4 — Promotion */
     h += block(4, 'Promotion',
