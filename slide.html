@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Agathos Admin — Free Slide</title>
+<title>Agathos Admin — Other Slide</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -21,7 +21,7 @@
 <script src="assets/store.js"></script>
 <script src="assets/shell.js"></script>
 <script>
-  var CONTENT = mountShell('free-slides');
+  var CONTENT = mountShell('other-slides');
 
   var TITLE_MAX = 60, SUBTITLE_MAX = 160, EYEBROW_MAX = 40;
 
@@ -33,19 +33,19 @@
   (function boot(){
     var id = new URLSearchParams(location.search).get('id');
     if(id){
-      S = getFreeSlide(id);
+      S = getOtherSlide(id);
       if(!S){
         /* A stale link is worth saying out loud rather than silently opening a
            blank create form. */
-        CONTENT.innerHTML = '<div class="pagehead"><h1>Free Slide</h1></div>'
+        CONTENT.innerHTML = '<div class="pagehead"><h1>Other Slide</h1></div>'
           + '<div class="tablewrap"><div class="empty"><div class="ei">' + icon('warn', 40) + '</div>'
           + '<h4>No slide with ID ' + esc(id) + '</h4>'
           + '<p>It may have been deleted.</p>'
-          + '<a class="btn" href="slides.html">Back to free slides</a></div></div>';
+          + '<a class="btn" href="slides.html">Back to other slides</a></div></div>';
         return;
       }
     } else {
-      S = newFreeSlide();
+      S = newOtherSlide();
     }
     renderFrame();
     render();
@@ -54,8 +54,8 @@
   function renderFrame(){
     CONTENT.innerHTML =
         '<div class="pagehead">'
-      +   '<button class="back" title="Back to free slides" onclick="leave()">' + icon('back', 20) + '</button>'
-      +   '<h1 id="pagetitle">' + (S.id ? 'Edit Free Slide' : 'Create Free Slide') + '</h1>'
+      +   '<button class="back" title="Back to other slides" onclick="leave()">' + icon('back', 20) + '</button>'
+      +   '<h1 id="pagetitle">' + (S.id ? 'Edit Other Slide' : 'Create Other Slide') + '</h1>'
       +   '<span class="meta" id="savestate"></span>'
       +   '<span class="spacer"></span>'
       +   '<div class="acts"><button class="btn primary" onclick="save()">' + icon('save', 16) + 'Save</button></div>'
@@ -199,11 +199,11 @@
   /* One sentence on whether this slide is on the homepage right now, and if not,
      why not — read from the same rule the hero page uses. */
   function liveNote(){
-    var gaps = freeSlideMissing(S);
+    var gaps = otherSlideMissing(S);
     if(gaps.length){
       return alert_('warn', 'Still needed before this slide can run: <b>' + gaps.join('</b>, <b>') + '</b>.');
     }
-    var lv = slideLive({ id:S.id, kind:'free', slide:S });
+    var lv = slideLive({ id:S.id, kind:'other', slide:S });
     if(lv.live){
       return alert_('ok', 'Live on the homepage now'
         + (S.start || S.end
@@ -246,19 +246,19 @@
   /* ----- persistence ----- */
   function save(){
     var wasNew = !S.id;
-    S = saveFreeSlide(S);
+    S = saveOtherSlide(S);
     U.dirty = false;
     setSaveState('Saved · just now');
-    document.getElementById('pagetitle').textContent = 'Edit Free Slide';
+    document.getElementById('pagetitle').textContent = 'Edit Other Slide';
     /* Keep the URL on the saved record so a browser-back does not land on a
        blank create form. */
     if(wasNew) history.replaceState(null, '', 'slide.html?id=' + encodeURIComponent(S.id));
     render();
 
-    var gaps = freeSlideMissing(S);
+    var gaps = otherSlideMissing(S);
     toast(gaps.length
       ? 'Saved — not on the homepage yet, ' + gaps.join(' and ').toLowerCase() + ' missing'
-      : (slideLive({ id:S.id, kind:'free', slide:S }).live
+      : (slideLive({ id:S.id, kind:'other', slide:S }).live
           ? 'Saved — live on the homepage'
           : 'Saved'));
   }

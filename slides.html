@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Agathos Admin — Free Slides</title>
+<title>Agathos Admin — Other Slides</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -18,7 +18,7 @@
     <div class="mh">
       <span class="mi err" id="delIcon"></span>
       <div>
-        <h3>Delete free slide?</h3>
+        <h3>Delete other slide?</h3>
         <div class="mb" id="delMsg"></div>
       </div>
     </div>
@@ -35,7 +35,7 @@
 <script src="assets/store.js"></script>
 <script src="assets/shell.js"></script>
 <script>
-  var CONTENT = mountShell('free-slides');
+  var CONTENT = mountShell('other-slides');
   document.getElementById('delIcon').innerHTML = icon('warn', 22);
 
   var COLS = [
@@ -57,7 +57,7 @@
 
   /* Whether a slide reaches the homepage is decided by the hero rules, not by
      this screen — ask slideLive() rather than re-deriving it here. */
-  function liveOf(f){ return slideLive({ id:f.id, kind:'free', slide:f }); }
+  function liveOf(f){ return slideLive({ id:f.id, kind:'other', slide:f }); }
 
   function pageList(cur, total){
     var out = [], i;
@@ -118,7 +118,7 @@
   }
 
   function rows(){
-    var list = listFreeSlides().filter(function(f){
+    var list = listOtherSlides().filter(function(f){
       if(V.status !== 'All' && statusOf(f) !== V.status) return false;
       if(!V.q) return true;
       var hay = (f.id + ' ' + f.title + ' ' + f.eyebrow + ' ' + f.subtitle + ' ' + f.ctaUrl).toLowerCase();
@@ -153,13 +153,13 @@
 
   /* ----- render ----- */
   function render(){
-    var all = listFreeSlides();
+    var all = listOtherSlides();
     var counts = {};
     all.forEach(function(f){ var s = statusOf(f); counts[s] = (counts[s] || 0) + 1; });
     var liveCount = all.filter(function(f){ return liveOf(f).live; }).length;
 
     var h = '<div class="pagehead">'
-      + '<h1>Free Slides</h1>'
+      + '<h1>Other Slides</h1>'
       + '<span class="spacer"></span>'
       + '<div class="acts">'
       +   '<button class="btn" onclick="refreshList()">' + icon('refresh', 16) + 'Refresh list</button>'
@@ -204,7 +204,7 @@
     if(!list.length){
       h += '<div class="tablewrap"><div class="empty">'
         + '<div class="ei">' + icon('inbox', 40) + '</div>'
-        + '<h4>' + (all.length ? 'No slides match' : 'No free slides yet') + '</h4>'
+        + '<h4>' + (all.length ? 'No slides match' : 'No other slides yet') + '</h4>'
         + '<p>' + (all.length
             ? (V.q ? 'Nothing matches “' + esc(V.q) + '”' : 'No slides with status ' + V.status) + '.'
             : 'The carousel is running on the default slide and campaign slides only.') + '</p>'
@@ -279,14 +279,14 @@
 
   /* ----- actions ----- */
   function askDelete(id){
-    var f = getFreeSlide(id);
+    var f = getOtherSlide(id);
     var inOrder = getHero().order.indexOf(id) >= 0;
     V.delId = id;
     document.getElementById('delMsg').innerHTML =
       '<b>' + esc(f.title || 'Untitled slide') + '</b> will be removed permanently.'
       + (inOrder ? ' It also leaves the homepage carousel.' : '');
     document.getElementById('delConfirm').onclick = function(){
-      deleteFreeSlide(id);
+      deleteOtherSlide(id);
       closeDelete();
       render();
       toast('“' + (f.title || 'Untitled slide') + '” deleted');
@@ -295,7 +295,7 @@
   }
   function closeDelete(){ V.delId = null; document.getElementById('delOverlay').classList.remove('show'); }
 
-  function doReset(){ resetFreeSlides(); resetSearch(); toast('Seed data restored'); }
+  function doReset(){ resetOtherSlides(); resetSearch(); toast('Seed data restored'); }
 
   document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeDelete(); });
   render();

@@ -1,7 +1,7 @@
 # Agathos — Campaign admin prototype
 
 A working front-end prototype of the **Campaign** layer and of Site Content —
-the **Homepage Hero** carousel control and the **Free Slides** it can run —
+the **Homepage Hero** carousel control and the **Other Slides** it can run —
 built to match the existing Agathos admin portal (Ant Design Pro shell) already
 used by the Project / Event / Organization layers.
 
@@ -37,9 +37,9 @@ runs the whole prototype, images included.
 | `create.html?id=<id>&step=<0-6>` | Edit campaign, opened at a given step |
 | `campaign.html?id=<id>` | Campaign detail (read-only) |
 | `hero.html` | Homepage Hero carousel |
-| `slides.html` | Free slide list |
-| `slide.html` | Create free slide |
-| `slide.html?id=<id>` | Edit free slide |
+| `slides.html` | Other slide list |
+| `slide.html` | Create other slide |
+| `slide.html?id=<id>` | Edit other slide |
 
 State lives in `localStorage`. Every page has a **Reset** control to restore the
 seed data — use it freely.
@@ -64,11 +64,11 @@ deleteCampaign(id)       DELETE /admin/campaigns/:id
 getHero()                GET    /admin/homepage-hero          -> HeroConfig
 saveHero(cfg)            PUT    /admin/homepage-hero          -> HeroConfig
 
-listFreeSlides()         GET    /admin/free-slides            -> FreeSlide[]
-getFreeSlide(id)         GET    /admin/free-slides/:id        -> FreeSlide
-saveFreeSlide(s)         POST   /admin/free-slides            -> FreeSlide  (no s.id)
-                         PATCH  /admin/free-slides/:id        -> FreeSlide  (has s.id)
-deleteFreeSlide(id)      DELETE /admin/free-slides/:id
+listOtherSlides()        GET    /admin/other-slides           -> OtherSlide[]
+getOtherSlide(id)        GET    /admin/other-slides/:id       -> OtherSlide
+saveOtherSlide(s)        POST   /admin/other-slides           -> OtherSlide (no s.id)
+                         PATCH  /admin/other-slides/:id       -> OtherSlide (has s.id)
+deleteOtherSlide(id)     DELETE /admin/other-slides/:id
 ```
 
 There is deliberately **no** archive / publish / status endpoint. Status is an
@@ -152,14 +152,14 @@ Supplied by the existing Project and Event APIs; the prototype fakes it in
 
 `goal` exists on projects only. **Events carry no goal.**
 
-### Free slide
+### Other slide
 
 A homepage slide that belongs to no campaign — an announcement, a partner, a
-brand message. Managed under **Site Content → Free Slides**.
+brand message. Managed under **Site Content → Other Slides**.
 
 | Field | Type | Notes |
 |---|---|---|
-| `id` | string | server-assigned, `f_` prefix |
+| `id` | string | server-assigned, `o_` prefix |
 | `title` | string | **required** — the slide headline |
 | `eyebrow` | string | kicker above the title, rendered in caps |
 | `subtitle` | string | paragraph under the title |
@@ -183,12 +183,12 @@ still gates it, so `ONGOING` with no dates means always live.
 ```js
 {
   defaultSlide: { eyebrow, title, subtitle, bannerDesktop, bannerMobile, ctaLabel },
-  order: ['default', '<campaignId>', '<freeSlideId>', ...]
+  order: ['default', '<campaignId>', '<otherSlideId>', ...]
 }
 ```
 
 Only the brand slide's copy and the running order are stored. Campaign slides
-and free slides are **not** stored here — each keeps its own record. See the
+and other slides are **not** stored here — each keeps its own record. See the
 hero rules below.
 
 ---
@@ -211,7 +211,7 @@ admin never types it. Only `ctaLabel` is editable.
 
 **The carousel has three sources, and `order` holds only IDs.** It is assembled
 by joining the stored `order` against the campaigns that currently have
-`promoHero` on and against the free slides. Each record stays the single source
+`promoHero` on and against the other slides. Each record stays the single source
 of truth for its own copy, so nothing can drift out of sync.
 
 A **campaign slide** reaches the public homepage only when:
@@ -220,10 +220,10 @@ A **campaign slide** reaches the public homepage only when:
 status === 'ONGOING'  AND  start ≤ today ≤ end
 ```
 
-A **free slide** follows the same rule with two differences: a blank date is not
+A **other slide** follows the same rule with two differences: a blank date is not
 a bound (`ONGOING` with no dates = always live), and an incomplete slide is held
 back — no title, no desktop banner, or a button with no URL means it would
-render as a broken band, so it never ships. See `freeSlideMissing()`.
+render as a broken band, so it never ships. See `otherSlideMissing()`.
 
 The brand slide is always live, cannot be removed, and can be reordered. IDs in
 `order` that no longer qualify are skipped but **kept**, parked behind the
@@ -241,7 +241,7 @@ from the campaign page's `eyebrow` / `name` / `subtitle` / `bannerDesktop` /
 `promoHero` on (`seedHeroFromBasics()`), and nothing copies between them again —
 a later rename on the campaign page must not silently rewrite the homepage.
 `slideCopy()` reads the hero fields only, and a campaign slide missing its title
-or desktop banner is held back exactly like an incomplete free slide.
+or desktop banner is held back exactly like an incomplete other slide.
 
 **A campaign never mutates the items it references.** It holds IDs only.
 
@@ -266,7 +266,7 @@ it that way and it is a stored XSS hole. Sanitise on write in the backend and
 render through a sanitiser in the front end. Every other field goes through
 `esc()`.
 
-The other admin-authored value that escapes plain text is a free slide's
+The other admin-authored value that escapes plain text is a other slide's
 `ctaUrl`, which becomes an `href` on the public homepage. Allow only `http(s)`
 and site-relative paths; reject `javascript:` and `data:` on write.
 
@@ -308,11 +308,11 @@ Two details worth keeping because they took iterations to get right:
 
 ## Prototype-only — do not port
 
-- `localStorage` persistence, and the `STORE_KEY` / `HERO_KEY` / `FREE_KEY`
+- `localStorage` persistence, and the `STORE_KEY` / `HERO_KEY` / `OTHER_KEY`
   version bumps (`agathos.campaigns.v9`, `agathos.hero.v2`,
-  `agathos.freeslides.v1`). The version suffix exists so stale local data
+  `agathos.otherslides.v1`). The version suffix exists so stale local data
   reseeds during prototyping.
-- Every **Reset** button, `resetStore()`, `resetHero()` and `resetFreeSlides()`.
+- Every **Reset** button, `resetStore()`, `resetHero()` and `resetOtherSlides()`.
 - `assets/mock-data.js` in its entirety, including the placeholder SVGs under
   `assets/img/` — those are generated gradients standing in for real photography.
 - `vercel.json`. Note the images live in `assets/img/`, **not** `public/`: Vercel
@@ -328,8 +328,8 @@ index.html            Campaign list
 create.html           Create / edit wizard
 campaign.html         Campaign detail
 hero.html             Homepage Hero carousel
-slides.html           Free slide list
-slide.html            Free slide create / edit
+slides.html           Other slide list
+slide.html            Other slide create / edit
 
 assets/store.js       ★ backend boundary + all derived rules and formatting
 assets/mock-data.js   seed campaigns, catalogue, hero config

@@ -255,14 +255,14 @@ var SEED_HERO = {
     bannerMobile:'assets/img/banners/agathos-default-mobile.svg',
     ctaLabel:'Explore causes'
   },
-  /* 'default' is the brand slide; the rest are campaign or free-slide IDs. */
-  order: ['default', 'c_monsoon_relief', 'f_volunteer_drive', 'c_double_impact', 'c_christmas_2026', 'c_hidden_causes', 'f_annual_report']
+  /* 'default' is the brand slide; the rest are campaign or other-slide IDs. */
+  order: ['default', 'c_monsoon_relief', 'o_volunteer_drive', 'c_double_impact', 'c_christmas_2026', 'c_hidden_causes', 'o_annual_report']
 };
 
 /* Slides that belong to no campaign. Sample content — see SEED_CAMPAIGNS. */
-var SEED_FREE_SLIDES = [
+var SEED_OTHER_SLIDES = [
   {
-    id:'f_volunteer_drive',
+    id:'o_volunteer_drive',
     eyebrow:'JOIN US',
     title:'Give an hour, not just a gift',
     subtitle:'Thirty organisations on Agathos are looking for volunteers this quarter — from tutoring to warehouse shifts.',
@@ -275,7 +275,7 @@ var SEED_FREE_SLIDES = [
     createdAt:'2026-05-19T10:00:00Z', updatedAt:'2026-07-24T11:12:00Z'
   },
   {
-    id:'f_annual_report',
+    id:'o_annual_report',
     eyebrow:'2025 ANNUAL REPORT',
     title:'Where every dollar went last year',
     subtitle:'The full breakdown of what the community gave, which organisations received it, and what changed as a result.',

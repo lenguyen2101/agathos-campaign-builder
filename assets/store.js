@@ -284,9 +284,9 @@ function toast(msg){
      defaultSlide  { eyebrow, title, subtitle, bannerDesktop, bannerMobile, ctaLabel }
      order         string[]   'default' plus campaign IDs, in carousel order
 
-   Neither campaign slides nor free slides are stored here. heroSlides() joins
+   Neither campaign slides nor other slides are stored here. heroSlides() joins
    the stored order against the campaigns that currently have promoHero on and
-   against the free slides, so each record stays the single source of truth for
+   against the other slides, so each record stays the single source of truth for
    its own copy. Anything in `order` that no longer qualifies is skipped, and
    anything new is appended — the stored order self-heals rather than going
    stale.
@@ -313,19 +313,19 @@ function saveHero(cfg){ localStorage.setItem(HERO_KEY, JSON.stringify(cfg)); ret
 function resetHero(){ localStorage.removeItem(HERO_KEY); }
 
 /* ============================================================================
-   FREE SLIDES — third backend boundary
+   OTHER SLIDES — third backend boundary
 
-     listFreeSlides()     GET    /admin/free-slides         -> FreeSlide[]
-     getFreeSlide(id)     GET    /admin/free-slides/:id     -> FreeSlide
-     saveFreeSlide(s)     POST   /admin/free-slides         -> FreeSlide  (no s.id)
-                          PATCH  /admin/free-slides/:id     -> FreeSlide  (has s.id)
-     deleteFreeSlide(id)  DELETE /admin/free-slides/:id
+     listOtherSlides()     GET    /admin/other-slides         -> OtherSlide[]
+     getOtherSlide(id)     GET    /admin/other-slides/:id     -> OtherSlide
+     saveOtherSlide(s)     POST   /admin/other-slides         -> OtherSlide  (no s.id)
+                          PATCH  /admin/other-slides/:id     -> OtherSlide  (has s.id)
+     deleteOtherSlide(id)  DELETE /admin/other-slides/:id
 
    A homepage slide that belongs to no campaign — an announcement, a partner, a
    brand message. Same shape of copy as a campaign slide, but the admin owns the
    link because there is no campaign page to generate one from.
 
-   FreeSlide shape
+   OtherSlide shape
    ---------------
      id            string      server-assigned, 'f_' prefix
      title         string      required — the slide headline
@@ -350,60 +350,60 @@ function resetHero(){ localStorage.removeItem(HERO_KEY); }
    http(s) or a site-relative path, or it is a javascript: injection hole.
    ============================================================================ */
 
-var FREE_KEY = 'agathos.freeslides.v1';
+var OTHER_KEY = 'agathos.otherslides.v1';
 
-function _readFree(){
-  var raw = localStorage.getItem(FREE_KEY);
+function _readOther(){
+  var raw = localStorage.getItem(OTHER_KEY);
   if(!raw){
-    localStorage.setItem(FREE_KEY, JSON.stringify(SEED_FREE_SLIDES));
-    return JSON.parse(JSON.stringify(SEED_FREE_SLIDES));
+    localStorage.setItem(OTHER_KEY, JSON.stringify(SEED_OTHER_SLIDES));
+    return JSON.parse(JSON.stringify(SEED_OTHER_SLIDES));
   }
   try { return JSON.parse(raw); }
   catch(e){
-    console.error('[store] cannot parse ' + FREE_KEY + ' — reseeding.', e);
-    localStorage.setItem(FREE_KEY, JSON.stringify(SEED_FREE_SLIDES));
-    return JSON.parse(JSON.stringify(SEED_FREE_SLIDES));
+    console.error('[store] cannot parse ' + OTHER_KEY + ' — reseeding.', e);
+    localStorage.setItem(OTHER_KEY, JSON.stringify(SEED_OTHER_SLIDES));
+    return JSON.parse(JSON.stringify(SEED_OTHER_SLIDES));
   }
 }
-function _writeFree(list){ localStorage.setItem(FREE_KEY, JSON.stringify(list)); }
+function _writeOther(list){ localStorage.setItem(OTHER_KEY, JSON.stringify(list)); }
 
-function listFreeSlides(){ return _readFree(); }
+function listOtherSlides(){ return _readOther(); }
 
-function getFreeSlide(id){
-  var found = _readFree().filter(function(s){ return s.id === id; })[0];
+function getOtherSlide(id){
+  var found = _readOther().filter(function(s){ return s.id === id; })[0];
   return found || null;
 }
 
-function saveFreeSlide(s){
-  var list = _readFree();
+function saveOtherSlide(s){
+  var list = _readOther();
   var now = new Date().toISOString();
   if(s.id){
     var i = -1;
     list.forEach(function(x, ix){ if(x.id === s.id) i = ix; });
-    if(i < 0) throw new Error('[store] saveFreeSlide: no free slide with id ' + s.id);
+    if(i < 0) throw new Error('[store] saveOtherSlide: no other slide with id ' + s.id);
     s.createdAt = list[i].createdAt;
     s.updatedAt = now;
     list[i] = s;
   } else {
-    s.id = 'f_' + Math.random().toString(36).slice(2, 10);
+    s.id = 'o_' + Math.random().toString(36).slice(2, 10);
     s.createdAt = now;
     s.updatedAt = now;
     list.unshift(s);
   }
-  _writeFree(list);
+  _writeOther(list);
   return s;
 }
 
-function deleteFreeSlide(id){
-  var list = _readFree();
+function deleteOtherSlide(id){
+  var list = _readOther();
   var kept = list.filter(function(s){ return s.id !== id; });
-  if(kept.length === list.length) throw new Error('[store] deleteFreeSlide: no free slide with id ' + id);
-  _writeFree(kept);
+  if(kept.length === list.length) throw new Error('[store] deleteOtherSlide: no other slide with id ' + id);
+  _writeOther(kept);
 }
 
-function resetFreeSlides(){ localStorage.removeItem(FREE_KEY); }
+function resetOtherSlides(){ localStorage.removeItem(OTHER_KEY); }
 
-function newFreeSlide(){
+function newOtherSlide(){
   return {
     eyebrow:'', title:'', subtitle:'',
     bannerDesktop:'', bannerMobile:'',
@@ -413,9 +413,9 @@ function newFreeSlide(){
   };
 }
 
-/* The fields a free slide cannot go live without. A CTA is optional, but half a
+/* The fields a other slide cannot go live without. A CTA is optional, but half a
    CTA is not — a button with no destination is worse than no button. */
-function freeSlideMissing(s){
+function otherSlideMissing(s){
   var out = [];
   if(!s.title)          out.push('Title');
   if(!s.bannerDesktop)  out.push('Desktop banner');
@@ -429,9 +429,9 @@ function heroSlides(cfg){
   cfg = cfg || getHero();
   var pending = {};
   var promo   = listCampaigns().filter(function(c){ return c.promoHero; });
-  var free    = listFreeSlides();
+  var other   = listOtherSlides();
   promo.forEach(function(c){ pending[c.id] = { kind:'campaign', campaign:c }; });
-  free.forEach(function(f){ pending[f.id]  = { kind:'free', slide:f }; });
+  other.forEach(function(f){ pending[f.id] = { kind:'other', slide:f }; });
 
   var out = [];
   cfg.order.forEach(function(id){
@@ -452,8 +452,8 @@ function heroSlides(cfg){
   promo.forEach(function(c){
     if(pending[c.id]) out.push({ id:c.id, kind:'campaign', campaign:c });
   });
-  free.forEach(function(f){
-    if(pending[f.id]) out.push({ id:f.id, kind:'free', slide:f });
+  other.forEach(function(f){
+    if(pending[f.id]) out.push({ id:f.id, kind:'other', slide:f });
   });
 
   return out;
@@ -466,13 +466,13 @@ function slideLive(s){
   if(s.kind === 'default') return { live:true, why:'' };
   var today = new Date().toISOString().slice(0,10);
 
-  /* A free slide is scheduled the same way, except its dates are optional:
+  /* A other slide is scheduled the same way, except its dates are optional:
      a blank bound simply is not a bound. It also has to be complete — a slide
      with no banner would render as an empty band. */
-  if(s.kind === 'free'){
+  if(s.kind === 'other'){
     var f  = s.slide;
     var fs = statusOf(f);
-    var gaps = freeSlideMissing(f);
+    var gaps = otherSlideMissing(f);
     if(gaps.length)             return { live:false, why:'incomplete — ' + gaps.join(', ').toLowerCase() + ' missing' };
     if(fs !== 'ONGOING')        return { live:false, why:'status is ' + fs };
     if(f.start && today < f.start) return { live:false, why:'starts ' + fmtDate(f.start) };
@@ -493,7 +493,7 @@ function slideLive(s){
 
 /* Normalised view of a slide, whichever source it came from. */
 function slideCopy(s){
-  if(s.kind === 'default' || s.kind === 'free') return s.slide;
+  if(s.kind === 'default' || s.kind === 'other') return s.slide;
   /* The slide's own copy, not the campaign page's — the two are independent
      fields precisely so a campaign can say something different on the homepage. */
   var c = s.campaign;
