@@ -164,8 +164,6 @@ select.ctl{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xm
 .counted .count{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--hint);pointer-events:none;}
 .counted .ctl{padding-right:74px;}
 
-.colorrow{display:flex;align-items:center;gap:10px;}
-.colorrow input[type=color]{width:44px;height:40px;border:1px solid var(--border);border-radius:var(--radius);background:#fff;padding:3px;cursor:pointer;flex:none;}
 
 /* Ant-style upload box. Uploads are mocked, so the value is a path under
    /public; if it 404s the box falls back to showing the path. */
@@ -189,7 +187,7 @@ select.ctl{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xm
 .tablewrap{border:1px solid var(--split);border-radius:var(--radius);overflow-x:auto;}
 /* Fixed layout + colgroup — without it 13 columns squeeze the Campaign cell
    until every title wraps onto three lines and row heights go ragged. */
-table.ct{width:100%;border-collapse:collapse;table-layout:fixed;min-width:1950px;}
+table.ct{width:100%;border-collapse:collapse;table-layout:fixed;min-width:1815px;}
 table.ct th{text-align:left;font-size:14px;font-weight:600;color:var(--ink);padding:14px 16px;border-bottom:1px solid var(--split);background:#FAFAFA;white-space:nowrap;}
 table.ct th.sortable{cursor:pointer;user-select:none;}
 table.ct th.sortable:hover{background:var(--fill);}
@@ -355,7 +353,7 @@ td .tagrow{flex-wrap:nowrap;}
 .herobanner img ~ .none{display:none;}
 .herobanner.broken img{display:none;}
 .herobanner.broken img ~ .none{display:flex;}
-.hero{padding:18px 16px 26px;color:#fff;display:flex;flex-direction:column;}
+.hero{padding:18px 16px 26px;color:#fff;background:var(--primary);display:flex;flex-direction:column;}
 .hero .eb{font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;opacity:.95;}
 .hero .eb i{display:inline-block;width:14px;height:2px;background:var(--gold);vertical-align:middle;margin-right:7px;}
 .hero h4{font-size:20px;margin:8px 0 6px;line-height:1.15;}
@@ -388,8 +386,6 @@ td .tagrow{flex-wrap:nowrap;}
 .blockhead h3{font-size:15px;font-weight:600;}
 .blockhead .n{width:20px;height:20px;border-radius:50%;background:var(--nav-active);color:var(--link);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;}
 .blockhead .spacer{flex:1;}
-.swatchbox{display:flex;align-items:center;gap:10px;}
-.swatchbox i{width:40px;height:40px;border-radius:var(--radius);border:1px solid var(--border);flex:none;}
 
 /* ==========================================================================
    MODAL / TOAST

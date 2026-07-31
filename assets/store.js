@@ -24,12 +24,11 @@
      eyebrow       string      hero kicker, e.g. 'EMERGENCY APPEAL · URGENT'
      name          string      hero title
      subtitle      string      the paragraph under the hero title
-     color         string      hex, drives the band behind the hero text
      bannerDesktop string      image path — 1920x1080 (16:9)
      bannerMobile  string      image path — 375x667 (9:16), optional
      items         string[]    catalogue IDs — referenced, never mutated
      featured      string      item ID, only meaningful when spotlight=true
-     showGoal      boolean     render the campaign total goal + progress bar
+     showGoal      boolean     render the campaign total goal on the page
      status        string       one of STATUSES
      start         string      'YYYY-MM-DD' or '' when not scheduled
      end           string      'YYYY-MM-DD' or ''
@@ -49,8 +48,12 @@
    controls its workflow state, and the two are independent.
 
    The campaign has NO goal field. Its total goal is the sum of the goals of
-   the items it references (see totalGoal()); showGoal only decides whether
-   that total and its progress bar are rendered on the public page.
+   the PROJECTS it references (see totalGoal()) — events carry no goal, so a
+   campaign made only of events has no total. showGoal only decides whether
+   that total is rendered on the public page.
+
+   There is no theme colour either: the hero band uses the brand colour for
+   every campaign.
 
    Raised amount and donor count are runtime aggregates owned by the backend.
    They are not part of this shape and the admin never enters them.
@@ -58,7 +61,7 @@
 
 /* Bumped when the Campaign shape changes, so stale localStorage reseeds
    instead of silently rendering records that miss the new fields. */
-var STORE_KEY = 'agathos.campaigns.v5';
+var STORE_KEY = 'agathos.campaigns.v6';
 
 /* ---------------------------------------------------------------- DATA ACCESS */
 
@@ -123,7 +126,7 @@ var STATUS_DEFAULT = 'DRAFT';
 
 function newCampaign(){
   return {
-    eyebrow:'', name:'', subtitle:'', color:'#15479E',
+    eyebrow:'', name:'', subtitle:'',
     bannerDesktop:'', bannerMobile:'',
     items:[], featured:'',
     showGoal:true,
@@ -148,16 +151,19 @@ function orgsOf(items){
   return Object.keys(seen);
 }
 
-function hasMatching(items){
-  return items.some(function(id){ var x = catItem(id); return x && x.matching; });
-}
-
-/* Campaign total goal = sum of the referenced items' own goals. */
+/* Campaign total goal = sum of the referenced projects' goals.
+   Events have no goal, so they contribute nothing. A campaign made only of
+   events therefore totals 0 and has no goal to display. */
 function totalGoal(items){
   return items.reduce(function(sum, id){
     var x = catItem(id);
-    return sum + (x ? x.goal : 0);
+    return sum + (x && x.goal ? x.goal : 0);
   }, 0);
+}
+
+/* How many referenced items actually contribute a goal. */
+function goalItemCount(items){
+  return items.filter(function(id){ var x = catItem(id); return x && x.goal; }).length;
 }
 
 function promoLabels(c){

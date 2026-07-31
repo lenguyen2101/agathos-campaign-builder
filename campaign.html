@@ -90,7 +90,6 @@
     var st       = statusOf(C);
     var orgs     = orgsOf(C.items);
     var promo    = promoLabels(C);
-    var matching = hasMatching(C.items);
     var featured = C.featured ? catItem(C.featured) : null;
 
     var h = '<div class="pagehead">'
@@ -122,11 +121,7 @@
       + '<div class="grid2">'
       +   '<div class="field"><label>Desktop banner · 1920×1080 (16:9)</label>' + shot(C.bannerDesktop, '') + '</div>'
       +   '<div class="field"><label>Mobile banner · 375×667 (9:16)</label>' + shot(C.bannerMobile, ' mob', 'Falls back to the desktop banner') + '</div>'
-      + '</div>'
-      + '<div class="field"><label>Theme colour</label><div class="swatchbox">'
-      +   '<i style="background:' + esc(C.color) + '"></i>'
-      +   '<input class="ctl" type="text" disabled value="' + esc(C.color) + '" style="max-width:160px">'
-      + '</div></div>');
+      + '</div>');
 
     /* 1 — Items */
     var itemsInner = '<div class="grid2">'
@@ -134,7 +129,9 @@
       + ro('Organisations', orgs.length)
       + '</div>'
       + ro('Organisation list', orgs.length ? orgs.join(' · ') : '')
-      + ro('Campaign total goal', fmtMoney(totalGoal(C.items)) + ' — sum of the item goals below')
+      + ro('Campaign total goal', totalGoal(C.items)
+          ? fmtMoney(totalGoal(C.items)) + ' — sum of the project goals below; events carry none'
+          : 'No goal — this campaign has no project, and events carry no goal')
       ;
 
     if(!C.items.length){
@@ -154,16 +151,12 @@
         itemsInner += '<div class="pickrow"><div class="thumb" style="background:' + x.c + '">'
           + '<img src="' + esc(x.img) + '" alt=""></div>'
           + '<div class="info"><div class="nm">' + esc(x.name) + '</div>'
-          + '<div class="or">' + esc(x.org) + ' · goal ' + fmtMoney(x.goal) + '</div></div>'
+          + '<div class="or">' + esc(x.org) + (x.goal ? ' · goal ' + fmtMoney(x.goal) : '') + '</div></div>'
           + (C.spotlight && C.featured === id ? '<span class="tag gold">FEATURED</span>' : '')
-          + (x.matching ? '<span class="tag green">MATCHING</span>' : '')
           + '<span class="tag ' + (x.kind === 'project' ? 'blue' : 'violet') + '">' + x.kind.toUpperCase() + '</span>'
           + '</div>';
       });
-      itemsInner += '</div></div>'
-        + (matching
-            ? '<div class="alert ok">' + icon('check', 16) + '<span>At least one item has a matching grant — the matching banner is on automatically.</span></div>'
-            : '<div class="alert neutral">' + icon('inbox', 16) + '<span>No matched items — no matching banner.</span></div>');
+      itemsInner += '</div></div>';
     }
     h += block(1, 'Items', itemsInner);
 
@@ -179,13 +172,16 @@
     h += block(3, 'Display',
         '<div class="grid2">'
       +   ro('Show total goal', C.showGoal ? 'ON' : 'OFF')
-      +   ro('Total goal rendered', C.showGoal ? fmtMoney(totalGoal(C.items)) : '— hidden on the campaign page')
+      +   ro('Total goal rendered', !C.showGoal
+            ? '— hidden on the campaign page'
+            : totalGoal(C.items)
+              ? fmtMoney(totalGoal(C.items)) + ' — sum of ' + goalItemCount(C.items) + ' project goal(s)'
+              : '— no project in this campaign, events carry no goal')
       + '</div>'
       + '<div class="grid2">'
       +   ro('Spotlight one item at a time', C.spotlight ? 'ON' : 'OFF')
       +   ro('Featured item', C.spotlight ? (featured ? featured.name : 'not set') : '')
-      + '</div>'
-      + ro('Matching banner', matching ? 'ON (automatic)' : 'OFF'));
+      + '</div>');
 
     /* 4 — Promotion */
     h += block(4, 'Promotion',

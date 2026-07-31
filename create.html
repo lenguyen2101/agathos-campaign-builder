@@ -202,10 +202,6 @@
           +   ' placeholder="One or two sentences directly under the title">' + esc(S.subtitle) + '</textarea>'
           +   '<span class="count" style="top:18px;transform:none">' + S.subtitle.length + ' / ' + SUBTITLE_MAX + '</span></div></div>'
 
-          + '<div class="field" style="max-width:340px"><label>Theme colour</label><div class="colorrow">'
-          +   '<input type="color" value="' + esc(S.color) + '" oninput="setField(\'color\',this.value)">'
-          +   '<input class="ctl" type="text" value="' + esc(S.color) + '" oninput="setField(\'color\',this.value)">'
-          + '</div><div class="hint">Fills the band behind the hero title.</div></div>'
 
           + '<div class="grid2">'
           +   '<div class="field"><label><span class="req">*</span>Desktop banner</label>' + uploadBox('bannerDesktop', '16:9', '1920 × 1080px') + '</div>'
@@ -219,7 +215,8 @@
           + '<div class="field"><label>Search catalogue</label>'
           +   '<input class="ctl" type="text" placeholder="Search projects or events…" value="' + esc(U.search) + '" oninput="setSearch(this.value)"></div>'
           + '<div class="hint" style="margin:-10px 0 12px">' + S.items.length + ' selected · ' + orgsOf(S.items).length
-          +   ' organisations · total goal ' + fmtMoney(totalGoal(S.items)) + '</div>'
+          +   ' organisations · total goal '
+          +   (totalGoal(S.items) ? fmtMoney(totalGoal(S.items)) : 'none (events have no goal)') + '</div>'
           + '<div class="picklist scroll">';
 
         var visible = CATALOGUE.filter(function(x){
@@ -234,17 +231,12 @@
           h += '<div class="pickrow"><div class="thumb" style="background:' + x.c + '">'
              + '<img src="' + esc(x.img) + '" alt=""></div>'
              + '<div class="info"><div class="nm">' + esc(x.name) + '</div>'
-             + '<div class="or">' + esc(x.org) + ' · goal ' + fmtMoney(x.goal) + '</div></div>'
-             + (x.matching ? '<span class="tag green">MATCHING</span>' : '')
+             + '<div class="or">' + esc(x.org) + (x.goal ? ' · goal ' + fmtMoney(x.goal) : '') + '</div></div>'
              + '<span class="tag ' + (x.kind === 'project' ? 'blue' : 'violet') + '">' + x.kind.toUpperCase() + '</span>'
              + '<button class="btn ' + (added ? 'primary' : 'blue') + '" style="height:32px;padding:0 12px" onclick="toggleItem(\'' + x.id + '\')">'
              + (added ? '✓ Added' : 'Add') + '</button></div>';
         });
         h += '</div>';
-
-        h += hasMatching(S.items)
-          ? alert_('ok', 'Some included items have a matching grant — the landing page will automatically show a matching banner. Nothing to configure here.')
-          : alert_('neutral', 'No matched items included — this is a plain campaign, no matching banner.');
         break;
 
       case 2:
@@ -267,9 +259,15 @@
           + '<div class="tt"><div class="tk">Show total goal</div>'
           + '<div class="ts">Renders the campaign total and its progress bar in the stats card. Turn off to show only the amount raised, causes and donors.</div>'
           + '<div class="subfields"><div class="field"><label>Campaign total goal</label>'
-          +   '<input class="ctl" type="text" disabled value="' + esc(fmtMoney(totalGoal(S.items))) + '" style="max-width:220px">'
-          +   '<div class="hint">Sum of the goals of the ' + S.items.length + ' selected item'
-          +   (S.items.length === 1 ? '' : 's') + ' — not entered here. Change it by changing the items.</div>'
+          +   '<input class="ctl" type="text" disabled value="'
+          +     (totalGoal(S.items) ? esc(fmtMoney(totalGoal(S.items))) : 'No goal to show') + '" style="max-width:220px">'
+          +   '<div class="hint">'
+          +     (goalItemCount(S.items)
+                  ? 'Sum of the goals of the ' + goalItemCount(S.items) + ' project'
+                    + (goalItemCount(S.items) === 1 ? '' : 's') + ' in this campaign — not entered here. '
+                    + 'Events carry no goal, so they add nothing.'
+                  : 'None of the selected items has a goal — events do not carry one. Add a project to give the campaign a total.')
+          +   '</div>'
           + '</div></div></div></div>'
 
           + '<div class="switchrow"><button class="sw' + (S.spotlight ? ' on' : '') + '" onclick="toggle(\'spotlight\')"><i></i></button>'
@@ -284,9 +282,7 @@
           });
           h += '</select></div></div>';
         }
-        h += '</div></div>'
-          + alert_(hasMatching(S.items) ? 'ok' : 'neutral',
-              'Matching banner: <b>' + (hasMatching(S.items) ? 'on' : 'off') + '</b> — set automatically from the included items, not here.');
+        h += '</div></div>';
         break;
 
       case 4:
@@ -330,13 +326,14 @@
           + rr('Mobile banner', esc(S.bannerMobile) || '<span class="dash">falls back to desktop</span>')
           + rr('Items', S.items.length + ' across ' + orgsOf(S.items).length + ' organisations · added manually')
           + rr('Total goal', S.showGoal
-              ? fmtMoney(totalGoal(S.items)) + ' <span style="color:var(--hint)">(sum of items)</span>'
+              ? fmtMoney(totalGoal(S.items)) + ' <span style="color:var(--hint)">(sum of project goals)</span>'
+              : totalGoal(S.items) === 0 && S.items.length
+                ? '<span class="dash">no project in this campaign</span>'
               : '<span class="dash">hidden on the campaign page</span>')
           + rr('Schedule', (S.start && S.end) ? fmtRange(S.start, S.end) : '<span class="dash">not set</span>')
           + rr('Spotlight', S.spotlight
               ? ('on · ' + (S.featured && catItem(S.featured) ? esc(catItem(S.featured).name) : '—'))
               : '<span class="dash">off</span>')
-          + rr('Matching banner', hasMatching(S.items) ? 'on (auto)' : '<span class="dash">off</span>')
           + rr('Promotion', promo.length ? promo.join(' · ') : '<span class="dash">none</span>')
           + rr('About block', (S.aboutTitle || S.aboutBody)
               ? esc(S.aboutTitle || '(no heading)')
@@ -379,7 +376,7 @@
                 + '<div class="none">' + esc(S.bannerDesktop) + '</div>'
               : '<div class="none">No desktop banner</div>')
       +   '</div>'
-      +   '<div class="hero" style="background:' + esc(S.color) + '">'
+      +   '<div class="hero">'
       +     '<div class="eb"><i></i>' + (esc(S.eyebrow) || 'EYEBROW') + '</div>'
       +     '<h4>' + (esc(S.name) || 'Campaign title') + '</h4>'
       +     '<p>' + (esc(S.subtitle) || 'Your subtitle appears here.') + '</p>'
@@ -389,7 +386,9 @@
          bar and an em dash here would just look like broken data. */
       + '<div class="statcard">'
       +   (S.showGoal
-            ? '<div class="goalrow"><b>' + fmtMoney(totalGoal(S.items)) + '</b><span>total goal across this campaign</span></div>'
+            ? (totalGoal(S.items)
+                ? '<div class="goalrow"><b>' + fmtMoney(totalGoal(S.items)) + '</b><span>total goal across this campaign</span></div>'
+                : '<div class="goalrow"><b class="off">No goal</b><span>no project selected — events carry no goal</span></div>')
             : '<div class="goalrow"><b class="off">No goal shown</b><span>the campaign page hides the total</span></div>')
       +   '<div class="statmini"><div><b>' + S.items.length + '</b><span>Causes</span></div></div>'
       + '</div>'
@@ -400,7 +399,6 @@
       +     '<span class="tag ' + (S.promoHero ? 'blue' : 'grey') + '">HERO</span>'
       +     '<span class="tag ' + (S.promoBanner ? 'blue' : 'grey') + '">BANNER</span>'
       +     (S.spotlight ? '<span class="tag violet">SPOTLIGHT</span>' : '')
-      +     (hasMatching(S.items) ? '<span class="tag green">MATCHING · AUTO</span>' : '')
       +     ((S.aboutTitle || S.aboutBody) ? '<span class="tag blue">ABOUT</span>' : '')
       +   '</div>'
       + '</div>';
@@ -439,7 +437,6 @@
         '<div><span class="k">Status</span><span>' + statusOf(S) + '</span></div>'
       + '<div><span class="k">Items</span><span>' + S.items.length + ' · ' + orgsOf(S.items).length + ' orgs</span></div>'
       + '<div><span class="k">Spotlight</span><span>' + (S.spotlight ? 'on' : 'off') + '</span></div>'
-      + '<div><span class="k">Matching banner</span><span>' + (hasMatching(S.items) ? 'on (auto)' : 'off') + '</span></div>'
       + '<div><span class="k">Promotion</span><span>' + (promo.length ? promo.join(', ') : 'none') + '</span></div>';
     document.getElementById('viewbtn').onclick = function(){
       location.href = 'campaign.html?id=' + encodeURIComponent(S.id);

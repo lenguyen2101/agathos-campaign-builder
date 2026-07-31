@@ -48,7 +48,6 @@
     {key:'items',     label:'Items',        sortable:true,  w:85},
     {key:'goal',      label:'Total Goal',   sortable:true,  w:150},
     {key:'orgs',      label:'Organisations',sortable:true,  w:140},
-    {key:'matching',  label:'Matching',     sortable:true,  w:135},
     {key:'promotion', label:'Promotion',    sortable:false, w:170},
     {key:'spotlight', label:'Spotlight',    sortable:true,  w:110},
     {key:'updatedAt', label:'Last Updated', sortable:true,  w:130},
@@ -118,7 +117,6 @@
       case 'items':     return c.items.length;
       case 'goal':      return c.showGoal ? totalGoal(c.items) : -1;
       case 'orgs':      return orgsOf(c.items).length;
-      case 'matching':  return hasMatching(c.items) ? 1 : 0;
       case 'spotlight': return c.spotlight ? 1 : 0;
       case 'updatedAt': return c.updatedAt || '';
       default:          return '';
@@ -241,14 +239,12 @@
         + '<td class="nowrap num">' + (c.start ? fmtDate(c.start) : '<span class="dash">—</span>') + '</td>'
         + '<td class="nowrap num">' + (c.end   ? fmtDate(c.end)   : '<span class="dash">—</span>') + '</td>'
         + '<td class="num">' + c.items.length + '</td>'
-        + '<td class="num nowrap">' + (c.showGoal
-            ? fmtMoney(totalGoal(c.items))
-            : '<span class="dash" title="Total goal is hidden on the campaign page">hidden</span>') + '</td>'
+        + '<td class="num nowrap">' + (!c.showGoal
+            ? '<span class="dash" title="Total goal is hidden on the campaign page">hidden</span>'
+            : totalGoal(c.items)
+              ? fmtMoney(totalGoal(c.items))
+              : '<span class="dash" title="No project in this campaign — events carry no goal">no goal</span>') + '</td>'
         + '<td class="num">' + orgs.length + '</td>'
-
-        + '<td>' + (hasMatching(c.items)
-            ? '<span class="tag green">ON · AUTO</span>'
-            : '<span class="dash">—</span>') + '</td>'
 
         + '<td>' + (promo.length
             ? '<div class="tagrow">' + promo.map(function(p){

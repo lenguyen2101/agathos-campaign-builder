@@ -1,20 +1,20 @@
 /* Mock backend data. Replace with real API responses — see store.js for the endpoint map. */
 
-/* Each catalogue item carries its own fundraising goal. A campaign's total goal
-   is the sum of these — the campaign never stores a goal of its own. */
+/* Projects carry a fundraising goal; events do not. A campaign's total goal is
+   the sum of its projects' goals — the campaign never stores a goal of its own. */
 var CATALOGUE = [
-  {id:'p1', name:'Support for widows · grief counselling', org:'Wicare',         kind:'project', c:'#2C6B53', matching:true,  goal:45000, img:'assets/img/items/p1.svg'},
-  {id:'p2', name:'Turning Barriers into Bridges',         org:'SIL Global',      kind:'project', c:'#3B5B86', matching:false, goal:60000, img:'assets/img/items/p2.svg'},
-  {id:'p3', name:'Outreach @ displaced families',         org:'Love Cambodia',   kind:'project', c:'#7A5B2E', matching:false, goal:30000, img:'assets/img/items/p3.svg'},
-  {id:'e1', name:'Benefit concert for the unseen',        org:'RISE People',     kind:'event',   c:'#5B3B86', matching:false, goal:25000, img:'assets/img/items/e1.svg'},
-  {id:'p4', name:'A Bible Movement in Every Language',    org:'everylanguage',   kind:'project', c:'#3a2f28', matching:false, goal:80000, img:'assets/img/items/p4.svg'},
-  {id:'p5', name:'Living Waters Village',                 org:'agathos',         kind:'project', c:'#2e4a55', matching:true,  goal:120000, img:'assets/img/items/p5.svg'},
-  {id:'e2', name:'Charity Gala Dinner 2026',              org:"St Andrew's",     kind:'event',   c:'#86532e', matching:false, goal:50000, img:'assets/img/items/e2.svg'},
-  {id:'p6', name:'Clean water wells · Mekong delta',      org:'Love Cambodia',   kind:'project', c:'#1f5f6b', matching:true,  goal:35000, img:'assets/img/items/p6.svg'},
-  {id:'p7', name:'Scholarships for first-generation students', org:'Wicare',     kind:'project', c:'#5c4a7a', matching:false, goal:40000, img:'assets/img/items/p7.svg'},
-  {id:'e3', name:'Run for Hope 10K',                      org:'RISE People',     kind:'event',   c:'#8a3a4a', matching:false, goal:15000, img:'assets/img/items/e3.svg'},
-  {id:'p8', name:'Mobile clinics for remote villages',    org:'SIL Global',      kind:'project', c:'#2f6b4a', matching:false, goal:55000, img:'assets/img/items/p8.svg'},
-  {id:'p9', name:'Rebuilding after the floods',           org:'agathos',         kind:'project', c:'#6b4a2f', matching:true,  goal:70000, img:'assets/img/items/p9.svg'}
+  {id:'p1', name:'Support for widows · grief counselling', org:'Wicare',         kind:'project', c:'#2C6B53', goal:45000, img:'assets/img/items/p1.svg'},
+  {id:'p2', name:'Turning Barriers into Bridges',         org:'SIL Global',      kind:'project', c:'#3B5B86', goal:60000, img:'assets/img/items/p2.svg'},
+  {id:'p3', name:'Outreach @ displaced families',         org:'Love Cambodia',   kind:'project', c:'#7A5B2E', goal:30000, img:'assets/img/items/p3.svg'},
+  {id:'e1', name:'Benefit concert for the unseen',        org:'RISE People',     kind:'event',   c:'#5B3B86', img:'assets/img/items/e1.svg'},
+  {id:'p4', name:'A Bible Movement in Every Language',    org:'everylanguage',   kind:'project', c:'#3a2f28', goal:80000, img:'assets/img/items/p4.svg'},
+  {id:'p5', name:'Living Waters Village',                 org:'agathos',         kind:'project', c:'#2e4a55', goal:120000, img:'assets/img/items/p5.svg'},
+  {id:'e2', name:'Charity Gala Dinner 2026',              org:"St Andrew's",     kind:'event',   c:'#86532e', img:'assets/img/items/e2.svg'},
+  {id:'p6', name:'Clean water wells · Mekong delta',      org:'Love Cambodia',   kind:'project', c:'#1f5f6b', goal:35000, img:'assets/img/items/p6.svg'},
+  {id:'p7', name:'Scholarships for first-generation students', org:'Wicare',     kind:'project', c:'#5c4a7a', goal:40000, img:'assets/img/items/p7.svg'},
+  {id:'e3', name:'Run for Hope 10K',                      org:'RISE People',     kind:'event',   c:'#8a3a4a', img:'assets/img/items/e3.svg'},
+  {id:'p8', name:'Mobile clinics for remote villages',    org:'SIL Global',      kind:'project', c:'#2f6b4a', goal:55000, img:'assets/img/items/p8.svg'},
+  {id:'p9', name:'Rebuilding after the floods',           org:'agathos',         kind:'project', c:'#6b4a2f', goal:70000, img:'assets/img/items/p9.svg'}
 ];
 
 /* A campaign never mutates the items it references — it only holds their IDs. */
@@ -24,7 +24,6 @@ var SEED_CAMPAIGNS = [
     eyebrow:'EMERGENCY APPEAL · URGENT',
     name:'Flood Relief for Central Vietnam',
     subtitle:'Families along the coast lost homes overnight. Emergency kits, clean water and shelter are needed now.',
-    color:'#15479E',
     bannerDesktop:'assets/img/banners/flood-relief-desktop.svg',
     bannerMobile:'assets/img/banners/flood-relief-mobile.svg',
     items:['p9','p6','p3'],
@@ -44,7 +43,6 @@ var SEED_CAMPAIGNS = [
     eyebrow:'MATCHING GIVING',
     name:'Double The Impact',
     subtitle:'For a limited season, every dollar you give is matched by our partner funds — your gift goes twice as far.',
-    color:'#0E3A7E',
     bannerDesktop:'assets/img/banners/double-impact-desktop.svg',
     bannerMobile:'assets/img/banners/double-impact-mobile.svg',
     items:['p1','p5','p6','p9'],
@@ -64,7 +62,6 @@ var SEED_CAMPAIGNS = [
     eyebrow:'SEASONAL CAMPAIGN',
     name:'Christmas Giving 2026',
     subtitle:'This Christmas, stand with families and causes across our community — every gift carries hope into the new year.',
-    color:'#15479E',
     bannerDesktop:'assets/img/banners/christmas-2026-desktop.svg',
     bannerMobile:'assets/img/banners/christmas-2026-mobile.svg',
     items:['p2','p3','e1','p7'],
@@ -84,7 +81,6 @@ var SEED_CAMPAIGNS = [
     eyebrow:'MONTHLY SPOTLIGHT',
     name:'Hidden Causes',
     subtitle:'Every month we lift one overlooked cause out of the shadows and put it in front of the whole community.',
-    color:'#5A3FC0',
     bannerDesktop:'assets/img/banners/hidden-causes-desktop.svg',
     bannerMobile:'assets/img/banners/hidden-causes-mobile.svg',
     items:['p1','p4','p8','p7','e3'],
@@ -104,7 +100,6 @@ var SEED_CAMPAIGNS = [
     eyebrow:'MATCHING GIVING',
     name:'Clean Water Month',
     subtitle:'Through August, every gift to a water project is matched by our partner fund.',
-    color:'#2C6B53',
     bannerDesktop:'assets/img/banners/clean-water-desktop.svg',
     bannerMobile:'',
     items:['p6','p5'],
@@ -124,7 +119,6 @@ var SEED_CAMPAIGNS = [
     eyebrow:'',
     name:'Back to School 2026',
     subtitle:'',
-    color:'#5c4a7a',
     bannerDesktop:'',
     bannerMobile:'',
     items:['p7'],
@@ -144,7 +138,6 @@ var SEED_CAMPAIGNS = [
     eyebrow:'SEASONAL CAMPAIGN',
     name:'Easter Appeal 2026',
     subtitle:'A short appeal across our partner churches through Holy Week.',
-    color:'#2f6b4a',
     bannerDesktop:'assets/img/banners/easter-2026-desktop.svg',
     bannerMobile:'assets/img/banners/easter-2026-mobile.svg',
     items:['p1','p8'],
@@ -164,7 +157,6 @@ var SEED_CAMPAIGNS = [
     eyebrow:'SEASONAL CAMPAIGN',
     name:'Lunar New Year 2026',
     subtitle:'Mark the new year by backing a cause that carries someone else forward.',
-    color:'#86532e',
     bannerDesktop:'assets/img/banners/lny-2026-desktop.svg',
     bannerMobile:'assets/img/banners/lny-2026-mobile.svg',
     items:['p3','e2','p4'],
@@ -184,7 +176,6 @@ var SEED_CAMPAIGNS = [
     eyebrow:'GENERAL APPEAL',
     name:'Gala Season 2026',
     subtitle:'Our flagship fundraising dinners, gathered in one place.',
-    color:'#3B5B86',
     bannerDesktop:'assets/img/banners/gala-2026-desktop.svg',
     bannerMobile:'',
     items:['e2','e1','e3'],
