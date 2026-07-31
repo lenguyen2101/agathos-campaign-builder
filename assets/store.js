@@ -240,3 +240,96 @@ function toast(msg){
   clearTimeout(toast._t);
   toast._t = setTimeout(function(){ el.classList.remove('show'); }, 2600);
 }
+
+/* ============================================================================
+   HOMEPAGE HERO — second backend boundary
+
+     getHero()          GET   /admin/homepage-hero   -> HeroConfig
+     saveHero(cfg)      PUT   /admin/homepage-hero   -> HeroConfig
+
+   HeroConfig
+   ----------
+     defaultSlide  { eyebrow, title, subtitle, bannerDesktop, bannerMobile, ctaLabel }
+     order         string[]   'default' plus campaign IDs, in carousel order
+
+   Campaign slides are NOT stored here. heroSlides() joins the stored order
+   against the campaigns that currently have promoHero on, so the campaign
+   record stays the single source of truth for a slide's copy and whether it
+   appears at all. Anything in `order` that no longer qualifies is skipped, and
+   anything newly switched on is appended — the stored order self-heals rather
+   than going stale.
+   ============================================================================ */
+
+var HERO_KEY = 'agathos.hero.v1';
+
+function getHero(){
+  var raw = localStorage.getItem(HERO_KEY);
+  if(!raw){
+    localStorage.setItem(HERO_KEY, JSON.stringify(SEED_HERO));
+    return JSON.parse(JSON.stringify(SEED_HERO));
+  }
+  try { return JSON.parse(raw); }
+  catch(e){
+    console.error('[store] cannot parse ' + HERO_KEY + ' — reseeding.', e);
+    localStorage.setItem(HERO_KEY, JSON.stringify(SEED_HERO));
+    return JSON.parse(JSON.stringify(SEED_HERO));
+  }
+}
+
+function saveHero(cfg){ localStorage.setItem(HERO_KEY, JSON.stringify(cfg)); return cfg; }
+
+function resetHero(){ localStorage.removeItem(HERO_KEY); }
+
+/* The carousel as it will actually be built, in order. Pass a config to preview
+   unsaved edits; omit it to read what is currently persisted. */
+function heroSlides(cfg){
+  cfg = cfg || getHero();
+  var pending = {};
+  var promo   = listCampaigns().filter(function(c){ return c.promoHero; });
+  promo.forEach(function(c){ pending[c.id] = c; });
+
+  var out = [];
+  cfg.order.forEach(function(id){
+    if(id === 'default'){
+      out.push({ id:'default', kind:'default', slide:cfg.defaultSlide });
+    } else if(pending[id]){
+      out.push({ id:id, kind:'campaign', campaign:pending[id] });
+      delete pending[id];
+    }
+  });
+
+  /* The brand slide can be reordered but never removed. */
+  if(!out.some(function(s){ return s.id === 'default'; })){
+    out.unshift({ id:'default', kind:'default', slide:cfg.defaultSlide });
+  }
+  /* Campaigns switched on since the order was last saved go to the back. */
+  promo.forEach(function(c){ if(pending[c.id]) out.push({ id:c.id, kind:'campaign', campaign:c }); });
+
+  return out;
+}
+
+/* Being in the carousel is not the same as being visible: a campaign slide only
+   reaches the public homepage while the campaign is ONGOING and inside its run
+   window. Read-only — this page never changes it. */
+function slideLive(s){
+  if(s.kind === 'default') return { live:true, why:'' };
+  var c = s.campaign;
+  var st = statusOf(c);
+  if(st !== 'ONGOING')          return { live:false, why:'status is ' + st };
+  if(!c.start || !c.end)        return { live:false, why:'no run dates set' };
+  var today = new Date().toISOString().slice(0,10);
+  if(today < c.start)           return { live:false, why:'starts ' + fmtDate(c.start) };
+  if(today > c.end)             return { live:false, why:'ended ' + fmtDate(c.end) };
+  return { live:true, why:'' };
+}
+
+/* Normalised view of a slide, whichever source it came from. */
+function slideCopy(s){
+  if(s.kind === 'default') return s.slide;
+  var c = s.campaign;
+  return {
+    eyebrow:c.eyebrow, title:c.name, subtitle:c.subtitle,
+    bannerDesktop:c.bannerDesktop, bannerMobile:c.bannerMobile,
+    ctaLabel:c.ctaLabel
+  };
+}

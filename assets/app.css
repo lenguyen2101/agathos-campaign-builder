@@ -183,6 +183,50 @@ select.ctl{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xm
 .rte-body a{color:var(--link);text-decoration:underline;}
 .rte-body b,.rte-body strong{font-weight:600;}
 
+/* ---------- hero carousel: slide order list ---------- */
+.slidelist{display:flex;flex-direction:column;gap:8px;}
+.slidrow{display:flex;align-items:center;gap:12px;border:1px solid var(--split);border-radius:var(--radius);padding:10px 12px;background:#fff;}
+.slidrow:hover{border-color:var(--border);}
+.slidrow .grip{flex:none;color:var(--hint);cursor:grab;padding:4px;border-radius:4px;}
+.slidrow .grip:hover{color:var(--ink-2);background:var(--fill);}
+.slidrow .grip:active{cursor:grabbing;}
+.slidrow .pos{width:22px;flex:none;font-size:13px;font-weight:700;color:var(--hint);font-variant-numeric:tabular-nums;text-align:center;}
+.slidrow .thumb{width:36px;height:64px;border-radius:4px;flex:none;overflow:hidden;background:var(--fill);}
+.slidrow .thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.slidrow .info{flex:1;min-width:0;}
+.slidrow .eb{font-size:10.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted);}
+.slidrow .nm{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px;}
+.slidrow .side{display:flex;align-items:center;gap:10px;flex:none;}
+/* The row being dragged stays in the DOM and is moved between siblings, so it
+   only needs to read as "in flight". */
+.slidrow.dragging{opacity:.4;border-color:var(--link);border-style:dashed;}
+
+/* ---------- hero carousel preview ---------- */
+.hcar{position:relative;aspect-ratio:9/16;background:var(--primary);overflow:hidden;border-radius:var(--radius);
+  display:flex;flex-direction:column;justify-content:flex-end;}
+.hcar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.hcar .scrim{position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(8,18,42,.92) 0%,rgba(8,18,42,.55) 50%,rgba(8,18,42,.08) 100%);}
+.hcar .none{position:absolute;top:12px;left:0;right:0;text-align:center;font-size:11.5px;color:rgba(255,255,255,.6);}
+.hcar img ~ .none{display:none;}
+.hcar.broken img{display:none;}
+.hcar.broken img ~ .none{display:block;}
+.hcar .copy{position:relative;padding:16px;color:#fff;}
+.hcar .eb{display:flex;align-items:center;gap:9px;font-size:10.5px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;}
+.hcar .eb i{width:18px;height:2px;background:var(--gold);flex:none;}
+.hcar h4{font-size:20px;line-height:1.15;margin:9px 0 7px;letter-spacing:-0.01em;}
+.hcar p{font-size:12.5px;line-height:1.45;opacity:.93;}
+.hcar .cta{display:inline-flex;align-items:center;justify-content:center;margin-top:14px;padding:0 18px;height:38px;
+  background:#fff;color:var(--primary);border:none;border-radius:var(--radius);font-size:13.5px;font-weight:700;}
+.hcar .foot{position:relative;display:flex;align-items:center;gap:10px;padding:0 16px 16px;color:#fff;}
+.hcar .foot .n{font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;}
+.hcar .foot .n span{opacity:.6;font-weight:500;}
+.hcar .foot .track{flex:1;height:2px;background:rgba(255,255,255,.28);border-radius:2px;overflow:hidden;}
+.hcar .foot .track i{display:block;height:100%;background:#fff;transition:width .2s;}
+.hcar .foot button{width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.5);background:none;
+  color:#fff;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;flex:none;}
+.hcar .foot button:hover{background:rgba(255,255,255,.16);}
+
 /* Read-only rendering of the same content on the detail page. */
 .rte-view{padding:12px 14px;background:var(--fill);color:var(--muted);
   border:1px solid var(--border);border-radius:var(--radius);font-size:14px;line-height:1.65;}
@@ -412,6 +456,8 @@ td .tagrow{flex-wrap:nowrap;}
 /* ==========================================================================
    DETAIL (read-only = disabled inputs, like the Event detail screen)
    ========================================================================== */
+/* Two-column page: form card plus a sticky preview aside. */
+.detailcols{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;align-items:start;}
 .formcard{border:1px solid var(--split);border-radius:var(--radius);padding:24px;}
 .block{margin-bottom:28px;}
 .block:last-child{margin-bottom:0;}

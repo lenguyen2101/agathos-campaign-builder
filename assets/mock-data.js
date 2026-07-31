@@ -191,3 +191,23 @@ var SEED_CAMPAIGNS = [
     createdAt:'2026-01-15T09:30:00Z', updatedAt:'2026-06-10T11:45:00Z'
   }
 ];
+
+/* ============================================================================
+   HOMEPAGE HERO CAROUSEL
+   The carousel is assembled from two sources: this one brand slide, which
+   belongs to no campaign, and every campaign with promoHero on. Only the brand
+   slide's copy and the running order live here — campaign slides render from
+   the campaign record itself.
+   ============================================================================ */
+var SEED_HERO = {
+  defaultSlide: {
+    eyebrow:'GIVE WITH CONFIDENCE',
+    title:'Every cause here is vetted',
+    subtitle:'Agathos verifies every organisation on the platform, so you always know exactly where your gift goes.',
+    bannerDesktop:'assets/img/banners/agathos-default-desktop.svg',
+    bannerMobile:'assets/img/banners/agathos-default-mobile.svg',
+    ctaLabel:'Explore causes'
+  },
+  /* 'default' is the brand slide; the rest are campaign IDs. */
+  order: ['default', 'c_monsoon_relief', 'c_double_impact', 'c_christmas_2026', 'c_hidden_causes']
+};

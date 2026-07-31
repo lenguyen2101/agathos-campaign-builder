@@ -28,7 +28,8 @@ var ICON = {
   check:    '<path d="M4 12.5l5 5L20 6.5"/>',
   warn:     '<path d="M12 3l9.5 17H2.5z"/><path d="M12 9v5M12 17h.01"/>',
   inbox:    '<path d="M4 13h4l1.5 3h5L16 13h4"/><path d="M4 13L6.5 5h11L20 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/>',
-  doc:      '<path d="M5 3h9l5 5v13H5z"/><path d="M14 3v5h5"/><path d="M8 8h3M8 11.5h3"/><circle cx="15" cy="16" r="3.2"/><path d="M13.7 16l1 1 1.8-2"/>'
+  doc:      '<path d="M5 3h9l5 5v13H5z"/><path d="M14 3v5h5"/><path d="M8 8h3M8 11.5h3"/><circle cx="15" cy="16" r="3.2"/><path d="M13.7 16l1 1 1.8-2"/>',
+  grip:     '<circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="18" r="1.4"/>'
 };
 
 function icon(name, size){
@@ -60,8 +61,10 @@ function mountShell(activeKey){
   var appKids =
       navSub('Project Management', navLeaf('Project') + navLeaf('Impact Report'), false)
     + navSub('Event Management',   navLeaf('Event')   + navLeaf('Ticket'), false)
-    + navSub('Campaign Management', navLeaf('Campaign', 'index.html', activeKey === 'campaign'), true)
-    + navSub('Site Content',       navLeaf('Page')    + navLeaf('Banner'), false);
+    + navSub('Campaign Management', navLeaf('Campaign', 'index.html', activeKey === 'campaign'), activeKey === 'campaign')
+    + navSub('Site Content',
+        navLeaf('Homepage Hero', 'hero.html', activeKey === 'homepage-hero'),
+        activeKey === 'homepage-hero');
 
   var nav =
       '<a href="#" onclick="return false"><span>' + icon('gauge') + '</span><span class="lbl">Dashboard</span></a>'

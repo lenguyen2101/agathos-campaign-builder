@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agathos Admin — Homepage Hero</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+
+<div id="shell"></div>
+
+<input type="file" id="coverpick" accept="image/*" style="display:none" onchange="pickedCover(this)">
+
+<div class="toast" id="toast"></div>
+
+<script src="assets/mock-data.js"></script>
+<script src="assets/store.js"></script>
+<script src="assets/shell.js"></script>
+<script>
+  var CONTENT = mountShell('homepage-hero');
+
+  var TITLE_MAX = 60, SUBTITLE_MAX = 160, EYEBROW_MAX = 40;
+
+  var H;                        /* the stored HeroConfig */
+  var U = { dirty:false, at:0 }; /* at = which slide the preview is showing */
+  var pendingBanner = null;
+  var localPreview  = {};
+
+  (function boot(){
+    H = getHero();
+    renderFrame();
+    renderAll();
+  })();
+
+  function renderFrame(){
+    CONTENT.innerHTML =
+        '<div class="pagehead">'
+      +   '<h1>Homepage Hero</h1>'
+      +   '<span class="meta" id="savestate"></span>'
+      +   '<span class="spacer"></span>'
+      +   '<div class="acts">'
+      +     '<button class="btn" onclick="doReset()">' + icon('refresh', 16) + 'Reset</button>'
+      +     '<button class="btn primary" onclick="save()">' + icon('save', 16) + 'Save</button>'
+      +   '</div>'
+      + '</div>'
+      + '<div class="detailcols"><div class="formcard" id="body"></div>'
+      +   '<div class="aside" id="aside"></div></div>';
+    setSaveState('Saved');
+  }
+
+  function setSaveState(t){ document.getElementById('savestate').textContent = t; }
+  function markDirty(){ U.dirty = true; setSaveState('Unsaved changes'); }
+
+  /* ----- default slide fields -----
+     Never re-renders the whole block: rebuilding the inputs mid-typing would
+     drop the caret. Only the preview and the slide's own row refresh. */
+  function setDef(k, v){ H.defaultSlide[k] = v; markDirty(); syncDefaultRow(); renderAside(); }
+  function setDefCounted(k, v, max, el){
+    H.defaultSlide[k] = v; markDirty();
+    el.parentNode.querySelector('.count').textContent = v.length + ' / ' + max;
+    syncDefaultRow(); renderAside();
+  }
+
+  function syncDefaultRow(){
+    var row = document.querySelector('.slidrow[data-id="default"]');
+    if(!row) return;
+    row.querySelector('.eb').innerHTML = esc(H.defaultSlide.eyebrow) || '<span class="dash">no eyebrow</span>';
+    row.querySelector('.nm').innerHTML = esc(H.defaultSlide.title)   || '<span class="dash">untitled</span>';
+  }
+
+  function openPicker(field){ pendingBanner = field; document.getElementById('coverpick').click(); }
+  function pickedCover(input){
+    if(pendingBanner && input.files && input.files[0]){
+      var f = input.files[0];
+      localPreview[pendingBanner] = URL.createObjectURL(f);
+      setDef(pendingBanner, 'assets/img/banners/' + f.name);
+    }
+    pendingBanner = null;
+    input.value = '';
+    renderBody();
+  }
+  function clearBanner(field){ delete localPreview[field]; setDef(field, ''); renderBody(); }
+  function imgBroken(el){ el.parentNode.classList.add('broken'); }
+
+  function uploadBox(field, ratio, dims){
+    var v   = H.defaultSlide[field];
+    var src = localPreview[field] || v;
+    return '<div class="upload' + (ratio === '9:16' ? ' mob' : '') + '">'
+      + (v
+          ? '<img src="' + esc(src) + '" alt="" onerror="imgBroken(this)">'
+            + '<div class="fallback">' + esc(v) + '</div>'
+            + '<button type="button" class="rm" title="Remove" onclick="clearBanner(\'' + field + '\')">✕</button>'
+          : '<button type="button" class="add" title="Choose file" onclick="openPicker(\'' + field + '\')">' + icon('plus', 20) + '</button>')
+      + '</div><div class="hint">' + dims + ' · ratio ' + ratio + (v ? ' · ' + esc(v) : '') + '</div>';
+  }
+
+  /* ----- ordering: drag and drop -----
+     The dragged row is moved between its siblings in the DOM rather than
+     re-rendering, because re-rendering mid-drag destroys the drag operation.
+     State is read back out of the DOM once the drop finishes. */
+  function dragStart(e){
+    e.currentTarget.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    /* Firefox needs something in the payload for the drag to start at all. */
+    e.dataTransfer.setData('text/plain', e.currentTarget.dataset.id);
+  }
+  function dragOver(e){
+    e.preventDefault();
+    var row = e.currentTarget;
+    var moving = document.querySelector('.slidrow.dragging');
+    if(!moving || moving === row) return;
+    var r = row.getBoundingClientRect();
+    var after = (e.clientY - r.top) > r.height / 2;
+    row.parentNode.insertBefore(moving, after ? row.nextSibling : row);
+    renumber();
+  }
+  function dragEnd(e){
+    e.currentTarget.classList.remove('dragging');
+    commitOrder();
+  }
+  function renumber(){
+    Array.prototype.forEach.call(document.querySelectorAll('.slidrow .pos'), function(el, i){
+      el.textContent = pad(i + 1);
+    });
+  }
+  function commitOrder(){
+    var shown = Array.prototype.map.call(document.querySelectorAll('.slidrow'), function(r){ return r.dataset.id; });
+    /* Slides hidden from this page keep their IDs, parked behind the visible
+       ones, so a campaign that goes live again reappears instead of vanishing
+       from the stored order. */
+    var hidden = heroSlides(H).map(function(s){ return s.id; })
+                   .filter(function(id){ return shown.indexOf(id) < 0; });
+    H.order = shown.concat(hidden);
+    U.at = 0;
+    markDirty();
+    renderAll();
+  }
+
+  function block(n, title, sub, inner){
+    return '<div class="block"><div class="blockhead">'
+      + '<span class="n">' + n + '</span><h3>' + title + '</h3></div>'
+      + (sub ? '<div class="hint" style="margin:-10px 0 16px">' + sub + '</div>' : '')
+      + inner + '</div>';
+  }
+
+  /* ----- render ----- */
+  function renderBody(){
+    /* Only slides actually running appear here; the rest stay in the stored
+       order but out of sight. */
+    var slides  = heroSlides(H);
+    var live    = slides.filter(function(s){ return slideLive(s).live; });
+    var waiting = slides.filter(function(s){ return !slideLive(s).live; });
+
+    var list = '<div class="slidelist">';
+    live.forEach(function(s, i){
+      var copy  = slideCopy(s);
+      var thumb = copy.bannerMobile || copy.bannerDesktop;
+      if(s.kind === 'default'){
+        thumb = localPreview.bannerMobile || copy.bannerMobile
+             || localPreview.bannerDesktop || copy.bannerDesktop;
+      }
+
+      list += '<div class="slidrow" draggable="true" data-id="' + esc(s.id) + '"'
+        + ' ondragstart="dragStart(event)" ondragover="dragOver(event)" ondragend="dragEnd(event)">'
+        + '<span class="grip" title="Drag to reorder">' + icon('grip', 18) + '</span>'
+        + '<div class="pos">' + pad(i + 1) + '</div>'
+        + '<div class="thumb">' + (thumb ? '<img src="' + esc(thumb) + '" alt="">' : '') + '</div>'
+        + '<div class="info">'
+        +   '<div class="eb">' + (esc(copy.eyebrow) || '<span class="dash">no eyebrow</span>') + '</div>'
+        +   '<div class="nm">' + (esc(copy.title) || '<span class="dash">untitled</span>') + '</div>'
+        + '</div>'
+        + '<div class="side">'
+        +   (s.kind === 'default'
+              ? '<span class="tag gold">DEFAULT</span>'
+              : '<span class="tag blue">CAMPAIGN</span>'
+                + '<a class="linkbtn" href="create.html?id=' + encodeURIComponent(s.id) + '&step=4">Edit</a>')
+        + '</div></div>';
+    });
+    list += '</div>';
+
+    if(waiting.length){
+      list += '<div class="alert neutral" style="margin-top:14px">' + icon('inbox', 16)
+        + '<span>' + plural(waiting.length, 'campaign') + ' with the hero switch on '
+        + (waiting.length === 1 ? 'is' : 'are') + ' not running yet, so '
+        + (waiting.length === 1 ? 'it is' : 'they are') + ' not in the carousel: '
+        + waiting.map(function(s){ return '<b>' + esc(s.campaign.name) + '</b>'; }).join(', ')
+        + '.</span></div>';
+    }
+
+    var d = H.defaultSlide;
+    var editor =
+        '<div class="field"><label>Eyebrow</label>'
+      +   '<div class="counted"><input class="ctl" type="text" value="' + esc(d.eyebrow) + '" maxlength="' + EYEBROW_MAX + '"'
+      +   ' oninput="setDefCounted(\'eyebrow\',this.value,' + EYEBROW_MAX + ',this)" placeholder="e.g. GIVE WITH CONFIDENCE">'
+      +   '<span class="count">' + d.eyebrow.length + ' / ' + EYEBROW_MAX + '</span></div></div>'
+
+      + '<div class="field"><label>Title</label>'
+      +   '<div class="counted"><input class="ctl" type="text" value="' + esc(d.title) + '" maxlength="' + TITLE_MAX + '"'
+      +   ' oninput="setDefCounted(\'title\',this.value,' + TITLE_MAX + ',this)">'
+      +   '<span class="count">' + d.title.length + ' / ' + TITLE_MAX + '</span></div></div>'
+
+      + '<div class="field"><label>Subtitle</label>'
+      +   '<div class="counted"><textarea class="ctl" style="min-height:78px;padding-right:74px" maxlength="' + SUBTITLE_MAX + '"'
+      +   ' oninput="setDefCounted(\'subtitle\',this.value,' + SUBTITLE_MAX + ',this)">' + esc(d.subtitle) + '</textarea>'
+      +   '<span class="count" style="top:18px;transform:none">' + d.subtitle.length + ' / ' + SUBTITLE_MAX + '</span></div></div>'
+
+      + '<div class="field" style="max-width:340px"><label>CTA label</label>'
+      +   '<input class="ctl" type="text" value="' + esc(d.ctaLabel) + '" oninput="setDef(\'ctaLabel\',this.value)">'
+      +   '<div class="hint">The slide links to the homepage causes list automatically.</div></div>'
+
+      + '<div class="grid2">'
+      +   '<div class="field"><label>Desktop banner · 1920×1080 (16:9)</label>' + uploadBox('bannerDesktop', '16:9', '1920 × 1080px') + '</div>'
+      +   '<div class="field"><label>Mobile banner · 375×667 (9:16)</label>' + uploadBox('bannerMobile', '9:16', '375 × 667px') + '</div>'
+      + '</div>';
+
+    document.getElementById('body').innerHTML =
+        block(1, 'Carousel order',
+              'Drag the rows to change the order donors see. ' + plural(live.length, 'slide') + ' running.', list)
+      + block(2, 'Default agathos slide',
+              'Always in the carousel and cannot be removed, so the homepage never runs empty. It belongs to no campaign, so its copy is edited here.',
+              editor);
+  }
+
+  /* ----- preview ----- */
+  function renderAside(){
+    /* Mirrors the public carousel, so it runs the live slides only. */
+    var slides = liveSlides();
+    if(!slides.length){
+      document.getElementById('aside').innerHTML =
+          '<div class="alabel">Homepage carousel · mobile</div>'
+        + '<div class="alert warn">' + icon('warn', 16)
+        + '<span>No slide is running. The default slide always counts as live, '
+        + 'so seeing this means it has been removed from the stored order.</span></div>';
+      return;
+    }
+    if(U.at >= slides.length) U.at = 0;
+    var s    = slides[U.at];
+    var copy = slideCopy(s);
+
+    var banner = copy.bannerMobile || copy.bannerDesktop;
+    if(s.kind === 'default'){
+      banner = localPreview.bannerMobile || copy.bannerMobile
+            || localPreview.bannerDesktop || copy.bannerDesktop;
+    }
+
+    document.getElementById('aside').innerHTML =
+        '<div class="alabel">Homepage carousel · mobile</div>'
+      + '<div class="hcar">'
+      +   (banner ? '<img src="' + esc(banner) + '" alt="" onerror="imgBroken(this)">' : '')
+      +   '<div class="scrim"></div>'
+      +   '<div class="none">No banner</div>'
+      +   '<div class="copy">'
+      +     '<div class="eb"><i></i>' + (esc(copy.eyebrow) || 'EYEBROW') + '</div>'
+      +     '<h4>' + (esc(copy.title) || 'Slide title') + '</h4>'
+      +     '<p>' + (esc(copy.subtitle) || 'Subtitle appears here.') + '</p>'
+      +     '<button class="cta" type="button">' + (esc(copy.ctaLabel) || 'View Campaign') + '</button>'
+      +   '</div>'
+      +   '<div class="foot">'
+      +     '<span class="n">' + pad(U.at + 1) + ' <span>/ ' + pad(slides.length) + '</span></span>'
+      +     '<span class="track"><i style="width:' + Math.round((U.at + 1) / slides.length * 100) + '%"></i></span>'
+      +     '<button type="button" title="Previous" onclick="step(-1)">‹</button>'
+      +     '<button type="button" title="Next" onclick="step(1)">›</button>'
+      +   '</div>'
+      + '</div>';
+  }
+
+  function liveSlides(){
+    return heroSlides(H).filter(function(s){ return slideLive(s).live; });
+  }
+  function pad(n){ return (n < 10 ? '0' : '') + n; }
+  function step(d){
+    var n = liveSlides().length;
+    U.at = (U.at + d + n) % n;
+    renderAside();
+  }
+
+  /* ----- persistence ----- */
+  function save(){
+    /* Persist the order exactly as it is rendered, so anything appended by
+       heroSlides(H) is written back instead of being recomputed every load. */
+    H.order = heroSlides(H).map(function(s){ return s.id; });
+    saveHero(H);
+    U.dirty = false;
+    setSaveState('Saved · just now');
+    toast('Homepage hero saved');
+  }
+
+  function doReset(){
+    resetHero();
+    H = getHero();
+    localPreview = {};
+    U = { dirty:false, at:0 };
+    setSaveState('Saved');
+    renderAll();
+    toast('Reset to the seed carousel');
+  }
+
+  window.addEventListener('beforeunload', function(e){
+    if(U.dirty){ e.preventDefault(); e.returnValue = ''; }
+  });
+
+  function renderAll(){ renderBody(); renderAside(); }
+</script>
+</body>
+</html>
