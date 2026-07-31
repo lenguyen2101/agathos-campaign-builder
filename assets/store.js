@@ -38,7 +38,7 @@
      link          string      only meaningful when promoHero=true
      promoBanner   boolean
      aboutTitle    string      heading of the ABOUT THIS CAMPAIGN block
-     aboutBody     string      body of that block, blank line = new paragraph
+     aboutBody     string      body of that block, as rich-text HTML
      createdAt     string      ISO 8601
      updatedAt     string      ISO 8601
 
@@ -57,11 +57,17 @@
 
    Raised amount and donor count are runtime aggregates owned by the backend.
    They are not part of this shape and the admin never enters them.
+
+   SECURITY — aboutBody is rich-text HTML written by the admin and rendered with
+   innerHTML on both the wizard preview and the detail page. The prototype does
+   not sanitise it. Before this ships, the backend must sanitise on write and
+   the front end must render through a sanitiser; otherwise it is a stored XSS
+   hole. Every other field goes through esc().
    ============================================================================ */
 
 /* Bumped when the Campaign shape changes, so stale localStorage reseeds
    instead of silently rendering records that miss the new fields. */
-var STORE_KEY = 'agathos.campaigns.v6';
+var STORE_KEY = 'agathos.campaigns.v7';
 
 /* ---------------------------------------------------------------- DATA ACCESS */
 
@@ -145,10 +151,21 @@ function statusOf(c){
 
 function catItem(id){ return CATALOGUE.filter(function(x){ return x.id === id; })[0] || null; }
 
-function orgsOf(items){
-  var seen = {};
-  items.forEach(function(id){ var x = catItem(id); if(x) seen[x.org] = 1; });
-  return Object.keys(seen);
+/* How many of the referenced items are projects, or events. */
+function countKind(items, kind){
+  return items.filter(function(id){ var x = catItem(id); return x && x.kind === kind; }).length;
+}
+
+function plural(n, word){ return n + ' ' + word + (n === 1 ? '' : 's'); }
+
+/* aboutBody is HTML, so '' and '<p><br></p>' both mean "nothing written". */
+function richEmpty(html){
+  return !String(html || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+}
+
+/* '3 projects · 1 event' — the only breakdown of a campaign's items we show. */
+function itemMix(items){
+  return plural(countKind(items, 'project'), 'project') + ' · ' + plural(countKind(items, 'event'), 'event');
 }
 
 /* Campaign total goal = sum of the referenced projects' goals.

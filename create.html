@@ -108,7 +108,9 @@
   }
 
   function setSaveState(txt){ document.getElementById('savestate').textContent = txt; }
-  function markDirty(){ U.dirty = true; setSaveState('Unsaved changes'); }
+  /* Every field mutation funnels through here, so the rail's ticks stay in
+     sync with the content as you type instead of only on navigation. */
+  function markDirty(){ U.dirty = true; setSaveState('Unsaved changes'); renderSteps(); }
   function leave(){ location.href = 'index.html'; }
 
   /* ----- field mutation ----- */
@@ -145,6 +147,30 @@
     renderStep();
   }
   function clearBanner(field){ delete localPreview[field]; setField(field, ''); renderStep(); }
+
+  /* ----- rich text (About body) -----
+     Never calls renderStep(): re-rendering the editor mid-typing would destroy
+     the caret. Only the rail and the preview refresh. */
+  function rteBtn(cmd, label, title){
+    return '<button type="button" title="' + title + '" onclick="rteCmd(this,\'' + cmd + '\')">' + label + '</button>';
+  }
+  function rteCmd(btn, cmd){
+    var body = btn.parentNode.parentNode.querySelector('.rte-body');
+    body.focus();
+    if(cmd === 'createLink'){
+      var url = prompt('Link URL', 'https://');
+      if(!url) return;
+      document.execCommand(cmd, false, url);
+    } else {
+      document.execCommand(cmd, false, null);
+    }
+    setRich(body);
+  }
+  function setRich(el){
+    S.aboutBody = richEmpty(el.innerHTML) ? '' : el.innerHTML;
+    markDirty();
+    renderAside();
+  }
   function imgBroken(el){ el.parentNode.classList.add('broken'); }
 
   function uploadBox(field, ratio, dims){
@@ -160,11 +186,36 @@
   }
 
   /* ----- navigation ----- */
+
+  /* The fields marked * in the form. Kept in one place so the rail tick, the
+     review warning and the publish guard cannot drift apart. */
+  function missingRequired(){
+    var out = [];
+    if(!S.name)          out.push('Campaign title');
+    if(!S.bannerDesktop) out.push('Desktop banner');
+    return out;
+  }
+
+  /* A step is ticked when it actually holds something, not when you have
+     walked past it. Steps left at their defaults stay unticked. */
+  function stepFilled(i){
+    switch(i){
+      case 0: return !missingRequired().length;
+      case 1: return S.items.length > 0;
+      case 2: return !!(S.start && S.end);
+      case 3: return !!S.spotlight;
+      case 4: return !!(S.promoHero || S.promoBanner);
+      case 5: return !!S.aboutTitle || !richEmpty(S.aboutBody);
+      default: return false;   /* Review has nothing of its own to fill in */
+    }
+  }
+
   function renderSteps(){
     document.getElementById('steps').innerHTML = STEPS.map(function(name, i){
-      var cls = 'step' + (i === U.step ? ' on' : '') + (i < U.step ? ' done' : '');
-      var num = (i < U.step) ? '✓' : (i + 1);
-      return '<button class="' + cls + '" onclick="goStep(' + i + ')"><span class="n">' + num + '</span>' + name + '</button>';
+      var done = stepFilled(i);
+      var cls = 'step' + (i === U.step ? ' on' : '') + (done ? ' done' : '');
+      return '<button class="' + cls + '" onclick="goStep(' + i + ')">'
+        + '<span class="n">' + (done ? '✓' : (i + 1)) + '</span>' + name + '</button>';
     }).join('');
   }
   function goStep(i){ U.step = i; renderAll(); window.scrollTo(0, 0); }
@@ -214,8 +265,8 @@
         h = head('Add items', 'Pick the projects and events for this campaign. They can come from any organisation.')
           + '<div class="field"><label>Search catalogue</label>'
           +   '<input class="ctl" type="text" placeholder="Search projects or events…" value="' + esc(U.search) + '" oninput="setSearch(this.value)"></div>'
-          + '<div class="hint" style="margin:-10px 0 12px">' + S.items.length + ' selected · ' + orgsOf(S.items).length
-          +   ' organisations · total goal '
+          + '<div class="hint" style="margin:-10px 0 12px">'
+          +   itemMix(S.items) + ' · total goal '
           +   (totalGoal(S.items) ? fmtMoney(totalGoal(S.items)) : 'none (events have no goal)') + '</div>'
           + '<div class="picklist scroll">';
 
@@ -309,9 +360,23 @@
           +   ' oninput="setCounted(\'aboutTitle\',this.value,' + ABOUT_TITLE_MAX + ',this)"'
           +   ' placeholder="e.g. When the water rose, everything went with it">'
           +   '<span class="count">' + S.aboutTitle.length + ' / ' + ABOUT_TITLE_MAX + '</span></div></div>'
-          + '<div class="field"><label>Body</label><textarea class="ctl" style="min-height:200px" oninput="setField(\'aboutBody\',this.value)"'
-          +   ' placeholder="Explain the campaign in the brand voice">' + esc(S.aboutBody) + '</textarea>'
-          +   '<div class="hint">Leave a blank line between paragraphs.</div></div>';
+          + '<div class="field"><label>Body</label>'
+          +   '<div class="rte">'
+          +     '<div class="rte-bar" onmousedown="event.preventDefault()">'
+          +       rteBtn('bold', '<b>B</b>', 'Bold')
+          +       rteBtn('italic', '<i>I</i>', 'Italic')
+          +       '<span class="sep"></span>'
+          +       rteBtn('insertUnorderedList', '&bull;&nbsp;List', 'Bulleted list')
+          +       rteBtn('insertOrderedList', '1.&nbsp;List', 'Numbered list')
+          +       '<span class="sep"></span>'
+          +       rteBtn('createLink', 'Link', 'Insert link')
+          +       rteBtn('unlink', 'Unlink', 'Remove link')
+          +       rteBtn('removeFormat', 'Clear', 'Clear formatting')
+          +     '</div>'
+          +     '<div class="rte-body" contenteditable="true" data-ph="Explain the campaign in the brand voice"'
+          +     ' oninput="setRich(this)" onblur="setRich(this)">' + S.aboutBody + '</div>'
+          +   '</div>'
+          + '</div>';
         break;
 
       case 6:
@@ -324,7 +389,7 @@
           + rr('Subtitle', esc(S.subtitle) || '<span class="dash">none</span>')
           + rr('Desktop banner', esc(S.bannerDesktop) || '<span class="dash">none</span>')
           + rr('Mobile banner', esc(S.bannerMobile) || '<span class="dash">falls back to desktop</span>')
-          + rr('Items', S.items.length + ' across ' + orgsOf(S.items).length + ' organisations · added manually')
+          + rr('Items', itemMix(S.items))
           + rr('Total goal', S.showGoal
               ? fmtMoney(totalGoal(S.items)) + ' <span style="color:var(--hint)">(sum of project goals)</span>'
               : totalGoal(S.items) === 0 && S.items.length
@@ -335,11 +400,14 @@
               ? ('on · ' + (S.featured && catItem(S.featured) ? esc(catItem(S.featured).name) : '—'))
               : '<span class="dash">off</span>')
           + rr('Promotion', promo.length ? promo.join(' · ') : '<span class="dash">none</span>')
-          + rr('About block', (S.aboutTitle || S.aboutBody)
+          + rr('About block', (S.aboutTitle || !richEmpty(S.aboutBody))
               ? esc(S.aboutTitle || '(no heading)')
               : '<span class="dash">hidden</span>')
           + '</div>'
-          + (S.name ? '' : alert_('warn', 'Campaign name is required before this can be scheduled.'));
+          + (missingRequired().length
+              ? alert_('warn', 'Still required before this can be scheduled: <b>'
+                  + missingRequired().join('</b>, <b>') + '</b>.')
+              : '');
         break;
     }
 
@@ -350,7 +418,7 @@
     if(U.step === STEPS.length - 1){
       nb.innerHTML = icon('save', 16) + (S.id ? 'Save changes' : 'Schedule campaign');
       nb.onclick = publish;
-      nb.disabled = !S.name;
+      nb.disabled = missingRequired().length > 0;
     } else {
       nb.textContent = 'Next';
       nb.onclick = next;
@@ -367,39 +435,47 @@
 
   /* ----- preview aside ----- */
   function renderAside(){
+    /* Phone-width canvas, so preview the mobile banner and fall back to the
+       desktop one exactly as the real page does when mobile is left empty. */
+    var banner = localPreview.bannerMobile  || S.bannerMobile
+              || localPreview.bannerDesktop || S.bannerDesktop;
+    var goal   = totalGoal(S.items);
+    /* Raised and donors belong to the backend, so the slots are laid out as on
+       the real page but the figures stay em dashes rather than invented. */
+    var showBar = S.showGoal && goal;
+
     document.getElementById('aside').innerHTML =
-        '<div class="alabel">Live preview</div>'
-      + '<div class="herowrap">'
-      +   '<div class="herobanner">'
-      +     (S.bannerDesktop
-              ? '<img src="' + esc(localPreview.bannerDesktop || S.bannerDesktop) + '" alt="" onerror="imgBroken(this)">'
-                + '<div class="none">' + esc(S.bannerDesktop) + '</div>'
-              : '<div class="none">No desktop banner</div>')
-      +   '</div>'
-      +   '<div class="hero">'
+        '<div class="alabel">Live preview · mobile</div>'
+      + '<div class="hpv">'
+      +   (banner ? '<img src="' + esc(banner) + '" alt="" onerror="imgBroken(this)">' : '')
+      +   '<div class="scrim"></div>'
+      +   '<div class="none">No banner</div>'
+      +   '<div class="copy">'
       +     '<div class="eb"><i></i>' + (esc(S.eyebrow) || 'EYEBROW') + '</div>'
       +     '<h4>' + (esc(S.name) || 'Campaign title') + '</h4>'
       +     '<p>' + (esc(S.subtitle) || 'Your subtitle appears here.') + '</p>'
       +   '</div>'
       + '</div>'
-      /* Raised amount and donor count are backend aggregates — showing a 0%
-         bar and an em dash here would just look like broken data. */
-      + '<div class="statcard">'
-      +   (S.showGoal
-            ? (totalGoal(S.items)
-                ? '<div class="goalrow"><b>' + fmtMoney(totalGoal(S.items)) + '</b><span>total goal across this campaign</span></div>'
-                : '<div class="goalrow"><b class="off">No goal</b><span>no project selected — events carry no goal</span></div>')
-            : '<div class="goalrow"><b class="off">No goal shown</b><span>the campaign page hides the total</span></div>')
-      +   '<div class="statmini"><div><b>' + S.items.length + '</b><span>Causes</span></div></div>'
+      + '<div class="hpv-stats">'
+      +   '<div class="amt pending">S$—</div>'
+      +   '<div class="amt-label">raised together across this campaign</div>'
+      +   (showBar
+            ? '<div class="bar"><i style="width:0"></i></div>'
+              + '<div class="goalline">of <b>' + fmtMoney(goal) + '</b> goal</div>'
+            : '')
+      +   '<div class="minis">'
+      +     '<div><b>' + S.items.length + '</b><span>Causes</span></div>'
+      +     '<div><b>—</b><span>Donors</span></div>'
+      +   '</div>'
       + '</div>'
       + '<div class="summary">'
       +   '<div class="sr"><span class="k">Status</span><span class="v">' + stText(statusOf(S)) + '</span></div>'
-      +   '<div class="sr"><span class="k">Organisations</span><span class="v">' + orgsOf(S.items).length + '</span></div>'
+      +   '<div class="sr"><span class="k">Projects</span><span class="v">' + countKind(S.items, 'project') + '</span></div>'
+      +   '<div class="sr"><span class="k">Events</span><span class="v">' + countKind(S.items, 'event') + '</span></div>'
       +   '<div class="tagrow">'
       +     '<span class="tag ' + (S.promoHero ? 'blue' : 'grey') + '">HERO</span>'
       +     '<span class="tag ' + (S.promoBanner ? 'blue' : 'grey') + '">BANNER</span>'
       +     (S.spotlight ? '<span class="tag violet">SPOTLIGHT</span>' : '')
-      +     ((S.aboutTitle || S.aboutBody) ? '<span class="tag blue">ABOUT</span>' : '')
       +   '</div>'
       + '</div>';
   }
@@ -435,7 +511,7 @@
       : '“' + S.name + '” is saved. Set start and end dates to make it live.';
     document.getElementById('successdeets').innerHTML =
         '<div><span class="k">Status</span><span>' + statusOf(S) + '</span></div>'
-      + '<div><span class="k">Items</span><span>' + S.items.length + ' · ' + orgsOf(S.items).length + ' orgs</span></div>'
+      + '<div><span class="k">Items</span><span>' + itemMix(S.items) + '</span></div>'
       + '<div><span class="k">Spotlight</span><span>' + (S.spotlight ? 'on' : 'off') + '</span></div>'
       + '<div><span class="k">Promotion</span><span>' + (promo.length ? promo.join(', ') : 'none') + '</span></div>';
     document.getElementById('viewbtn').onclick = function(){

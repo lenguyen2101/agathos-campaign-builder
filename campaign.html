@@ -88,7 +88,6 @@
 
   function render(){
     var st       = statusOf(C);
-    var orgs     = orgsOf(C.items);
     var promo    = promoLabels(C);
     var featured = C.featured ? catItem(C.featured) : null;
 
@@ -125,10 +124,9 @@
 
     /* 1 — Items */
     var itemsInner = '<div class="grid2">'
-      + ro('Included items', C.items.length)
-      + ro('Organisations', orgs.length)
+      + ro('Projects', countKind(C.items, 'project'))
+      + ro('Events', countKind(C.items, 'event'))
       + '</div>'
-      + ro('Organisation list', orgs.length ? orgs.join(' · ') : '')
       + ro('Campaign total goal', totalGoal(C.items)
           ? fmtMoney(totalGoal(C.items)) + ' — sum of the project goals below; events carry none'
           : 'No goal — this campaign has no project, and events carry no goal')
@@ -195,8 +193,11 @@
       + '</div>');
 
     /* 5 — About */
-    h += block(5, 'About this campaign', (C.aboutTitle || C.aboutBody)
-      ? ro('Heading', C.aboutTitle) + ro('Body', C.aboutBody, {area:true})
+    h += block(5, 'About this campaign', (C.aboutTitle || !richEmpty(C.aboutBody))
+      ? ro('Heading', C.aboutTitle)
+        /* aboutBody is rich text, so it renders rather than sitting in a textarea. */
+        + '<div class="field"><label>Body</label><div class="rte-view">'
+        + (richEmpty(C.aboutBody) ? '<span class="dash">empty</span>' : C.aboutBody) + '</div></div>'
       : '<div class="alert neutral">' + icon('inbox', 16)
         + '<span>No about block — the campaign page goes straight from the stats card to the item grid.</span></div>');
 

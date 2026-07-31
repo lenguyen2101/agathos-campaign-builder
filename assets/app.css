@@ -164,6 +164,33 @@ select.ctl{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xm
 .counted .count{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--hint);pointer-events:none;}
 .counted .ctl{padding-right:74px;}
 
+/* ---------- rich text ----------
+   contenteditable + execCommand. Deprecated but dependency-free, which suits a
+   prototype with no build step; the real portal will swap in its own editor. */
+.rte{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:#fff;}
+.rte:focus-within{border-color:var(--link);box-shadow:0 0 0 2px rgba(22,119,255,.1);}
+.rte-bar{display:flex;align-items:center;gap:2px;padding:5px 6px;border-bottom:1px solid var(--split);background:#FAFAFA;flex-wrap:wrap;}
+.rte-bar button{min-width:30px;height:28px;padding:0 8px;border:1px solid transparent;border-radius:4px;
+  background:none;font-size:13px;color:var(--ink-2);display:inline-flex;align-items:center;justify-content:center;}
+.rte-bar button:hover{background:#fff;border-color:var(--border);color:var(--link);}
+.rte-bar .sep{width:1px;height:18px;background:var(--border);margin:0 4px;}
+.rte-body{min-height:210px;padding:12px 14px;font-size:14px;line-height:1.65;color:var(--ink);outline:none;}
+.rte-body:empty::before{content:attr(data-ph);color:var(--hint);}
+.rte-body p{margin:0 0 12px;}
+.rte-body p:last-child{margin-bottom:0;}
+.rte-body ul,.rte-body ol{margin:0 0 12px;padding-left:22px;}
+.rte-body li{margin:3px 0;}
+.rte-body a{color:var(--link);text-decoration:underline;}
+.rte-body b,.rte-body strong{font-weight:600;}
+
+/* Read-only rendering of the same content on the detail page. */
+.rte-view{padding:12px 14px;background:var(--fill);color:var(--muted);
+  border:1px solid var(--border);border-radius:var(--radius);font-size:14px;line-height:1.65;}
+.rte-view p{margin:0 0 12px;}
+.rte-view p:last-child{margin-bottom:0;}
+.rte-view ul,.rte-view ol{margin:0 0 12px;padding-left:22px;}
+.rte-view a{color:var(--link);text-decoration:underline;}
+
 
 /* Ant-style upload box. Uploads are mocked, so the value is a path under
    /public; if it 404s the box falls back to showing the path. */
@@ -187,7 +214,7 @@ select.ctl{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xm
 .tablewrap{border:1px solid var(--split);border-radius:var(--radius);overflow-x:auto;}
 /* Fixed layout + colgroup — without it 13 columns squeeze the Campaign cell
    until every title wraps onto three lines and row heights go ragged. */
-table.ct{width:100%;border-collapse:collapse;table-layout:fixed;min-width:1815px;}
+table.ct{width:100%;border-collapse:collapse;table-layout:fixed;min-width:1675px;}
 table.ct th{text-align:left;font-size:14px;font-weight:600;color:var(--ink);padding:14px 16px;border-bottom:1px solid var(--split);background:#FAFAFA;white-space:nowrap;}
 table.ct th.sortable{cursor:pointer;user-select:none;}
 table.ct th.sortable:hover{background:var(--fill);}
@@ -342,32 +369,40 @@ td .tagrow{flex-wrap:nowrap;}
    ========================================================================== */
 .aside{position:sticky;top:calc(var(--topbar-h) + 22px);}
 .alabel{font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--hint);margin-bottom:10px;}
-/* Mirrors the public hero: banner on top, coloured band with the copy under it,
-   stats card overlapping the bottom edge. */
-.herowrap{border:1px solid var(--split);border-radius:var(--radius);overflow:hidden;}
-.herobanner{position:relative;aspect-ratio:16/9;background:var(--fill);overflow:hidden;border-bottom:1px solid var(--split);}
-.herobanner img{width:100%;height:100%;object-fit:cover;display:block;}
-.herobanner .none{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  font-size:12px;color:var(--muted);text-align:center;padding:8px;word-break:break-all;}
-/* When an <img> is present the caption is only a fallback for a failed load. */
-.herobanner img ~ .none{display:none;}
-.herobanner.broken img{display:none;}
-.herobanner.broken img ~ .none{display:flex;}
-.hero{padding:18px 16px 26px;color:#fff;background:var(--primary);display:flex;flex-direction:column;}
-.hero .eb{font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;opacity:.95;}
-.hero .eb i{display:inline-block;width:14px;height:2px;background:var(--gold);vertical-align:middle;margin-right:7px;}
-.hero h4{font-size:20px;margin:8px 0 6px;line-height:1.15;}
-.hero p{font-size:12.5px;opacity:.94;line-height:1.5;}
 
-.statcard{position:relative;background:#fff;border:1px solid var(--split);border-radius:var(--radius);
-  padding:14px 16px;margin:-16px 10px 0;box-shadow:0 2px 8px rgba(0,0,0,.07);}
-.statcard .goalrow b{display:block;font-size:20px;font-weight:700;letter-spacing:-0.01em;}
-.statcard .goalrow b.off{font-size:15px;color:var(--muted);}
-.statcard .goalrow>span{display:block;font-size:12px;color:var(--muted);margin-top:2px;}
-.statcard .statmini{display:flex;gap:10px;margin-top:12px;}
-.statcard .statmini>div{flex:1;border:1px solid var(--split);border-radius:var(--radius);padding:8px 10px;}
-.statcard .statmini b{display:block;font-size:16px;font-weight:700;}
-.statcard .statmini span{font-size:11.5px;color:var(--muted);}
+/* ---------- hero preview ----------
+   Mirrors the public campaign page: the copy sits ON the banner behind a dark
+   scrim, and the stats card overlaps the banner's bottom edge. */
+/* The preview column is a phone-width canvas, so the banner keeps the mobile
+   9:16 ratio. Copy longer than the frame still grows it rather than clipping. */
+.hpv{position:relative;aspect-ratio:9/16;background:var(--primary);overflow:hidden;
+  border-radius:var(--radius) var(--radius) 0 0;display:flex;flex-direction:column;justify-content:flex-end;}
+.hpv img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.hpv .scrim{position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(8,18,42,.90) 0%,rgba(8,18,42,.60) 42%,rgba(8,18,42,.10) 100%);}
+.hpv .none{position:absolute;top:12px;left:0;right:0;text-align:center;font-size:11.5px;color:rgba(255,255,255,.6);}
+.hpv img ~ .none{display:none;}
+.hpv.broken img{display:none;}
+.hpv.broken img ~ .none{display:block;}
+/* Bottom padding clears the stats card, which overlaps the banner by 150px. */
+.hpv .copy{position:relative;padding:16px 16px 164px;color:#fff;}
+.hpv .eb{display:flex;align-items:center;gap:9px;font-size:10.5px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;}
+.hpv .eb i{width:18px;height:2px;background:var(--gold);flex:none;}
+.hpv h4{font-size:20px;line-height:1.15;margin:9px 0 7px;letter-spacing:-0.01em;}
+.hpv p{font-size:12.5px;line-height:1.45;opacity:.93;}
+
+.hpv-stats{position:relative;background:#fff;border:1px solid var(--split);border-radius:var(--radius);
+  box-shadow:0 4px 14px rgba(0,0,0,.10);margin:-150px 12px 0;padding:16px;}
+.hpv-stats .amt{font-size:24px;font-weight:700;letter-spacing:-0.02em;line-height:1.1;}
+.hpv-stats .amt.pending{color:var(--hint);}
+.hpv-stats .amt-label{font-size:12px;color:var(--muted);margin-top:4px;}
+.hpv-stats .bar{height:6px;border-radius:3px;background:var(--split);margin:14px 0 9px;overflow:hidden;}
+.hpv-stats .bar i{display:block;height:100%;background:var(--primary);border-radius:3px;}
+.hpv-stats .goalline{font-size:12.5px;color:var(--ink-2);}
+.hpv-stats .minis{display:flex;gap:10px;margin-top:15px;}
+.hpv-stats .minis>div{flex:1;border:1px solid var(--blue-line);background:var(--blue-bg);border-radius:var(--radius);padding:10px 12px;}
+.hpv-stats .minis b{display:block;font-size:19px;font-weight:700;line-height:1.15;}
+.hpv-stats .minis span{font-size:11.5px;color:var(--ink-2);}
 .summary{border:1px solid var(--split);border-radius:var(--radius);padding:14px 16px;margin-top:14px;}
 .summary .sr{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;padding:5px 0;}
 .summary .sr .k{color:var(--muted);}

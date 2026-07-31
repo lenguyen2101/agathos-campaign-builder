@@ -47,7 +47,6 @@
     {key:'end',       label:'End Date',     sortable:true,  w:125},
     {key:'items',     label:'Items',        sortable:true,  w:85},
     {key:'goal',      label:'Total Goal',   sortable:true,  w:150},
-    {key:'orgs',      label:'Organisations',sortable:true,  w:140},
     {key:'promotion', label:'Promotion',    sortable:false, w:170},
     {key:'spotlight', label:'Spotlight',    sortable:true,  w:110},
     {key:'updatedAt', label:'Last Updated', sortable:true,  w:130},
@@ -116,7 +115,6 @@
       case 'end':       return c.end || '';
       case 'items':     return c.items.length;
       case 'goal':      return c.showGoal ? totalGoal(c.items) : -1;
-      case 'orgs':      return orgsOf(c.items).length;
       case 'spotlight': return c.spotlight ? 1 : 0;
       case 'updatedAt': return c.updatedAt || '';
       default:          return '';
@@ -127,7 +125,7 @@
     var list = listCampaigns().filter(function(c){
       if(V.status !== 'All' && statusOf(c) !== V.status) return false;
       if(!V.q) return true;
-      var hay = (c.id + ' ' + c.name + ' ' + c.eyebrow + ' ' + c.subtitle + ' ' + orgsOf(c.items).join(' ')).toLowerCase();
+      var hay = (c.id + ' ' + c.name + ' ' + c.eyebrow + ' ' + c.subtitle).toLowerCase();
       return hay.indexOf(V.q.toLowerCase()) >= 0;
     });
     var d = V.dir === 'asc' ? 1 : -1;
@@ -182,7 +180,7 @@
     h += '<div class="searchpanel' + (V.searchOpen ? ' show' : '') + '">'
       + '<div class="row">'
       +   '<div class="field" style="margin:0"><label>Keyword</label>'
-      +     '<input class="ctl" type="text" id="fq" value="' + esc(V.q) + '" placeholder="ID, name, tagline or organisation"'
+      +     '<input class="ctl" type="text" id="fq" value="' + esc(V.q) + '" placeholder="ID, eyebrow, title or subtitle"'
       +     ' onkeydown="if(event.key===\'Enter\')applySearch()"></div>'
       +   '<div class="field" style="margin:0"><label>Status</label><select class="ctl" id="fstatus">'
       +     ['All'].concat(STATUSES).map(function(s){
@@ -224,7 +222,6 @@
 
     page.forEach(function(c, i){
       var st     = statusOf(c);
-      var orgs   = orgsOf(c.items);
       var promo  = promoLabels(c);
       var detail = 'campaign.html?id=' + encodeURIComponent(c.id);
       var edit   = 'create.html?id=' + encodeURIComponent(c.id);
@@ -244,7 +241,6 @@
             : totalGoal(c.items)
               ? fmtMoney(totalGoal(c.items))
               : '<span class="dash" title="No project in this campaign — events carry no goal">no goal</span>') + '</td>'
-        + '<td class="num">' + orgs.length + '</td>'
 
         + '<td>' + (promo.length
             ? '<div class="tagrow">' + promo.map(function(p){

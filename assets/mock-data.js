@@ -35,7 +35,7 @@ var SEED_CAMPAIGNS = [
     promoHero:true, ctaLabel:'View Campaign', link:'/campaigns/flood-relief-central-vietnam',
     promoBanner:true,
     aboutTitle:'When the water rose, everything went with it',
-    aboutBody:'In late June, floodwaters swept through coastal communities in Central Vietnam, leaving thousands of families without homes overnight. This campaign brings together 6 vetted local causes delivering what’s needed most right now — emergency kits, clean water, and temporary shelter.\n\nEvery dollar you give is matched 1-for-1 by our partner funds, and we share updates from the field as relief is delivered, so you can see exactly where your generosity goes.',
+    aboutBody:'<p>In late June, floodwaters swept through coastal communities in Central Vietnam, leaving thousands of families without homes overnight. This campaign brings together 6 vetted local causes delivering what’s needed most right now — emergency kits, clean water, and temporary shelter.</p><p>Every dollar you give is matched 1-for-1 by our partner funds, and we share updates from the field as relief is delivered, so you can see exactly where your generosity goes.</p>',
     createdAt:'2026-06-18T14:30:00Z', updatedAt:'2026-07-29T10:05:00Z'
   },
   {
@@ -54,7 +54,7 @@ var SEED_CAMPAIGNS = [
     promoHero:true, ctaLabel:'View Campaign', link:'/campaigns/double-the-impact',
     promoBanner:true,
     aboutTitle:'Your gift, counted twice',
-    aboutBody:'Our partner funds have committed to match every gift made through this campaign, dollar for dollar, until the season closes. Nothing changes about how you give — the match is applied on our side and shows up in each cause’s total.\n\nEvery cause gathered here has been vetted and carries the agathos Trustmark, so you can give knowing exactly who receives it.',
+    aboutBody:'<p>Our partner funds have committed to match every gift made through this campaign, dollar for dollar, until the season closes. Nothing changes about how you give — the match is applied on our side and shows up in each cause’s total.</p><p>Every cause gathered here has been vetted and carries the agathos Trustmark, so you can give knowing exactly who receives it.</p>',
     createdAt:'2026-05-04T08:20:00Z', updatedAt:'2026-07-27T11:30:00Z'
   },
   {
@@ -73,7 +73,7 @@ var SEED_CAMPAIGNS = [
     promoHero:true, ctaLabel:'View Campaign', link:'/campaigns/christmas-2026',
     promoBanner:true,
     aboutTitle:'Hope, wrapped and handed on',
-    aboutBody:'Christmas is when our community gives most, and this campaign gathers the causes that need it most into one place — from grief counselling for widows to scholarships for students who would otherwise stop at secondary school.\n\nGive to one cause or spread it across several. Whatever you choose, the whole amount reaches the organisation running the work.',
+    aboutBody:'<p>Christmas is when our community gives most, and this campaign gathers the causes that need it most into one place — from grief counselling for widows to scholarships for students who would otherwise stop at secondary school.</p><p>Give to one cause or spread it across several. Whatever you choose, the whole amount reaches the organisation running the work.</p>',
     createdAt:'2026-06-02T09:14:00Z', updatedAt:'2026-07-28T16:40:00Z'
   },
   {
@@ -92,7 +92,7 @@ var SEED_CAMPAIGNS = [
     promoHero:true, ctaLabel:'Meet this month’s cause', link:'/campaigns/hidden-causes',
     promoBanner:true,
     aboutTitle:'The work no one is watching',
-    aboutBody:'Some causes never make it into a season or an appeal. They run quietly for years, funded by a handful of people who happened to hear about them.\n\nEach month a different project takes the spotlight here. The others stay visible in the grid, waiting their turn — so nothing gets lost and nothing gets rushed.',
+    aboutBody:'<p>Some causes never make it into a season or an appeal. They run quietly for years, funded by a handful of people who happened to hear about them.</p><p>Each month a different project takes the spotlight here. The others stay visible in the grid, waiting their turn — so nothing gets lost and nothing gets rushed.</p>',
     createdAt:'2025-12-08T11:02:00Z', updatedAt:'2026-07-01T08:15:00Z'
   },
   {
@@ -111,7 +111,7 @@ var SEED_CAMPAIGNS = [
     promoHero:false, ctaLabel:'View Campaign', link:'/campaigns/clean-water-month',
     promoBanner:true,
     aboutTitle:'One well changes a generation',
-    aboutBody:'A single working well removes a two-hour walk from a child’s day and takes waterborne illness out of a village’s life. The two causes here are drilling and maintaining wells across the Mekong delta.\n\nFor August only, our partner fund matches every gift to a water project.',
+    aboutBody:'<p>A single working well removes a two-hour walk from a child’s day and takes waterborne illness out of a village’s life. The two causes here are drilling and maintaining wells across the Mekong delta.</p><p>For August only, our partner fund matches every gift to a water project.</p>',
     createdAt:'2026-07-11T07:48:00Z', updatedAt:'2026-07-22T13:20:00Z'
   },
   {
@@ -149,7 +149,7 @@ var SEED_CAMPAIGNS = [
     promoHero:false, ctaLabel:'View Campaign', link:'/campaigns/easter-2026',
     promoBanner:true,
     aboutTitle:'Hope, renewed',
-    aboutBody:'Two weeks, two causes, one message. Our partner churches carried this appeal through Holy Week and closed it on Easter Sunday.',
+    aboutBody:'<p>Two weeks, two causes, one message. Our partner churches carried this appeal through Holy Week and closed it on Easter Sunday.</p>',
     createdAt:'2026-02-20T13:00:00Z', updatedAt:'2026-04-13T08:30:00Z'
   },
   {
@@ -168,7 +168,7 @@ var SEED_CAMPAIGNS = [
     promoHero:false, ctaLabel:'View Campaign', link:'/campaigns/lunar-new-year-2026',
     promoBanner:false,
     aboutTitle:'A new year, a new beginning for someone else',
-    aboutBody:'Reunion dinners, red packets, a fresh start. This appeal invited our community to extend that fresh start to three causes working across Cambodia and Vietnam.',
+    aboutBody:'<p>Reunion dinners, red packets, a fresh start. This appeal invited our community to extend that fresh start to three causes working across Cambodia and Vietnam.</p>',
     createdAt:'2025-11-30T10:00:00Z', updatedAt:'2026-02-23T09:00:00Z'
   },
   {
@@ -187,7 +187,7 @@ var SEED_CAMPAIGNS = [
     promoHero:false, ctaLabel:'View Campaign', link:'/campaigns/gala-2026',
     promoBanner:false,
     aboutTitle:'An evening that funds a year',
-    aboutBody:'Three dinners across three cities, each raising the operating budget for a partner organisation’s full year of work.',
+    aboutBody:'<p>Three dinners across three cities, each raising the operating budget for a partner organisation’s full year of work.</p>',
     createdAt:'2026-01-15T09:30:00Z', updatedAt:'2026-06-10T11:45:00Z'
   }
 ];
