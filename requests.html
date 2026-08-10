@@ -71,9 +71,9 @@
     {key:'project',     label:'Project',      sortable:true,  w:240},
     {key:'field',       label:'Field',        sortable:true,  w:150},
     {key:'change',      label:'Change',       sortable:false, w:200},
-    {key:'reason',      label:'Reason',       sortable:false, w:230},
+    {key:'reason',      label:'Reason',       sortable:false, w:300},
     {key:'status',      label:'Status',       sortable:true,  w:105},
-    {key:'decidedAt',   label:'Handled',      sortable:true,  w:200},
+    {key:'decidedAt',   label:'Handled',      sortable:true,  w:230},
     {key:'requestedBy', label:'Requested by', sortable:true,  w:150},
     {key:'requestedAt', label:'Requested',    sortable:true,  w:140},
     {key:'action',      label:'Action',       sortable:false, w:160}
@@ -285,7 +285,7 @@
               : '<div class="drift" title="The project changed after this request was raised">Now '
                 + requestValueText(r.field, drift) + '</div>') + '</td>'
 
-        + '<td><div class="tsub" title="' + esc(r.reason) + '">' + esc(r.reason) + '</div></td>'
+        + '<td><div class="longtext">' + esc(r.reason) + '</div></td>'
         + '<td><span class="st ' + r.status.toLowerCase() + '">' + r.status + '</span></td>'
 
         + '<td>' + (open
@@ -293,7 +293,7 @@
             : '<div class="num nowrap">' + fmtDateTime(r.decidedAt) + '</div>'
               + '<div class="tsub">by ' + esc(r.decidedBy) + '</div>'
               + (r.decisionNote
-                  ? '<div class="tsub" title="' + esc(r.decisionNote) + '">' + esc(r.decisionNote) + '</div>'
+                  ? '<div class="longtext">' + esc(r.decisionNote) + '</div>'
                   : '')) + '</td>'
 
         + '<td>' + esc(r.requestedBy) + '</td>'

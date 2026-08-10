@@ -311,6 +311,9 @@ table.ct td:last-child::after{content:'';position:absolute;top:0;bottom:0;left:0
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .ct .url{display:block;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .tsub{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* Free text written by a person — the reason a manager gives, the note an admin
+   writes back. Wraps rather than truncating: this is the cell you read. */
+.longtext{font-size:13px;color:var(--muted);line-height:1.5;white-space:normal;}
 td .tagrow{flex-wrap:nowrap;}
 .dash{color:var(--hint);}
 .nowrap{white-space:nowrap;}
