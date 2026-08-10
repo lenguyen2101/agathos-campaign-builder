@@ -1,9 +1,14 @@
 # Agathos — Campaign admin prototype
 
-A working front-end prototype of the **Campaign** layer and of Site Content —
-the **Homepage Hero** carousel control and the **Other Slides** it can run —
-built to match the existing Agathos admin portal (Ant Design Pro shell) already
-used by the Project / Event / Organization layers.
+A working front-end prototype of the **Campaign** layer, of Site Content — the
+**Homepage Hero** carousel control and the **Other Slides** it can run — and of
+**project change requests**, built to match the existing Agathos admin portal
+(Ant Design Pro shell) already used by the Project / Event / Organization
+layers.
+
+The Project list is rebuilt here too, but only as the place the **Requests**
+button lives. Creating, editing and deleting a project stay in the portal and
+are inert in this prototype.
 
 This is a **specification you can click**, not production code. Nothing here is
 meant to be dropped into the portal as-is. Read it, run it, then rebuild the
@@ -32,6 +37,8 @@ runs the whole prototype, images included.
 
 | Route | Screen |
 |---|---|
+| `projects.html` | Project list |
+| `requests.html` | Change requests on projects — approve / reject |
 | `index.html` | Campaign list |
 | `create.html` | Create campaign (7-step wizard) |
 | `create.html?id=<id>&step=<0-6>` | Edit campaign, opened at a given step |
@@ -69,7 +76,20 @@ getOtherSlide(id)        GET    /admin/other-slides/:id       -> OtherSlide
 saveOtherSlide(s)        POST   /admin/other-slides           -> OtherSlide (no s.id)
                          PATCH  /admin/other-slides/:id       -> OtherSlide (has s.id)
 deleteOtherSlide(id)     DELETE /admin/other-slides/:id
+
+listProjects()           GET    /admin/projects               -> Project[]
+getProject(id)           GET    /admin/projects/:id           -> Project
+
+listChangeRequests()        GET  /admin/project-change-requests             -> ChangeRequest[]
+getChangeRequest(id)        GET  /admin/project-change-requests/:id         -> ChangeRequest
+approveRequest(id, by)      POST /admin/project-change-requests/:id/approve -> ChangeRequest
+rejectRequest(id, note, by) POST /admin/project-change-requests/:id/reject  -> ChangeRequest
+                                 body { note }
 ```
+
+The Project endpoints are **read-only from here** — the portal already owns
+create / edit / delete. The only write this prototype makes to a project is
+inside `approveRequest()`.
 
 There is deliberately **no** archive / publish / status endpoint. Status is an
 ordinary field, so it changes through `saveCampaign()` like any other.
@@ -157,7 +177,55 @@ Supplied by the existing Project and Event APIs; the prototype fakes it in
 { id, name, org, kind: 'project' | 'event', goal, img }
 ```
 
-`goal` exists on projects only. **Events carry no goal.**
+`goal` exists on projects only. **Events carry no goal.** For a project it is
+read from the project record, not from this entry, so an approved change request
+moves every campaign total that references it.
+
+### Project
+
+Owned by the existing Project API. Only the fields the two screens here need are
+modelled; the real record has many more and none of them matter for this flow.
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | string | |
+| `title` | string | |
+| `type` | enum | `COMMUNITY · EMERGENCY` — the two values seen in the portal. Confirm the full enum |
+| `country`, `city` | string | |
+| `org` | string | the organisation running the project |
+| `fundGoal` | number | what the project is raising, in S$ |
+| `start` | string | `YYYY-MM-DD` |
+| `fundraisingEnd` | string | `YYYY-MM-DD` — **the End Date column in the portal**. See the open questions |
+| `status` | enum | the same enum as campaigns |
+| `createdAt` | string | ISO 8601 — the Create Date column |
+| `updatedAt` | string | ISO 8601 — stamped when a request is approved |
+
+`fundGoal` and `fundraisingEnd` are the only two fields a project manager can
+ask to change. Everything else stays admin-only, as it is today.
+
+> The list adds a **Fund Goal** column the portal does not have today, because
+> approving a request has to be visible somewhere. Drop the column if the real
+> screen should not carry it.
+
+### Change request
+
+Raised by a project manager, decided by an admin. A manager cannot edit a live
+project's fund goal or fundraising end date directly.
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | string | server-assigned |
+| `projectId` | string | |
+| `field` | enum | `fundGoal` · `fundraisingEnd` — nothing else is requestable |
+| `currentValue` | number \| string | the value **when the request was raised**, not a live read |
+| `requestedValue` | number \| string | what the manager is asking for |
+| `reason` | string | why they are asking |
+| `requestedBy` | string | the manager's name |
+| `requestedAt` | string | ISO 8601 |
+| `status` | enum | `PENDING · APPROVED · REJECTED` |
+| `decidedAt` | string | ISO 8601, `''` while pending |
+| `decidedBy` | string | the admin who handled it, `''` while pending |
+| `decisionNote` | string | **required on reject**, `''` on approve |
 
 ### Other slide
 
@@ -259,6 +327,28 @@ detail page already does.
 
 **A campaign never mutates the items it references.** It holds IDs only.
 
+**Approving a change request is one transaction.** Write `requestedValue` onto
+the project, then stamp the request. If either half fails, neither happens. The
+admin never has to go and edit the project by hand afterwards.
+
+**The admin approves the exact value asked for.** There is no field to edit it on
+the way through. Wanting a different number means rejecting and asking for a new
+request, so the record always says who proposed what.
+
+**A request is decided once.** Both endpoints must refuse a request whose status
+is not `PENDING`; the prototype throws. The Approve / Reject buttons disappear
+from a decided row and the decision — time, admin, and the reason on a rejection
+— is kept forever.
+
+**Rejecting requires a reason and changes nothing.** The note goes back to the
+manager, so an empty one is refused at the boundary as well as in the UI.
+
+**`currentValue` is a snapshot.** The project can move after the request is
+raised — an admin edit in the portal, or another approved request. The prototype
+shows the drift on the row and again in the approve dialog, and approving still
+writes `requestedValue`. Decide whether the real system should instead force the
+manager to re-raise; today it does not.
+
 ---
 
 ## What is faked and must be built for real
@@ -271,6 +361,10 @@ detail page already does.
 | Catalogue | Static array in `mock-data.js` | The real Project / Event list, with search and paging |
 | List sorting, search, paging | Client-side over the whole array — there is no network call anywhere | Server-side. The UI already tracks page, page size, sort key and direction in one place, ready to be forwarded |
 | Raised / donors | Em dashes | Real aggregates |
+| Project create / detail / edit / delete | Every icon on a project row shows a toast | Nothing — those screens already exist in the portal. Point the row actions at them |
+| Raising a request | Not here at all. Requests only arrive as seed data | The project manager's side: the form they submit from, and whatever notifies the admin |
+| Telling the manager | Nothing leaves the browser | Deliver the decision and, on a rejection, the reason |
+| The Requests count | Read on render from the local store | A pending count on the Project list, polled or pushed |
 
 ### Security — read this one
 
@@ -298,9 +392,17 @@ following it keeps the Campaign layer consistent:
   headers with carets, Toggle Search panel, Refresh list, Ant-style pagination
   with a page-size select. The Other Slides list is the same machinery with its
   own columns: `Index | ID | Slide | Status | Start Date | End Date | Links to |
-  Homepage | Last Updated | Action`.
+  Homepage | Last Updated | Action`. The Project list keeps the portal's columns
+  and adds Fund Goal; Requests runs the same machinery over `Index | ID |
+  Project | Field | Change | Reason | Status | Handled | Requested by |
+  Requested | Action`.
 - **Action column** — pinned right with a shadow that fades once the table is
-  scrolled fully right; four icons: publish view, view, edit, delete.
+  scrolled fully right; four icons: publish view, view, edit, delete. On
+  Requests it holds the two decisions instead, and a dash once the row is
+  decided.
+- **Requests** — a button on the Project list, left of Refresh list, with a
+  count of what is waiting. No count when nothing is. The screen it opens is an
+  inbox: it lands filtered to `PENDING`, and the Status filter reaches the rest.
 - **Status** — plain uppercase text, not a badge.
 - **Dates** — `DD/MM/YYYY`.
 - **Detail page** — a single column of disabled inputs, like the Event detail
@@ -327,11 +429,14 @@ Two details worth keeping because they took iterations to get right:
 
 ## Prototype-only — do not port
 
-- `localStorage` persistence, and the `STORE_KEY` / `HERO_KEY` / `OTHER_KEY`
-  version bumps (`agathos.campaigns.v9`, `agathos.hero.v2`,
-  `agathos.otherslides.v1`). The version suffix exists so stale local data
-  reseeds during prototyping.
-- Every **Reset** button, `resetStore()`, `resetHero()` and `resetOtherSlides()`.
+- `localStorage` persistence, and the `STORE_KEY` / `HERO_KEY` / `OTHER_KEY` /
+  `PROJECT_KEY` / `REQUEST_KEY` version bumps (`agathos.campaigns.v9`,
+  `agathos.hero.v2`, `agathos.otherslides.v1`, `agathos.projects.v1`,
+  `agathos.requests.v1`). The version suffix exists so stale local data reseeds
+  during prototyping.
+- Every **Reset** button, `resetStore()`, `resetHero()`, `resetOtherSlides()`,
+  `resetProjects()` and `resetRequests()`. Projects and requests reset together
+  — an approved request has already been written onto its project.
 - `assets/mock-data.js` in its entirety, including the placeholder SVGs under
   `assets/img/` — those are generated gradients standing in for real photography.
 - `vercel.json`. Note the images live in `assets/img/`, **not** `public/`: Vercel
@@ -343,6 +448,8 @@ Two details worth keeping because they took iterations to get right:
 ## File map
 
 ```
+projects.html         Project list
+requests.html         Project change requests
 index.html            Campaign list
 create.html           Create / edit wizard
 campaign.html         Campaign detail
@@ -351,7 +458,8 @@ slides.html           Other slide list
 slide.html            Other slide create / edit
 
 assets/store.js       ★ backend boundary + all derived rules and formatting
-assets/mock-data.js   seed campaigns, catalogue, hero config, other slides
+assets/mock-data.js   seed campaigns, catalogue, hero config, other slides,
+                      projects, change requests
 assets/shell.js       left nav + top bar, shared by every page
 assets/app.css        design tokens and every component
 assets/img/           placeholder banners and item thumbnails
@@ -368,3 +476,16 @@ assets/img/           placeholder banners and item thumbnails
 3. The `Spotlight` caption and the `Everything in this campaign` heading are
    currently fixed template copy, not per-campaign fields.
 4. Currency is hard-coded to `S$`.
+5. **Is the portal's End Date the fundraising end date?** The prototype assumes
+   so and calls the field `fundraisingEnd`. If a project has a separate
+   fundraising deadline, the list needs a second date column and the request
+   points at that one instead.
+6. **Who may raise a request, and against which projects?** The prototype only
+   records `requestedBy` as a name. Whether that is the project's own manager,
+   anyone in the organisation, or a role, is an auth question nothing here
+   answers.
+7. **Can a manager have two open requests on the same field?** Nothing prevents
+   it today, and approving both applies them in the order they are decided.
+8. Should a rejected request be re-raisable as-is, or does the manager have to
+   submit a new one? The prototype keeps the rejected record and never reopens
+   it.

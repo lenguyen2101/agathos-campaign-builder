@@ -184,7 +184,20 @@ function statusOf(c){
   return STATUSES.indexOf(c.status) >= 0 ? c.status : STATUS_DEFAULT;
 }
 
-function catItem(id){ return CATALOGUE.filter(function(x){ return x.id === id; })[0] || null; }
+/* The catalogue entry carries the copy the campaign picker shows, but a
+   project's goal lives on the project record — an approved change request moves
+   it, and every campaign total has to move with it. */
+function catItem(id){
+  var x = CATALOGUE.filter(function(y){ return y.id === id; })[0];
+  if(!x) return null;
+  if(x.kind !== 'project') return x;
+  var p = getProject(id);
+  if(!p) return x;
+  var out = {};
+  for(var k in x) out[k] = x[k];
+  out.goal = p.fundGoal;
+  return out;
+}
 
 /* How many of the referenced items are projects, or events. */
 function countKind(items, kind){
@@ -246,6 +259,17 @@ function fmtDate(iso){
 function fmtRange(start, end){
   if(!start || !end) return '';
   return fmtDate(start) + ' → ' + fmtDate(end);
+}
+
+/* DD/MM/YYYY HH:mm in the reader's own timezone — when a request was raised and
+   when it was handled. Date-only fields stay on fmtDate(), which reads the
+   stored 'YYYY-MM-DD' as written and never shifts it. */
+function fmtDateTime(iso){
+  if(!iso) return '';
+  var d = new Date(iso);
+  var p = function(n){ return (n < 10 ? '0' : '') + n; };
+  return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear()
+    + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
 }
 
 function fmtAgo(iso){
@@ -502,4 +526,212 @@ function slideCopy(s){
     bannerDesktop:c.heroBannerDesktop, bannerMobile:c.heroBannerMobile,
     ctaLabel:c.ctaLabel
   };
+}
+
+/* ============================================================================
+   PROJECTS — fourth backend boundary
+
+     listProjects()    GET  /admin/projects       -> Project[]
+     getProject(id)    GET  /admin/projects/:id   -> Project
+
+   Read-only from here. The Project layer already exists in the portal, so this
+   prototype rebuilds its list screen and nothing else — the only write in the
+   whole file is approveRequest() below, which applies a requested value to a
+   project. Create / edit / delete stay where they are.
+
+   Project shape — only the fields these two screens need. The real record has
+   more (description, banners, beneficiaries, …) and none of it matters here.
+   ---------------
+     id             string
+     title          string
+     type           string   one of PROJECT_TYPES
+     country        string
+     city           string
+     org            string   the organisation running the project
+     fundGoal       number   what the project is raising, in S$
+     start          string   'YYYY-MM-DD'
+     fundraisingEnd string   'YYYY-MM-DD' — the End Date column in the portal
+     status         string   one of STATUSES, the same enum as campaigns
+     createdAt      string   ISO 8601 — the Create Date column
+     updatedAt      string   ISO 8601 — stamped when a request is approved
+
+   fundGoal and fundraisingEnd are the two fields a project manager can ask to
+   change. Everything else is admin-only, as it is today.
+   ============================================================================ */
+
+var PROJECT_KEY = 'agathos.projects.v1';
+
+/* Seen in the portal's Type column. Confirm the full enum with the backend. */
+var PROJECT_TYPES = ['COMMUNITY','EMERGENCY'];
+
+function _readProjects(){
+  var raw = localStorage.getItem(PROJECT_KEY);
+  if(!raw){
+    localStorage.setItem(PROJECT_KEY, JSON.stringify(SEED_PROJECTS));
+    return JSON.parse(JSON.stringify(SEED_PROJECTS));
+  }
+  try { return JSON.parse(raw); }
+  catch(e){
+    console.error('[store] cannot parse ' + PROJECT_KEY + ' — reseeding.', e);
+    localStorage.setItem(PROJECT_KEY, JSON.stringify(SEED_PROJECTS));
+    return JSON.parse(JSON.stringify(SEED_PROJECTS));
+  }
+}
+function _writeProjects(list){ localStorage.setItem(PROJECT_KEY, JSON.stringify(list)); }
+
+function listProjects(){ return _readProjects(); }
+
+function getProject(id){
+  var found = _readProjects().filter(function(p){ return p.id === id; })[0];
+  return found || null;
+}
+
+function resetProjects(){ localStorage.removeItem(PROJECT_KEY); }
+
+/* ============================================================================
+   PROJECT CHANGE REQUESTS — fifth backend boundary
+
+     listChangeRequests()         GET   /admin/project-change-requests       -> ChangeRequest[]
+     getChangeRequest(id)         GET   /admin/project-change-requests/:id   -> ChangeRequest
+     approveRequest(id, by)       POST  /admin/project-change-requests/:id/approve -> ChangeRequest
+     rejectRequest(id, note, by)  POST  /admin/project-change-requests/:id/reject  -> ChangeRequest
+                                        body { note }
+
+   A project manager cannot edit a live project's fund goal or fundraising end
+   date directly. They raise a request and an admin decides it.
+
+   ChangeRequest shape
+   -------------------
+     id             string   server-assigned
+     projectId      string
+     field          string   'fundGoal' | 'fundraisingEnd' — nothing else is requestable
+     currentValue   number|string   the value when the request was raised
+     requestedValue number|string   what the manager is asking for
+     reason         string   why the manager is asking
+     requestedBy    string   the manager's name
+     requestedAt    string   ISO 8601
+     status         string   PENDING | APPROVED | REJECTED
+     decidedAt      string   ISO 8601, '' while pending
+     decidedBy      string   the admin who handled it, '' while pending
+     decisionNote   string   required on reject, '' on approve
+
+   Rules the backend has to honour
+   -------------------------------
+   Approving is ONE transaction: write requestedValue onto the project, then
+   stamp the request. If either half fails, neither happens.
+
+   The admin approves the exact value asked for — there is no field to edit it
+   on the way through. Wanting a different number means rejecting and asking for
+   a new request, so the record always says who proposed what.
+
+   A request is decided once. Both endpoints must refuse a request whose status
+   is not PENDING; the prototype throws.
+
+   currentValue is a snapshot, not a live read. The project can move after the
+   request is raised — the admin sees the drift before approving (requestDrift())
+   and approving still writes requestedValue.
+   ============================================================================ */
+
+var REQUEST_KEY = 'agathos.requests.v1';
+var REQUEST_STATUSES = ['PENDING','APPROVED','REJECTED'];
+
+/* The only two fields a manager can ask to change, and what to call them. */
+var REQUEST_FIELDS = [
+  {key:'fundGoal',       label:'Fund Goal'},
+  {key:'fundraisingEnd', label:'Fundraising End Date'}
+];
+
+function _readRequests(){
+  var raw = localStorage.getItem(REQUEST_KEY);
+  if(!raw){
+    localStorage.setItem(REQUEST_KEY, JSON.stringify(SEED_REQUESTS));
+    return JSON.parse(JSON.stringify(SEED_REQUESTS));
+  }
+  try { return JSON.parse(raw); }
+  catch(e){
+    console.error('[store] cannot parse ' + REQUEST_KEY + ' — reseeding.', e);
+    localStorage.setItem(REQUEST_KEY, JSON.stringify(SEED_REQUESTS));
+    return JSON.parse(JSON.stringify(SEED_REQUESTS));
+  }
+}
+function _writeRequests(list){ localStorage.setItem(REQUEST_KEY, JSON.stringify(list)); }
+
+function listChangeRequests(){ return _readRequests(); }
+
+function getChangeRequest(id){
+  var found = _readRequests().filter(function(r){ return r.id === id; })[0];
+  return found || null;
+}
+
+function pendingRequests(){
+  return _readRequests().filter(function(r){ return r.status === 'PENDING'; });
+}
+
+function _decidable(list, id, what){
+  var r = list.filter(function(x){ return x.id === id; })[0];
+  if(!r) throw new Error('[store] ' + what + ': no request with id ' + id);
+  if(r.status !== 'PENDING') throw new Error('[store] ' + what + ': ' + id + ' was already ' + r.status.toLowerCase());
+  return r;
+}
+
+/* Applies the requested value to the project and stamps the request. */
+function approveRequest(id, by){
+  var list = _readRequests();
+  var r    = _decidable(list, id, 'approveRequest');
+
+  var projects = _readProjects();
+  var p = projects.filter(function(x){ return x.id === r.projectId; })[0];
+  if(!p) throw new Error('[store] approveRequest: request ' + id + ' points at missing project ' + r.projectId);
+
+  var now = new Date().toISOString();
+  p[r.field]   = r.requestedValue;
+  p.updatedAt  = now;
+  _writeProjects(projects);
+
+  r.status       = 'APPROVED';
+  r.decidedAt    = now;
+  r.decidedBy    = by || 'admin';
+  r.decisionNote = '';
+  _writeRequests(list);
+  return r;
+}
+
+/* Leaves the project untouched. The note goes back to the manager, so it is
+   required — a rejection with no reason is the thing this flow exists to stop. */
+function rejectRequest(id, note, by){
+  var reason = String(note == null ? '' : note).trim();
+  if(!reason) throw new Error('[store] rejectRequest: a reason is required');
+
+  var list = _readRequests();
+  var r    = _decidable(list, id, 'rejectRequest');
+
+  r.status       = 'REJECTED';
+  r.decidedAt    = new Date().toISOString();
+  r.decidedBy    = by || 'admin';
+  r.decisionNote = reason;
+  _writeRequests(list);
+  return r;
+}
+
+function resetRequests(){ localStorage.removeItem(REQUEST_KEY); }
+
+/* ------------------------------------------------- DERIVED / PURE (no backend) */
+
+function requestFieldLabel(field){
+  var f = REQUEST_FIELDS.filter(function(x){ return x.key === field; })[0];
+  return f ? f.label : field;
+}
+
+/* A fund goal is money, a fundraising end date is a date. */
+function requestValueText(field, v){
+  return field === 'fundGoal' ? fmtMoney(v) : fmtDate(v);
+}
+
+/* The project's value now, when it is no longer the one the request quotes.
+   Null when they still agree, or once the request has been decided. */
+function requestDrift(r){
+  if(r.status !== 'PENDING') return null;
+  var p = getProject(r.projectId);
+  if(!p) return null;
+  return String(p[r.field]) === String(r.currentValue) ? null : p[r.field];
 }

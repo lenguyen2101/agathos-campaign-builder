@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agathos Admin — Project change requests</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+
+<div id="shell"></div>
+
+<div class="overlay" id="okOverlay">
+  <div class="modal">
+    <div class="mh">
+      <span class="mi ok" id="okIcon"></span>
+      <div>
+        <h3>Approve this change?</h3>
+        <div class="mb" id="okMsg"></div>
+      </div>
+    </div>
+    <div id="okDeets"></div>
+    <div class="mf">
+      <button class="btn" onclick="closeApprove()">Cancel</button>
+      <button class="btn primary" id="okConfirm">Approve</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="noOverlay">
+  <div class="modal">
+    <div class="mh">
+      <span class="mi warn" id="noIcon"></span>
+      <div>
+        <h3>Reject this change?</h3>
+        <div class="mb" id="noMsg"></div>
+      </div>
+    </div>
+    <div class="field" style="margin:18px 0 0">
+      <label><span class="req">*</span>Reason</label>
+      <textarea class="ctl" id="noReason" placeholder="Why this cannot be approved" oninput="syncReject()"></textarea>
+      <div class="hint">Sent to the project manager.</div>
+    </div>
+    <div class="mf">
+      <button class="btn" onclick="closeReject()">Cancel</button>
+      <button class="btn solid-danger" id="noConfirm" disabled>Reject</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="assets/mock-data.js"></script>
+<script src="assets/store.js"></script>
+<script src="assets/shell.js"></script>
+<script>
+  /* Requests hang off the Project list, so Project stays the highlighted leaf. */
+  var CONTENT = mountShell('project');
+  document.getElementById('okIcon').innerHTML = icon('check', 22);
+  document.getElementById('noIcon').innerHTML = icon('warn', 22);
+
+  /* What was asked, then what came of it. Who asked and when sit after those,
+     because 11 columns do not fit a laptop and this is the order they are read
+     in. */
+  var COLS = [
+    {key:'index',       label:'Index',        sortable:false, w:60},
+    {key:'id',          label:'ID',           sortable:true,  w:100},
+    {key:'project',     label:'Project',      sortable:true,  w:240},
+    {key:'field',       label:'Field',        sortable:true,  w:150},
+    {key:'change',      label:'Change',       sortable:false, w:200},
+    {key:'reason',      label:'Reason',       sortable:false, w:230},
+    {key:'status',      label:'Status',       sortable:true,  w:105},
+    {key:'decidedAt',   label:'Handled',      sortable:true,  w:200},
+    {key:'requestedBy', label:'Requested by', sortable:true,  w:150},
+    {key:'requestedAt', label:'Requested',    sortable:true,  w:140},
+    {key:'action',      label:'Action',       sortable:false, w:160}
+  ];
+  var TABLE_W = COLS.reduce(function(w, c){ return w + c.w; }, 0);
+
+  var PAGE_SIZES = [10, 20, 50, 100];
+  /* Opens on what is waiting — this screen is an inbox. The footer says when
+     the list is filtered, and the Status filter reaches the rest. */
+  var V = { status:'PENDING', field:'All', q:'', searchOpen:false, sort:'requestedAt', dir:'desc',
+            page:1, pageSize:20, okId:null, noId:null };
+
+  function pageList(cur, total){
+    var out = [], i;
+    if(total <= 7){
+      for(i = 1; i <= total; i++) out.push(i);
+      return out;
+    }
+    var lo = Math.max(2, cur - 1), hi = Math.min(total - 1, cur + 1);
+    if(cur <= 4){ lo = 2; hi = 5; }
+    if(cur >= total - 3){ lo = total - 4; hi = total - 1; }
+    out.push(1);
+    if(lo > 2) out.push('gap');
+    for(i = lo; i <= hi; i++) out.push(i);
+    if(hi < total - 1) out.push('gap');
+    out.push(total);
+    return out;
+  }
+
+  function updateScrollShadow(){
+    var w = CONTENT.querySelector('.tablewrap');
+    if(!w) return;
+    w.classList.toggle('pin-right', w.scrollWidth - w.clientWidth - w.scrollLeft > 1);
+  }
+  window.addEventListener('resize', updateScrollShadow);
+
+  function gotoPage(p){ V.page = p; render(); window.scrollTo(0, 0); }
+  function setPageSize(n){ V.pageSize = Number(n); V.page = 1; render(); }
+
+  function pager(totalPages){
+    var h = '<div class="pager">'
+      + '<button class="arw" onclick="gotoPage(' + (V.page - 1) + ')"' + (V.page === 1 ? ' disabled' : '') + '>‹</button>';
+    pageList(V.page, totalPages).forEach(function(p){
+      h += p === 'gap'
+        ? '<span class="gap">•••</span>'
+        : '<button class="pg' + (p === V.page ? ' on' : '') + '" onclick="gotoPage(' + p + ')">' + p + '</button>';
+    });
+    h += '<button class="arw" onclick="gotoPage(' + (V.page + 1) + ')"' + (V.page === totalPages ? ' disabled' : '') + '>›</button>'
+      + '<select onchange="setPageSize(this.value)">'
+      + PAGE_SIZES.map(function(n){
+          return '<option value="' + n + '"' + (V.pageSize === n ? ' selected' : '') + '>' + n + ' / page</option>';
+        }).join('')
+      + '</select></div>';
+    return h;
+  }
+
+  /* ----- data shaping ----- */
+  function projectTitle(r){
+    var p = getProject(r.projectId);
+    return p ? p.title : r.projectId;
+  }
+
+  function sortVal(r, key){
+    switch(key){
+      case 'id':          return r.id;
+      case 'project':     return projectTitle(r).toLowerCase();
+      case 'field':       return requestFieldLabel(r.field);
+      case 'requestedBy': return (r.requestedBy || '').toLowerCase();
+      case 'requestedAt': return r.requestedAt || '';
+      case 'status':      return REQUEST_STATUSES.indexOf(r.status);
+      case 'decidedAt':   return r.decidedAt || '';
+      default:            return '';
+    }
+  }
+
+  function rows(){
+    var list = listChangeRequests().filter(function(r){
+      if(V.status !== 'All' && r.status !== V.status) return false;
+      if(V.field  !== 'All' && r.field  !== V.field) return false;
+      if(!V.q) return true;
+      var hay = (r.id + ' ' + projectTitle(r) + ' ' + r.requestedBy + ' ' + r.reason).toLowerCase();
+      return hay.indexOf(V.q.toLowerCase()) >= 0;
+    });
+    var d = V.dir === 'asc' ? 1 : -1;
+    return list.sort(function(a, b){
+      var x = sortVal(a, V.sort), y = sortVal(b, V.sort);
+      if(x < y) return -1 * d;
+      if(x > y) return 1 * d;
+      return 0;
+    });
+  }
+
+  /* ----- toolbar ----- */
+  function toggleSearch(){ V.searchOpen = !V.searchOpen; render(); }
+  function applySearch(){
+    V.q      = document.getElementById('fq').value.trim();
+    V.status = document.getElementById('fstatus').value;
+    V.field  = document.getElementById('ffield').value;
+    V.page   = 1;
+    render();
+  }
+  function resetSearch(){ V.q = ''; V.status = 'All'; V.field = 'All'; V.page = 1; render(); }
+  function refreshList(){ render(); toast('List refreshed'); }
+
+  function sortBy(key){
+    if(V.sort === key){ V.dir = V.dir === 'asc' ? 'desc' : 'asc'; }
+    else { V.sort = key; V.dir = 'asc'; }
+    V.page = 1;
+    render();
+  }
+
+  /* ----- render ----- */
+  function render(){
+    var all = listChangeRequests();
+    var counts = {}, fieldCounts = {};
+    all.forEach(function(r){
+      counts[r.status] = (counts[r.status] || 0) + 1;
+      fieldCounts[r.field] = (fieldCounts[r.field] || 0) + 1;
+    });
+    var waiting = counts.PENDING || 0;
+
+    var h = '<div class="pagehead">'
+      + '<button class="back" title="Back to projects" onclick="location.href=\'projects.html\'">' + icon('back', 20) + '</button>'
+      + '<h1>Requests</h1>'
+      + '<span class="meta">' + (waiting ? waiting + ' waiting' : 'Nothing waiting') + '</span>'
+      + '<span class="spacer"></span>'
+      + '<div class="acts">'
+      +   '<button class="btn" onclick="refreshList()">' + icon('refresh', 16) + 'Refresh list</button>'
+      + '</div></div>';
+
+    h += '<div class="searchbar">'
+      + '<button class="btn blue" onclick="toggleSearch()">' + icon('search', 16) + 'Toggle Search</button>'
+      + '<span class="spacer" style="flex:1"></span>'
+      + '<span class="tfoot" style="padding:0">' + all.length + ' total · '
+      +   waiting + ' pending · ' + (counts.APPROVED || 0) + ' approved · ' + (counts.REJECTED || 0) + ' rejected</span>'
+      + '</div>';
+
+    h += '<div class="searchpanel' + (V.searchOpen ? ' show' : '') + '">'
+      + '<div class="row">'
+      +   '<div class="field" style="margin:0"><label>Keyword</label>'
+      +     '<input class="ctl" type="text" id="fq" value="' + esc(V.q) + '" placeholder="ID, project, manager or reason"'
+      +     ' onkeydown="if(event.key===\'Enter\')applySearch()"></div>'
+      +   '<div class="field" style="margin:0"><label>Status</label><select class="ctl" id="fstatus">'
+      +     ['All'].concat(REQUEST_STATUSES).map(function(s){
+              return '<option value="' + s + '"' + (V.status === s ? ' selected' : '') + '>'
+                + (s === 'All' ? 'All (' + all.length + ')' : s + ' (' + (counts[s] || 0) + ')') + '</option>';
+            }).join('')
+      +   '</select></div>'
+      +   '<div class="field" style="margin:0"><label>Field</label><select class="ctl" id="ffield">'
+      +     '<option value="All"' + (V.field === 'All' ? ' selected' : '') + '>All (' + all.length + ')</option>'
+      +     REQUEST_FIELDS.map(function(f){
+              return '<option value="' + f.key + '"' + (V.field === f.key ? ' selected' : '') + '>'
+                + f.label + ' (' + (fieldCounts[f.key] || 0) + ')</option>';
+            }).join('')
+      +   '</select></div>'
+      + '</div>'
+      + '<div class="foot"><button class="btn" onclick="resetSearch()">Reset</button>'
+      + '<button class="btn primary" onclick="applySearch()">' + icon('search', 16) + 'Search</button></div>'
+      + '</div>';
+
+    var list = rows();
+    var totalPages = Math.max(1, Math.ceil(list.length / V.pageSize));
+    if(V.page > totalPages) V.page = totalPages;
+    var offset = (V.page - 1) * V.pageSize;
+    var page   = list.slice(offset, offset + V.pageSize);
+
+    if(!list.length){
+      var clean = V.status === 'PENDING' && !V.q && V.field === 'All';
+      h += '<div class="tablewrap"><div class="empty">'
+        + '<div class="ei">' + icon('inbox', 40) + '</div>'
+        + '<h4>' + (clean ? 'No requests waiting' : 'No requests match') + '</h4>'
+        + '<p>' + (clean
+            ? 'Every request has been handled.'
+            : (V.q ? 'Nothing matches “' + esc(V.q) + '”' : 'No requests with these filters') + '.') + '</p>'
+        + '<button class="btn" onclick="resetSearch()">' + (clean ? 'Show all requests' : 'Reset filters') + '</button>'
+        + '</div></div>';
+      CONTENT.innerHTML = h;
+      return;
+    }
+
+    h += '<div class="tablewrap"><table class="ct" style="min-width:' + TABLE_W + 'px">'
+      + '<colgroup>' + COLS.map(function(c){ return '<col style="width:' + c.w + 'px">'; }).join('') + '</colgroup>'
+      + '<thead><tr>'
+      + COLS.map(function(c){
+          if(!c.sortable) return '<th>' + c.label + '</th>';
+          var cls = 'caret' + (V.sort === c.key ? ' ' + V.dir : '');
+          return '<th class="sortable" onclick="sortBy(\'' + c.key + '\')"><span class="thin">' + c.label
+            + '<span class="' + cls + '"><i class="up"></i><i class="dn"></i></span></span></th>';
+        }).join('')
+      + '</tr></thead><tbody>';
+
+    page.forEach(function(r, i){
+      var p     = getProject(r.projectId);
+      var drift = requestDrift(r);
+      var open  = r.status === 'PENDING';
+
+      h += '<tr>'
+        + '<td class="num">' + (offset + i + 1) + '</td>'
+        + '<td class="num">' + esc(r.id) + '</td>'
+
+        + '<td><div class="tname">' + esc(p ? p.title : r.projectId) + '</div>'
+        +   '<div class="tsub">' + esc(r.projectId + (p ? ' · ' + p.org : '')) + '</div></td>'
+
+        + '<td>' + esc(requestFieldLabel(r.field)) + '</td>'
+
+        + '<td><div class="chg"><span>' + requestValueText(r.field, r.currentValue) + '</span>'
+        +   '<span class="ar">→</span><span class="to">' + requestValueText(r.field, r.requestedValue) + '</span></div>'
+        +   (drift === null ? ''
+              : '<div class="drift" title="The project changed after this request was raised">Now '
+                + requestValueText(r.field, drift) + '</div>') + '</td>'
+
+        + '<td><div class="tsub" title="' + esc(r.reason) + '">' + esc(r.reason) + '</div></td>'
+        + '<td><span class="st ' + r.status.toLowerCase() + '">' + r.status + '</span></td>'
+
+        + '<td>' + (open
+            ? '<span class="dash">—</span>'
+            : '<div class="num nowrap">' + fmtDateTime(r.decidedAt) + '</div>'
+              + '<div class="tsub">by ' + esc(r.decidedBy) + '</div>'
+              + (r.decisionNote
+                  ? '<div class="tsub" title="' + esc(r.decisionNote) + '">' + esc(r.decisionNote) + '</div>'
+                  : '')) + '</td>'
+
+        + '<td>' + esc(r.requestedBy) + '</td>'
+        + '<td class="num nowrap">' + fmtDateTime(r.requestedAt) + '</td>'
+
+        + '<td>' + (open
+            ? '<div class="rowbtns">'
+              + '<button class="btn sm primary" onclick="askApprove(\'' + r.id + '\')">Approve</button>'
+              + '<button class="btn sm dangerbtn" onclick="askReject(\'' + r.id + '\')">Reject</button>'
+              + '</div>'
+            : '<span class="dash">—</span>') + '</td>'
+        + '</tr>';
+    });
+
+    h += '</tbody></table></div>'
+      + '<div class="tfoot">'
+      +   '<span class="left">Showing ' + (offset + 1) + '–' + (offset + page.length) + ' of ' + list.length
+      +     (list.length === all.length ? '' : ' (filtered from ' + all.length + ')')
+      +     ' requests'
+      +     '<button class="linkbtn" onclick="doReset()">Reset prototype data</button></span>'
+      +   pager(totalPages)
+      + '</div>';
+
+    CONTENT.innerHTML = h;
+
+    CONTENT.querySelector('.tablewrap').addEventListener('scroll', updateScrollShadow);
+    updateScrollShadow();
+  }
+
+  /* ----- decisions ----- */
+  function askApprove(id){
+    var r = getChangeRequest(id);
+    var p = getProject(r.projectId);
+    var drift = requestDrift(r);
+    V.okId = id;
+
+    document.getElementById('okMsg').innerHTML =
+      '<b>' + esc(p ? p.title : r.projectId) + '</b> — ' + esc(requestFieldLabel(r.field))
+      + ' changes from ' + requestValueText(r.field, r.currentValue)
+      + ' to <b>' + requestValueText(r.field, r.requestedValue) + '</b>.';
+
+    document.getElementById('okDeets').innerHTML =
+        '<div class="deets">'
+      +   '<div><span class="k">Requested by</span><span>' + esc(r.requestedBy) + '</span></div>'
+      +   '<div><span class="k">Requested at</span><span>' + fmtDateTime(r.requestedAt) + '</span></div>'
+      + '</div>'
+      + (drift === null ? ''
+          : '<div class="alert warn">' + icon('warn', 16) + '<span>'
+            + esc(requestFieldLabel(r.field)) + ' is ' + requestValueText(r.field, drift)
+            + ' now, not the ' + requestValueText(r.field, r.currentValue)
+            + ' in the request — approving still writes ' + requestValueText(r.field, r.requestedValue)
+            + '.</span></div>');
+
+    document.getElementById('okConfirm').onclick = function(){
+      approveRequest(id, 'admin');
+      closeApprove();
+      render();
+      toast('Approved — ' + requestFieldLabel(r.field) + ' is now ' + requestValueText(r.field, r.requestedValue));
+    };
+    document.getElementById('okOverlay').classList.add('show');
+  }
+  function closeApprove(){ V.okId = null; document.getElementById('okOverlay').classList.remove('show'); }
+
+  function askReject(id){
+    var r = getChangeRequest(id);
+    var p = getProject(r.projectId);
+    var drift = requestDrift(r);
+    var kept  = drift === null ? r.currentValue : drift;
+    V.noId = id;
+
+    document.getElementById('noMsg').innerHTML =
+      '<b>' + esc(p ? p.title : r.projectId) + '</b> keeps its ' + esc(requestFieldLabel(r.field))
+      + ' of ' + requestValueText(r.field, kept) + '.';
+
+    var box = document.getElementById('noReason');
+    box.value = '';
+    syncReject();
+
+    document.getElementById('noConfirm').onclick = function(){
+      rejectRequest(id, box.value, 'admin');
+      closeReject();
+      render();
+      toast('Rejected — the project is unchanged');
+    };
+    document.getElementById('noOverlay').classList.add('show');
+    box.focus();
+  }
+  function closeReject(){ V.noId = null; document.getElementById('noOverlay').classList.remove('show'); }
+
+  /* A rejection with no reason is the thing this flow exists to stop, so the
+     button stays off until there is one. */
+  function syncReject(){
+    document.getElementById('noConfirm').disabled = !document.getElementById('noReason').value.trim();
+  }
+
+  function doReset(){ resetProjects(); resetRequests(); resetSearch(); toast('Seed data restored'); }
+
+  document.addEventListener('keydown', function(e){
+    if(e.key !== 'Escape') return;
+    closeApprove();
+    closeReject();
+  });
+  render();
+</script>
+</body>
+</html>

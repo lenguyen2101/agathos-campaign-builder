@@ -134,6 +134,10 @@ svg{display:block;flex:none;}
 .btn.solid-danger{background:var(--danger);border-color:var(--danger);color:#fff;font-weight:600;}
 .btn.solid-danger:hover{background:var(--danger-hover);border-color:var(--danger-hover);color:#fff;}
 .btn.lg{height:40px;padding:0 20px;}
+.btn.sm{height:28px;padding:0 12px;font-size:13px;}
+/* How many items are waiting on the admin, on the button that opens them. */
+.btn .cnt{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;
+  border-radius:9px;background:var(--danger);color:#fff;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;}
 .linkbtn{border:none;background:none;color:var(--link);font-size:14px;padding:0;}
 .linkbtn:hover{color:var(--link-hover);text-decoration:underline;}
 
@@ -319,8 +323,21 @@ td .tagrow{flex-wrap:nowrap;}
 .st.ongoing{color:#389E0D;}
 .st.completed{color:#0958D9;}
 .st.archived{color:var(--hint);}
+/* change-request states, same plain-text treatment */
+.st.pending{color:#D48806;}
+.st.approved{color:#389E0D;}
+.st.rejected{color:var(--danger);}
+
+/* current → requested value, in one cell, with the note shown underneath when
+   the project has moved since the request was raised. */
+.chg{display:flex;align-items:center;gap:7px;white-space:nowrap;}
+.chg .ar{color:var(--hint);}
+.chg .to{font-weight:600;}
+.drift{font-size:12.5px;color:#AD6800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px;}
 
 .rowacts{display:flex;align-items:center;gap:4px;}
+/* Decisions rather than icons in the Action column. */
+.rowbtns{display:flex;align-items:center;gap:8px;}
 .rowacts button{width:30px;height:30px;border:none;background:none;border-radius:var(--radius);color:var(--ink-2);display:flex;align-items:center;justify-content:center;}
 .rowacts button:hover{background:var(--fill);color:var(--link);}
 .rowacts button.del{color:var(--danger);}

@@ -1,9 +1,14 @@
 /* Mock backend data. Replace with real API responses — see store.js for the endpoint map. */
 
 /* Projects carry a fundraising goal; events do not. A campaign's total goal is
-   the sum of its projects' goals — the campaign never stores a goal of its own. */
+   the sum of its projects' goals — the campaign never stores a goal of its own.
+
+   A project's goal lives on the project record (SEED_PROJECTS below) because a
+   change request can move it. The value here is only the seed, kept in step so
+   the two never disagree before anything is approved — catItem() reads the live
+   one. Events keep their entry here alone. */
 var CATALOGUE = [
-  {id:'p1', name:'Support for widows · grief counselling', org:'Wicare',         kind:'project', c:'#2C6B53', goal:45000, img:'assets/img/items/p1.svg'},
+  {id:'p1', name:'Support for widows · grief counselling', org:'Wicare',         kind:'project', c:'#2C6B53', goal:52000, img:'assets/img/items/p1.svg'},
   {id:'p2', name:'Turning Barriers into Bridges',         org:'SIL Global',      kind:'project', c:'#3B5B86', goal:60000, img:'assets/img/items/p2.svg'},
   {id:'p3', name:'Outreach @ displaced families',         org:'Love Cambodia',   kind:'project', c:'#7A5B2E', goal:30000, img:'assets/img/items/p3.svg'},
   {id:'e1', name:'Benefit concert for the unseen',        org:'RISE People',     kind:'event',   c:'#5B3B86', img:'assets/img/items/e1.svg'},
@@ -286,5 +291,100 @@ var SEED_OTHER_SLIDES = [
     status:'DRAFT',
     start:'2026-09-01', end:'2026-10-15',
     createdAt:'2026-07-11T08:30:00Z', updatedAt:'2026-07-29T15:45:00Z'
+  }
+];
+
+/* ============================================================================
+   PROJECTS
+   The same nine projects the campaign catalogue references, with the fields the
+   portal's Project list shows. The real Project API owns these records; the
+   prototype fakes them so the change-request flow has something to write to.
+   ============================================================================ */
+var SEED_PROJECTS = [
+  {id:'p1', title:'Support for widows · grief counselling',    type:'COMMUNITY', country:'Singapore', city:'Singapore',       org:'Wicare',
+   fundGoal:52000,  start:'2026-01-15', fundraisingEnd:'2026-12-31', status:'ONGOING',
+   createdAt:'2025-12-02T09:00:00Z', updatedAt:'2026-08-04T02:15:00Z'},
+  {id:'p2', title:'Turning Barriers into Bridges',             type:'COMMUNITY', country:'Vietnam',   city:'Ha Noi',          org:'SIL Global',
+   fundGoal:60000,  start:'2026-03-01', fundraisingEnd:'2026-10-31', status:'ONGOING',
+   createdAt:'2026-02-04T07:20:00Z', updatedAt:'2026-06-11T04:05:00Z'},
+  {id:'p3', title:'Outreach @ displaced families',             type:'EMERGENCY', country:'Cambodia',  city:'Phnom Penh',      org:'Love Cambodia',
+   fundGoal:30000,  start:'2026-02-10', fundraisingEnd:'2026-06-30', status:'COMPLETED',
+   createdAt:'2026-01-22T10:40:00Z', updatedAt:'2026-07-01T02:00:00Z'},
+  {id:'p4', title:'A Bible Movement in Every Language',        type:'COMMUNITY', country:'Singapore', city:'Singapore',       org:'everylanguage',
+   fundGoal:80000,  start:'2025-06-01', fundraisingEnd:'2026-03-31', status:'ARCHIVED',
+   createdAt:'2025-05-08T08:15:00Z', updatedAt:'2026-04-02T06:30:00Z'},
+  {id:'p5', title:'Living Waters Village',                     type:'COMMUNITY', country:'Indonesia', city:'West Kalimantan', org:'agathos',
+   fundGoal:120000, start:'2025-09-01', fundraisingEnd:'2026-11-30', status:'ONGOING',
+   createdAt:'2025-08-12T03:00:00Z', updatedAt:'2026-07-15T07:05:00Z'},
+  {id:'p6', title:'Clean water wells · Mekong delta',          type:'COMMUNITY', country:'Vietnam',   city:'Can Tho',         org:'Love Cambodia',
+   fundGoal:35000,  start:'2026-04-01', fundraisingEnd:'2026-09-30', status:'ONGOING',
+   createdAt:'2026-03-05T09:25:00Z', updatedAt:'2026-05-19T02:45:00Z'},
+  {id:'p7', title:'Scholarships for first-generation students', type:'COMMUNITY', country:'Singapore', city:'Singapore',      org:'Wicare',
+   fundGoal:40000,  start:'2026-06-01', fundraisingEnd:'2026-08-31', status:'ONGOING',
+   createdAt:'2026-05-02T05:50:00Z', updatedAt:'2026-06-28T08:10:00Z'},
+  {id:'p8', title:'Mobile clinics for remote villages',        type:'COMMUNITY', country:'Vietnam',   city:'Ho Chi Minh',     org:'SIL Global',
+   fundGoal:55000,  start:'2026-09-01', fundraisingEnd:'2027-01-31', status:'REVIEW',
+   createdAt:'2026-07-18T11:30:00Z', updatedAt:'2026-08-05T09:15:00Z'},
+  {id:'p9', title:'Rebuilding after the floods',               type:'EMERGENCY', country:'Vietnam',   city:'Da Nang',         org:'agathos',
+   fundGoal:70000,  start:'2026-07-05', fundraisingEnd:'2026-10-15', status:'ONGOING',
+   createdAt:'2026-07-02T01:10:00Z', updatedAt:'2026-07-30T03:20:00Z'}
+];
+
+/* ============================================================================
+   PROJECT CHANGE REQUESTS
+   Raised by the project manager, decided by the admin. The two APPROVED rows
+   are already applied to the projects above — p1's fund goal and p5's
+   fundraising end date carry the requested values, and their updatedAt matches
+   the decision time.
+   ============================================================================ */
+var SEED_REQUESTS = [
+  {
+    id:'r_2041', projectId:'p6',
+    field:'fundraisingEnd', currentValue:'2026-09-30', requestedValue:'2026-12-31',
+    reason:'The rainy season pushed drilling on the last two wells into October.',
+    requestedBy:'Sokha Meas',
+    requestedAt:'2026-08-08T03:20:00Z',
+    status:'PENDING', decidedAt:'', decidedBy:'', decisionNote:''
+  },
+  {
+    id:'r_2038', projectId:'p2',
+    field:'fundGoal', currentValue:60000, requestedValue:85000,
+    reason:'Two more language communities joined the programme in July.',
+    requestedBy:'Grace Tan',
+    requestedAt:'2026-08-06T08:45:00Z',
+    status:'PENDING', decidedAt:'', decidedBy:'', decisionNote:''
+  },
+  {
+    id:'r_2035', projectId:'p9',
+    field:'fundGoal', currentValue:70000, requestedValue:95000,
+    reason:'The second damage assessment counted 40 more houses than the first.',
+    requestedBy:'Trần Minh Khôi',
+    requestedAt:'2026-08-04T10:10:00Z',
+    status:'PENDING', decidedAt:'', decidedBy:'', decisionNote:''
+  },
+  {
+    id:'r_2030', projectId:'p1',
+    field:'fundGoal', currentValue:45000, requestedValue:52000,
+    reason:'Counselling has run twice a week since June instead of weekly.',
+    requestedBy:'Grace Tan',
+    requestedAt:'2026-08-01T06:30:00Z',
+    status:'APPROVED', decidedAt:'2026-08-04T02:15:00Z', decidedBy:'admin', decisionNote:''
+  },
+  {
+    id:'r_2026', projectId:'p3',
+    field:'fundraisingEnd', currentValue:'2026-06-30', requestedValue:'2026-08-31',
+    reason:'We closed S$4,000 short and would like two more months to finish.',
+    requestedBy:'Sokha Meas',
+    requestedAt:'2026-07-26T04:05:00Z',
+    status:'REJECTED', decidedAt:'2026-07-28T09:40:00Z', decidedBy:'admin',
+    decisionNote:'The June close is fixed by the funding partner’s grant terms.'
+  },
+  {
+    id:'r_2019', projectId:'p5',
+    field:'fundraisingEnd', currentValue:'2026-08-31', requestedValue:'2026-11-30',
+    reason:'The second dormitory starts construction in September.',
+    requestedBy:'Ivan Wijaya',
+    requestedAt:'2026-07-14T02:50:00Z',
+    status:'APPROVED', decidedAt:'2026-07-15T07:05:00Z', decidedBy:'admin', decisionNote:''
   }
 ];

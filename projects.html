@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agathos Admin — Projects</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+
+<div id="shell"></div>
+
+<div class="toast" id="toast"></div>
+
+<script src="assets/mock-data.js"></script>
+<script src="assets/store.js"></script>
+<script src="assets/shell.js"></script>
+<script>
+  var CONTENT = mountShell('project');
+
+  /* Fund Goal is not in the portal's Project list today. It is here because a
+     change request moves it, and approving one has to be visible somewhere. */
+  var COLS = [
+    {key:'index',          label:'Index',        sortable:false, w:70},
+    {key:'id',             label:'ID',           sortable:true,  w:100},
+    {key:'title',          label:'Title',        sortable:true,  w:280},
+    {key:'type',           label:'Type',         sortable:true,  w:135},
+    {key:'country',        label:'Country',      sortable:true,  w:120},
+    {key:'city',           label:'City',         sortable:true,  w:140},
+    {key:'org',            label:'Organization', sortable:true,  w:180},
+    {key:'fundGoal',       label:'Fund Goal',    sortable:true,  w:130},
+    {key:'start',          label:'Start Date',   sortable:true,  w:120},
+    {key:'fundraisingEnd', label:'End Date',     sortable:true,  w:120},
+    {key:'createdAt',      label:'Create Date',  sortable:true,  w:125},
+    {key:'status',         label:'Status',       sortable:true,  w:120},
+    {key:'action',         label:'Action',       sortable:false, w:155}
+  ];
+  var TABLE_W = COLS.reduce(function(w, c){ return w + c.w; }, 0);
+
+  var PAGE_SIZES = [10, 20, 50, 100];
+  var V = { status:'All', type:'All', q:'', searchOpen:false, sort:'id', dir:'asc',
+            page:1, pageSize:20 };
+
+  /* Ant-style page list: first, last, a window around the current page, and
+     ellipses for the gaps. */
+  function pageList(cur, total){
+    var out = [], i;
+    if(total <= 7){
+      for(i = 1; i <= total; i++) out.push(i);
+      return out;
+    }
+    var lo = Math.max(2, cur - 1), hi = Math.min(total - 1, cur + 1);
+    if(cur <= 4){ lo = 2; hi = 5; }
+    if(cur >= total - 3){ lo = total - 4; hi = total - 1; }
+    out.push(1);
+    if(lo > 2) out.push('gap');
+    for(i = lo; i <= hi; i++) out.push(i);
+    if(hi < total - 1) out.push('gap');
+    out.push(total);
+    return out;
+  }
+
+  /* Drop the sticky-column shadow once the table is scrolled fully right —
+     at that point the Action column is not covering anything. */
+  function updateScrollShadow(){
+    var w = CONTENT.querySelector('.tablewrap');
+    if(!w) return;
+    w.classList.toggle('pin-right', w.scrollWidth - w.clientWidth - w.scrollLeft > 1);
+  }
+  window.addEventListener('resize', updateScrollShadow);
+
+  function gotoPage(p){ V.page = p; render(); window.scrollTo(0, 0); }
+  function setPageSize(n){ V.pageSize = Number(n); V.page = 1; render(); }
+
+  function pager(totalPages){
+    var h = '<div class="pager">'
+      + '<button class="arw" onclick="gotoPage(' + (V.page - 1) + ')"' + (V.page === 1 ? ' disabled' : '') + '>‹</button>';
+    pageList(V.page, totalPages).forEach(function(p){
+      h += p === 'gap'
+        ? '<span class="gap">•••</span>'
+        : '<button class="pg' + (p === V.page ? ' on' : '') + '" onclick="gotoPage(' + p + ')">' + p + '</button>';
+    });
+    h += '<button class="arw" onclick="gotoPage(' + (V.page + 1) + ')"' + (V.page === totalPages ? ' disabled' : '') + '>›</button>'
+      + '<select onchange="setPageSize(this.value)">'
+      + PAGE_SIZES.map(function(n){
+          return '<option value="' + n + '"' + (V.pageSize === n ? ' selected' : '') + '>' + n + ' / page</option>';
+        }).join('')
+      + '</select></div>';
+    return h;
+  }
+
+  /* ----- data shaping ----- */
+  function sortVal(p, key){
+    switch(key){
+      case 'id':             return p.id;
+      case 'title':          return (p.title || '').toLowerCase();
+      case 'type':           return p.type;
+      case 'country':        return (p.country || '').toLowerCase();
+      case 'city':           return (p.city || '').toLowerCase();
+      case 'org':            return (p.org || '').toLowerCase();
+      case 'fundGoal':       return p.fundGoal || 0;
+      case 'start':          return p.start || '';
+      case 'fundraisingEnd': return p.fundraisingEnd || '';
+      case 'createdAt':      return p.createdAt || '';
+      case 'status':         return STATUSES.indexOf(statusOf(p));
+      default:               return '';
+    }
+  }
+
+  function rows(){
+    var list = listProjects().filter(function(p){
+      if(V.status !== 'All' && statusOf(p) !== V.status) return false;
+      if(V.type   !== 'All' && p.type !== V.type) return false;
+      if(!V.q) return true;
+      var hay = (p.id + ' ' + p.title + ' ' + p.org + ' ' + p.country + ' ' + p.city).toLowerCase();
+      return hay.indexOf(V.q.toLowerCase()) >= 0;
+    });
+    var d = V.dir === 'asc' ? 1 : -1;
+    return list.sort(function(a, b){
+      var x = sortVal(a, V.sort), y = sortVal(b, V.sort);
+      if(x < y) return -1 * d;
+      if(x > y) return 1 * d;
+      return 0;
+    });
+  }
+
+  /* ----- toolbar ----- */
+  function toggleSearch(){ V.searchOpen = !V.searchOpen; render(); }
+  function applySearch(){
+    V.q      = document.getElementById('fq').value.trim();
+    V.status = document.getElementById('fstatus').value;
+    V.type   = document.getElementById('ftype').value;
+    V.page   = 1;
+    render();
+  }
+  function resetSearch(){ V.q = ''; V.status = 'All'; V.type = 'All'; V.page = 1; render(); }
+  function refreshList(){ render(); toast('List refreshed'); }
+
+  function sortBy(key){
+    if(V.sort === key){ V.dir = V.dir === 'asc' ? 'desc' : 'asc'; }
+    else { V.sort = key; V.dir = 'asc'; }
+    V.page = 1;
+    render();
+  }
+
+  /* ----- render ----- */
+  function render(){
+    var all = listProjects();
+    var counts = {}, typeCounts = {};
+    all.forEach(function(p){
+      var s = statusOf(p);
+      counts[s] = (counts[s] || 0) + 1;
+      typeCounts[p.type] = (typeCounts[p.type] || 0) + 1;
+    });
+    var waiting = pendingRequests().length;
+
+    var h = '<div class="pagehead">'
+      + '<h1>Projects</h1>'
+      + '<span class="spacer"></span>'
+      + '<div class="acts">'
+      +   '<a class="btn" href="requests.html" title="Change requests from project managers">'
+      +     icon('inbox', 16) + 'Requests' + (waiting ? '<span class="cnt">' + waiting + '</span>' : '') + '</a>'
+      +   '<button class="btn" onclick="refreshList()">' + icon('refresh', 16) + 'Refresh list</button>'
+      +   '<button class="btn primary" onclick="portalScreen()">' + icon('plus', 16) + 'Create a new Project</button>'
+      + '</div></div>';
+
+    h += '<div class="searchbar">'
+      + '<button class="btn blue" onclick="toggleSearch()">' + icon('search', 16) + 'Toggle Search</button>'
+      + '<span class="spacer" style="flex:1"></span>'
+      + '<span class="tfoot" style="padding:0">' + all.length + ' total · '
+      +   (counts.ONGOING || 0) + ' ongoing · ' + (counts.REVIEW || 0) + ' review · '
+      +   (counts.COMPLETED || 0) + ' completed</span>'
+      + '</div>';
+
+    h += '<div class="searchpanel' + (V.searchOpen ? ' show' : '') + '">'
+      + '<div class="row">'
+      +   '<div class="field" style="margin:0"><label>Keyword</label>'
+      +     '<input class="ctl" type="text" id="fq" value="' + esc(V.q) + '" placeholder="ID, title, organisation or city"'
+      +     ' onkeydown="if(event.key===\'Enter\')applySearch()"></div>'
+      +   '<div class="field" style="margin:0"><label>Status</label><select class="ctl" id="fstatus">'
+      +     ['All'].concat(STATUSES).map(function(s){
+              return '<option value="' + s + '"' + (V.status === s ? ' selected' : '') + '>'
+                + (s === 'All' ? 'All (' + all.length + ')' : s.toUpperCase() + ' (' + (counts[s] || 0) + ')') + '</option>';
+            }).join('')
+      +   '</select></div>'
+      +   '<div class="field" style="margin:0"><label>Type</label><select class="ctl" id="ftype">'
+      +     ['All'].concat(PROJECT_TYPES).map(function(t){
+              return '<option value="' + t + '"' + (V.type === t ? ' selected' : '') + '>'
+                + (t === 'All' ? 'All (' + all.length + ')' : t + ' (' + (typeCounts[t] || 0) + ')') + '</option>';
+            }).join('')
+      +   '</select></div>'
+      + '</div>'
+      + '<div class="foot"><button class="btn" onclick="resetSearch()">Reset</button>'
+      + '<button class="btn primary" onclick="applySearch()">' + icon('search', 16) + 'Search</button></div>'
+      + '</div>';
+
+    var list = rows();
+    var totalPages = Math.max(1, Math.ceil(list.length / V.pageSize));
+    if(V.page > totalPages) V.page = totalPages;
+    var offset = (V.page - 1) * V.pageSize;
+    var page   = list.slice(offset, offset + V.pageSize);
+
+    if(!list.length){
+      h += '<div class="tablewrap"><div class="empty">'
+        + '<div class="ei">' + icon('inbox', 40) + '</div><h4>No projects match</h4>'
+        + '<p>' + (V.q ? 'Nothing matches “' + esc(V.q) + '”' : 'No projects with these filters') + '.</p>'
+        + '<button class="btn" onclick="resetSearch()">Reset filters</button>'
+        + '</div></div>';
+      CONTENT.innerHTML = h;
+      return;
+    }
+
+    h += '<div class="tablewrap"><table class="ct" style="min-width:' + TABLE_W + 'px">'
+      + '<colgroup>' + COLS.map(function(c){ return '<col style="width:' + c.w + 'px">'; }).join('') + '</colgroup>'
+      + '<thead><tr>'
+      + COLS.map(function(c){
+          if(!c.sortable) return '<th>' + c.label + '</th>';
+          var cls = 'caret' + (V.sort === c.key ? ' ' + V.dir : '');
+          return '<th class="sortable" onclick="sortBy(\'' + c.key + '\')"><span class="thin">' + c.label
+            + '<span class="' + cls + '"><i class="up"></i><i class="dn"></i></span></span></th>';
+        }).join('')
+      + '</tr></thead><tbody>';
+
+    page.forEach(function(p, i){
+      var st = statusOf(p);
+      h += '<tr class="' + (st === 'ARCHIVED' ? 'archived' : '') + '">'
+        + '<td class="num">' + (offset + i + 1) + '</td>'
+        + '<td><button class="linkbtn" onclick="portalScreen()">' + esc(p.id) + '</button></td>'
+        + '<td><div class="tname">' + esc(p.title) + '</div></td>'
+        + '<td>' + esc(p.type) + '</td>'
+        + '<td>' + esc(p.country) + '</td>'
+        + '<td>' + esc(p.city) + '</td>'
+        + '<td>' + esc(p.org) + '</td>'
+        + '<td class="num nowrap">' + fmtMoney(p.fundGoal) + '</td>'
+        + '<td class="num nowrap">' + fmtDate(p.start) + '</td>'
+        + '<td class="num nowrap">' + fmtDate(p.fundraisingEnd) + '</td>'
+        + '<td class="num nowrap">' + fmtDate(p.createdAt) + '</td>'
+        + '<td>' + stText(st) + '</td>'
+        + '<td><div class="rowacts">'
+        +   '<button title="Publish view" onclick="publishView()">' + icon('doc', 18) + '</button>'
+        +   '<button title="View detail" onclick="portalScreen()">' + icon('eye', 18) + '</button>'
+        +   '<button title="Edit" onclick="portalScreen()">' + icon('pencil', 18) + '</button>'
+        +   '<button class="del" title="Delete" onclick="portalScreen()">' + icon('trash', 18) + '</button>'
+        + '</div></td>'
+        + '</tr>';
+    });
+
+    h += '</tbody></table></div>'
+      + '<div class="tfoot">'
+      +   '<span class="left">Showing ' + (offset + 1) + '–' + (offset + page.length) + ' of ' + list.length
+      +     (list.length === all.length ? '' : ' (filtered from ' + all.length + ')')
+      +     ' projects'
+      +     '<button class="linkbtn" onclick="doReset()">Reset prototype data</button></span>'
+      +   pager(totalPages)
+      + '</div>';
+
+    CONTENT.innerHTML = h;
+
+    /* Wrapper is recreated on every render, so rebind its scroll listener. */
+    CONTENT.querySelector('.tablewrap').addEventListener('scroll', updateScrollShadow);
+    updateScrollShadow();
+  }
+
+  /* ----- actions ----- */
+  /* Everything a project row can do already exists in the portal. This screen is
+     rebuilt only because the Requests button sits on it. */
+  function portalScreen(){ toast('This screen already exists in the portal'); }
+  function publishView(){ toast('Opens the public project page'); }
+
+  function doReset(){ resetProjects(); resetRequests(); resetSearch(); toast('Seed data restored'); }
+
+  render();
+</script>
+</body>
+</html>

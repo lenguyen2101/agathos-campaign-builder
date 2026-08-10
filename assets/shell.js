@@ -1,8 +1,8 @@
 /* ============================================================================
-   Admin shell — left nav + top bar, shared by all three campaign pages.
-   Mirrors the existing portal chrome. Only the Campaign Management branch is
-   wired up; the other nav entries are present so the layer sits in the same
-   information architecture, and are inert in this prototype.
+   Admin shell — left nav + top bar, shared by every page.
+   Mirrors the existing portal chrome. Only Project, Campaign Management and
+   Site Content are wired up; the other nav entries are present so the layers
+   sit in the same information architecture, and are inert in this prototype.
    ============================================================================ */
 
 var ICON = {
@@ -54,12 +54,16 @@ function navSub(label, kids, open){
     + '<div class="kids">' + kids + '</div></div>';
 }
 
-/* activeKey: which leaf is highlighted. Only 'campaign' is used today. */
+/* activeKey: which leaf is highlighted — 'project', 'campaign',
+   'homepage-hero' or 'other-slides'. The Requests screen hangs off the Project
+   list, so it keeps Project highlighted. */
 function mountShell(activeKey){
   var collapsed = localStorage.getItem(SHELL_KEY) === '1';
 
   var appKids =
-      navSub('Project Management', navLeaf('Project') + navLeaf('Impact Report'), false)
+      navSub('Project Management',
+        navLeaf('Project', 'projects.html', activeKey === 'project') + navLeaf('Impact Report'),
+        activeKey === 'project')
     + navSub('Event Management',   navLeaf('Event')   + navLeaf('Ticket'), false)
     + navSub('Campaign Management', navLeaf('Campaign', 'index.html', activeKey === 'campaign'), activeKey === 'campaign')
     + navSub('Site Content',
