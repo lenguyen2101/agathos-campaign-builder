@@ -401,8 +401,11 @@ following it keeps the Campaign layer consistent:
   Requests it holds the two decisions instead, and a dash once the row is
   decided.
 - **Requests** — a button on the Project list, left of Refresh list, with a
-  count of what is waiting. No count when nothing is. The screen it opens is an
-  inbox: it lands filtered to `PENDING`, and the Status filter reaches the rest.
+  count of what is waiting. No count when nothing is. The screen it opens lists
+  **every** request, newest first, whatever its status: deciding one fills in
+  its Status and Handled cells and leaves the row exactly where it was. Sorting
+  by `requestedAt` is what keeps it in place; the Status filter narrows to
+  what is still pending when that is what you want.
 - **Status** — plain uppercase text, not a badge.
 - **Dates** — `DD/MM/YYYY`.
 - **Detail page** — a single column of disabled inputs, like the Event detail

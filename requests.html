@@ -81,10 +81,12 @@
   var TABLE_W = COLS.reduce(function(w, c){ return w + c.w; }, 0);
 
   var PAGE_SIZES = [10, 20, 50, 100];
-  /* Opens on what is waiting — this screen is an inbox. The footer says when
-     the list is filtered, and the Status filter reaches the rest. */
-  var V = { status:'PENDING', field:'All', q:'', searchOpen:false, sort:'requestedAt', dir:'desc',
-            page:1, pageSize:20, okId:null, noId:null };
+  /* Every request, newest first, whatever its status. Deciding one must not
+     make the row disappear — the outcome is the record. Sorting by requestedAt
+     means the row does not move either: it stays where it was and its Status
+     and Handled cells fill in. */
+  var V = { status:'All', field:'All', q:'', searchOpen:false, sort:'requestedAt', dir:'desc',
+            page:1, pageSize:20 };
 
   function pageList(cur, total){
     var out = [], i;
@@ -241,14 +243,14 @@
     var page   = list.slice(offset, offset + V.pageSize);
 
     if(!list.length){
-      var clean = V.status === 'PENDING' && !V.q && V.field === 'All';
+      var unfiltered = V.status === 'All' && V.field === 'All' && !V.q;
       h += '<div class="tablewrap"><div class="empty">'
         + '<div class="ei">' + icon('inbox', 40) + '</div>'
-        + '<h4>' + (clean ? 'No requests waiting' : 'No requests match') + '</h4>'
-        + '<p>' + (clean
-            ? 'Every request has been handled.'
+        + '<h4>' + (unfiltered ? 'No requests yet' : 'No requests match') + '</h4>'
+        + '<p>' + (unfiltered
+            ? 'Nothing has been raised on any project.'
             : (V.q ? 'Nothing matches “' + esc(V.q) + '”' : 'No requests with these filters') + '.') + '</p>'
-        + '<button class="btn" onclick="resetSearch()">' + (clean ? 'Show all requests' : 'Reset filters') + '</button>'
+        + (unfiltered ? '' : '<button class="btn" onclick="resetSearch()">Reset filters</button>')
         + '</div></div>';
       CONTENT.innerHTML = h;
       return;
@@ -328,7 +330,6 @@
     var r = getChangeRequest(id);
     var p = getProject(r.projectId);
     var drift = requestDrift(r);
-    V.okId = id;
 
     document.getElementById('okMsg').innerHTML =
       '<b>' + esc(p ? p.title : r.projectId) + '</b> — ' + esc(requestFieldLabel(r.field))
@@ -355,14 +356,13 @@
     };
     document.getElementById('okOverlay').classList.add('show');
   }
-  function closeApprove(){ V.okId = null; document.getElementById('okOverlay').classList.remove('show'); }
+  function closeApprove(){ document.getElementById('okOverlay').classList.remove('show'); }
 
   function askReject(id){
     var r = getChangeRequest(id);
     var p = getProject(r.projectId);
     var drift = requestDrift(r);
     var kept  = drift === null ? r.currentValue : drift;
-    V.noId = id;
 
     document.getElementById('noMsg').innerHTML =
       '<b>' + esc(p ? p.title : r.projectId) + '</b> keeps its ' + esc(requestFieldLabel(r.field))
@@ -381,7 +381,7 @@
     document.getElementById('noOverlay').classList.add('show');
     box.focus();
   }
-  function closeReject(){ V.noId = null; document.getElementById('noOverlay').classList.remove('show'); }
+  function closeReject(){ document.getElementById('noOverlay').classList.remove('show'); }
 
   /* A rejection with no reason is the thing this flow exists to stop, so the
      button stays off until there is one. */
