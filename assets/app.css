@@ -314,6 +314,8 @@ table.ct td:last-child::after{content:'';position:absolute;top:0;bottom:0;left:0
 /* Free text written by a person — the reason a manager gives, the note an admin
    writes back. Wraps rather than truncating: this is the cell you read. */
 .longtext{font-size:13px;color:var(--muted);line-height:1.5;white-space:normal;}
+/* Two lines in the row, the whole thing in the request popup. */
+.longtext.clamp2{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;}
 td .tagrow{flex-wrap:nowrap;}
 .dash{color:var(--hint);}
 .nowrap{white-space:nowrap;}
@@ -339,10 +341,10 @@ td .tagrow{flex-wrap:nowrap;}
 .drift{font-size:12.5px;color:#AD6800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px;}
 
 .rowacts{display:flex;align-items:center;gap:4px;}
-/* Decisions rather than icons in the Action column. */
-.rowbtns{display:flex;align-items:center;gap:8px;}
 .rowacts button{width:30px;height:30px;border:none;background:none;border-radius:var(--radius);color:var(--ink-2);display:flex;align-items:center;justify-content:center;}
 .rowacts button:hover{background:var(--fill);color:var(--link);}
+.rowacts button.ok{color:#389E0D;}
+.rowacts button.ok:hover{background:var(--green-bg);color:#237804;}
 .rowacts button.del{color:var(--danger);}
 .rowacts button.del:hover{background:#FFF1F0;color:var(--danger-hover);}
 
@@ -526,6 +528,9 @@ td .tagrow{flex-wrap:nowrap;}
 .modal .deets{border:1px solid var(--split);border-radius:var(--radius);background:#FAFAFA;padding:12px 14px;font-size:13px;margin-top:14px;}
 .modal .deets div{display:flex;justify-content:space-between;gap:12px;padding:3px 0;}
 .modal .deets .k{color:var(--muted);}
+/* Free text is too long to sit opposite its label, so it goes underneath. */
+.modal .deets div.stack{display:block;line-height:1.5;padding-top:6px;}
+.modal .deets div.stack .k{display:block;}
 .modal .mf{display:flex;justify-content:flex-end;gap:10px;margin-top:22px;}
 
 .toast{position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-24px);background:#fff;color:var(--ink);font-size:14px;padding:10px 16px;border-radius:var(--radius);box-shadow:0 6px 16px rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12);z-index:200;opacity:0;transition:.2s;pointer-events:none;display:flex;align-items:center;gap:9px;}

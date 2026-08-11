@@ -13,15 +13,27 @@
 
 <div id="shell"></div>
 
+<div class="overlay" id="dtOverlay">
+  <div class="modal">
+    <div class="mh">
+      <span class="mi" id="dtIcon"></span>
+      <h3>Request detail</h3>
+    </div>
+    <div class="mb" id="dtMsg"></div>
+    <div id="dtDeets"></div>
+    <div class="mf">
+      <button class="btn" onclick="closeDetail()">Close</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="okOverlay">
   <div class="modal">
     <div class="mh">
       <span class="mi ok" id="okIcon"></span>
-      <div>
-        <h3>Approve this change?</h3>
-        <div class="mb" id="okMsg"></div>
-      </div>
+      <h3>Approve this change?</h3>
     </div>
+    <div class="mb" id="okMsg"></div>
     <div id="okDeets"></div>
     <div class="mf">
       <button class="btn" onclick="closeApprove()">Cancel</button>
@@ -34,11 +46,10 @@
   <div class="modal">
     <div class="mh">
       <span class="mi warn" id="noIcon"></span>
-      <div>
-        <h3>Reject this change?</h3>
-        <div class="mb" id="noMsg"></div>
-      </div>
+      <h3>Reject this change?</h3>
     </div>
+    <div class="mb" id="noMsg"></div>
+    <div id="noDeets"></div>
     <div class="field" style="margin:18px 0 0">
       <label><span class="req">*</span>Reason</label>
       <textarea class="ctl" id="noReason" placeholder="Why this cannot be approved" oninput="syncReject()"></textarea>
@@ -59,6 +70,7 @@
 <script>
   /* Requests hang off the Project list, so Project stays the highlighted leaf. */
   var CONTENT = mountShell('project');
+  document.getElementById('dtIcon').innerHTML = icon('doc', 22);
   document.getElementById('okIcon').innerHTML = icon('check', 22);
   document.getElementById('noIcon').innerHTML = icon('warn', 22);
 
@@ -76,7 +88,7 @@
     {key:'decidedAt',   label:'Handled',      sortable:true,  w:230},
     {key:'requestedBy', label:'Requested by', sortable:true,  w:150},
     {key:'requestedAt', label:'Requested',    sortable:true,  w:140},
-    {key:'action',      label:'Action',       sortable:false, w:160}
+    {key:'action',      label:'Action',       sortable:false, w:120}
   ];
   var TABLE_W = COLS.reduce(function(w, c){ return w + c.w; }, 0);
 
@@ -287,7 +299,7 @@
               : '<div class="drift" title="The project changed after this request was raised">Now '
                 + requestValueText(r.field, drift) + '</div>') + '</td>'
 
-        + '<td><div class="longtext">' + esc(r.reason) + '</div></td>'
+        + '<td><div class="longtext clamp2">' + esc(r.reason) + '</div></td>'
         + '<td><span class="st ' + r.status.toLowerCase() + '">' + r.status + '</span></td>'
 
         + '<td>' + (open
@@ -301,12 +313,15 @@
         + '<td>' + esc(r.requestedBy) + '</td>'
         + '<td class="num nowrap">' + fmtDateTime(r.requestedAt) + '</td>'
 
-        + '<td>' + (open
-            ? '<div class="rowbtns">'
-              + '<button class="btn sm primary" onclick="askApprove(\'' + r.id + '\')">Approve</button>'
-              + '<button class="btn sm dangerbtn" onclick="askReject(\'' + r.id + '\')">Reject</button>'
-              + '</div>'
-            : '<span class="dash">—</span>') + '</td>'
+        /* View reads the whole request, decided or not; the two decisions only
+           appear while there is one to make. */
+        + '<td><div class="rowacts">'
+        +   '<button title="View request" onclick="showDetail(\'' + r.id + '\')">' + icon('eye', 18) + '</button>'
+        +   (open
+              ? '<button class="ok" title="Approve" onclick="askApprove(\'' + r.id + '\')">' + icon('check', 18) + '</button>'
+                + '<button class="del" title="Reject" onclick="askReject(\'' + r.id + '\')">' + icon('close', 18) + '</button>'
+              : '')
+        + '</div></td>'
         + '</tr>';
     });
 
@@ -325,21 +340,65 @@
     updateScrollShadow();
   }
 
+  /* ----- one request, spelled out ----- */
+  function changeLine(r){
+    var p = getProject(r.projectId);
+    return '<b>' + esc(p ? p.title : r.projectId) + '</b> — ' + esc(requestFieldLabel(r.field))
+      + ' changes from ' + requestValueText(r.field, r.currentValue)
+      + ' to <b>' + requestValueText(r.field, r.requestedValue) + '</b>.';
+  }
+
+  /* The row shows two lines of it; every popup that asks the admin to act on a
+     request carries the whole thing. */
+  function reasonRow(r){
+    return '<div class="stack"><span class="k">Reason given</span><span>' + esc(r.reason) + '</span></div>';
+  }
+
+  function showDetail(id){
+    var r = getChangeRequest(id);
+    var drift = requestDrift(r);
+    var open  = r.status === 'PENDING';
+
+    document.getElementById('dtMsg').innerHTML = changeLine(r);
+
+    document.getElementById('dtDeets').innerHTML =
+        '<div class="deets">'
+      +   '<div><span class="k">Request</span><span class="num">' + esc(r.id) + '</span></div>'
+      +   '<div><span class="k">Status</span><span class="st ' + r.status.toLowerCase() + '">' + r.status + '</span></div>'
+      +   '<div><span class="k">Requested by</span><span>' + esc(r.requestedBy) + '</span></div>'
+      +   '<div><span class="k">Requested at</span><span>' + fmtDateTime(r.requestedAt) + '</span></div>'
+      +   reasonRow(r)
+      + '</div>'
+      + (open ? ''
+          : '<div class="deets">'
+            + '<div><span class="k">Handled at</span><span>' + fmtDateTime(r.decidedAt) + '</span></div>'
+            + '<div><span class="k">Handled by</span><span>' + esc(r.decidedBy) + '</span></div>'
+            + (r.decisionNote
+                ? '<div class="stack"><span class="k">Rejection reason</span><span>' + esc(r.decisionNote) + '</span></div>'
+                : '')
+            + '</div>')
+      + (drift === null ? ''
+          : '<div class="alert warn">' + icon('warn', 16) + '<span>'
+            + esc(requestFieldLabel(r.field)) + ' is ' + requestValueText(r.field, drift)
+            + ' now, not the ' + requestValueText(r.field, r.currentValue)
+            + ' in the request.</span></div>');
+
+    document.getElementById('dtOverlay').classList.add('show');
+  }
+  function closeDetail(){ document.getElementById('dtOverlay').classList.remove('show'); }
+
   /* ----- decisions ----- */
   function askApprove(id){
     var r = getChangeRequest(id);
-    var p = getProject(r.projectId);
     var drift = requestDrift(r);
 
-    document.getElementById('okMsg').innerHTML =
-      '<b>' + esc(p ? p.title : r.projectId) + '</b> — ' + esc(requestFieldLabel(r.field))
-      + ' changes from ' + requestValueText(r.field, r.currentValue)
-      + ' to <b>' + requestValueText(r.field, r.requestedValue) + '</b>.';
+    document.getElementById('okMsg').innerHTML = changeLine(r);
 
     document.getElementById('okDeets').innerHTML =
         '<div class="deets">'
       +   '<div><span class="k">Requested by</span><span>' + esc(r.requestedBy) + '</span></div>'
       +   '<div><span class="k">Requested at</span><span>' + fmtDateTime(r.requestedAt) + '</span></div>'
+      +   reasonRow(r)
       + '</div>'
       + (drift === null ? ''
           : '<div class="alert warn">' + icon('warn', 16) + '<span>'
@@ -368,6 +427,13 @@
       '<b>' + esc(p ? p.title : r.projectId) + '</b> keeps its ' + esc(requestFieldLabel(r.field))
       + ' of ' + requestValueText(r.field, kept) + '.';
 
+    document.getElementById('noDeets').innerHTML =
+        '<div class="deets">'
+      +   '<div><span class="k">Requested by</span><span>' + esc(r.requestedBy) + '</span></div>'
+      +   '<div><span class="k">Requested at</span><span>' + fmtDateTime(r.requestedAt) + '</span></div>'
+      +   reasonRow(r)
+      + '</div>';
+
     var box = document.getElementById('noReason');
     box.value = '';
     syncReject();
@@ -393,6 +459,7 @@
 
   document.addEventListener('keydown', function(e){
     if(e.key !== 'Escape') return;
+    closeDetail();
     closeApprove();
     closeReject();
   });

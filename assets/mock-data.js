@@ -341,7 +341,7 @@ var SEED_REQUESTS = [
   {
     id:'r_2041', projectId:'p6',
     field:'fundraisingEnd', currentValue:'2026-09-30', requestedValue:'2026-12-31',
-    reason:'The rainy season pushed drilling on the last two wells into October.',
+    reason:'The rainy season pushed drilling on the last two wells into October, and the contractor cannot float the rig across the river until the water drops, so the last village will only be connected in December.',
     requestedBy:'Sokha Meas',
     requestedAt:'2026-08-08T03:20:00Z',
     status:'PENDING', decidedAt:'', decidedBy:'', decisionNote:''
@@ -357,7 +357,7 @@ var SEED_REQUESTS = [
   {
     id:'r_2035', projectId:'p9',
     field:'fundGoal', currentValue:70000, requestedValue:95000,
-    reason:'The second damage assessment counted 40 more houses than the first.',
+    reason:'The second damage assessment counted 40 more houses than the first. The survey team reached the two hamlets upriver once the road reopened, and rebuilding those roofs before the next monsoon costs S$25,000 more than we asked for in June.',
     requestedBy:'Trần Minh Khôi',
     requestedAt:'2026-08-04T10:10:00Z',
     status:'PENDING', decidedAt:'', decidedBy:'', decisionNote:''
@@ -373,7 +373,7 @@ var SEED_REQUESTS = [
   {
     id:'r_2026', projectId:'p3',
     field:'fundraisingEnd', currentValue:'2026-06-30', requestedValue:'2026-08-31',
-    reason:'We closed S$4,000 short and would like two more months to finish.',
+    reason:'We closed S$4,000 short and would like two more months to finish. Three of the families we committed to have already moved into the camp, and two donors who pledged in June can only pay once their financial year closes in August.',
     requestedBy:'Sokha Meas',
     requestedAt:'2026-07-26T04:05:00Z',
     status:'REJECTED', decidedAt:'2026-07-28T09:40:00Z', decidedBy:'admin',
