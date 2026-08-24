@@ -39,8 +39,9 @@ decided, and when.
 - Admin-initiated changes to these fields (an admin editing the project directly
   is a separate, existing path).
 - Requests on any other field, any other role, or any bulk decision.
-- Emailing the admins when an owner withdraws. In-app only — an email that
-  says the work went away is noise.
+- Notifying the admins when an owner withdraws, or when another admin decides a
+  request. The Requests list carries the status; a notification saying the work
+  went away is noise.
 - Reminders on a request left undecided. If ageing becomes a problem, add a
   digest rather than a per-request nag.
 
@@ -320,38 +321,32 @@ batching.
 
 ### In-app
 
-Same list, same grammar as the owner's. A request needing a decision uses the
-`Please approve or reject` opening the product already uses for tribe
-invitations, so the actionable rows read alike.
+Sent when a request is raised. Two strings, one per field.
 
 **Raised — fund goal** · gold 🕐
-> Please approve or reject **&lt;Owner's name&gt;**'s request to change the
-> fundraising goal of **&lt;Project's name&gt;** to **&lt;Requested goal&gt;**.
+> You have a new change request from **&lt;Owner's name&gt;** on the fundraising
+> goal of **&lt;Project's name&gt;**.
 
 **Raised — end date** · gold 🕐
-> Please approve or reject **&lt;Owner's name&gt;**'s request to change the
-> fundraising end date of **&lt;Project's name&gt;** to
-> **&lt;Requested end date&gt;**.
+> You have a new change request from **&lt;Owner's name&gt;** on the fundraising
+> end date of **&lt;Project's name&gt;**.
 
-**Withdrawn — fund goal** · grey ✕
-> **&lt;Owner's name&gt;** withdrew the request to change the fundraising goal of
-> **&lt;Project's name&gt;**.
+The field is named because an owner can have a request open on both at once —
+without it the two rows are indistinguishable. The requested value is not: that
+is what the popup is for, and it would only make the row longer.
 
-**Withdrawn — end date** · grey ✕
-> **&lt;Owner's name&gt;** withdrew the request to change the fundraising end date
-> of **&lt;Project's name&gt;**.
+The owner's reason is not in the row either — rows never carry another person's
+free text. Clicking a row opens Requests with the Request detail popup open on
+that request.
 
-The owner's reason is not in the row — rows never carry another person's free
-text. Clicking a row opens Requests with the Request detail popup open on that
-request.
-
-A request decided by another admin sends nothing. The list is the shared state,
-and a second admin who opens a decided request sees the outcome; approve and
-reject answer `409` (rule 3).
+**Nothing else notifies an admin.** Not a withdrawal, not a decision by another
+admin. The list carries the status, and a stale notification is not a dead end:
+clicking through to a withdrawn or already-decided request opens the detail
+popup showing exactly that. Approve and reject answer `409` (rule 3).
 
 ### Email
 
-Sent when a request is raised. Not sent on withdraw.
+Sent when a request is raised. That is the only admin email.
 
 **Subjects**
 
