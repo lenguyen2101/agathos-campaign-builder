@@ -30,6 +30,7 @@ decided, and when.
 - Owner: raise, view, withdraw a request; see the outcome on the settings page.
 - Admin: list, view, approve, reject.
 - In-app notification and email to the owner on a decision.
+- In-app notification and email to the admins when a request needs a decision.
 
 **Out of scope**
 
@@ -38,7 +39,10 @@ decided, and when.
 - Admin-initiated changes to these fields (an admin editing the project directly
   is a separate, existing path).
 - Requests on any other field, any other role, or any bulk decision.
-- Notifying the admin when an owner withdraws.
+- Emailing the admins when an owner withdraws. In-app only — an email that
+  says the work went away is noise.
+- Reminders on a request left undecided. If ageing becomes a problem, add a
+  digest rather than a per-request nag.
 
 ## 3. Roles
 
@@ -214,7 +218,7 @@ the thing this flow exists to prevent.
 
 ---
 
-## 7. Notifications to the owner
+## 7. Notifications — owner
 
 One notification per request. Two requests decided together produce two
 notifications — each carries its own outcome and reason.
@@ -305,7 +309,88 @@ not from `currentValue` on the request — see rule 7.
 
 ---
 
-## 8. Copy reference
+## 8. Notifications — admin
+
+The owner is told `You'll be notified once there's a decision`, so how fast a
+request is seen is the whole promise. Admins do not sit on the Requests page.
+
+Sent to every user with the Agathos admin role. Volume is low — single digits a
+week across all projects — so one notification per request is right; there is no
+batching.
+
+### In-app
+
+Same list, same grammar as the owner's. A request needing a decision uses the
+`Please approve or reject` opening the product already uses for tribe
+invitations, so the actionable rows read alike.
+
+**Raised — fund goal** · gold 🕐
+> Please approve or reject **&lt;Owner's name&gt;**'s request to change the
+> fundraising goal of **&lt;Project's name&gt;** to **&lt;Requested goal&gt;**.
+
+**Raised — end date** · gold 🕐
+> Please approve or reject **&lt;Owner's name&gt;**'s request to change the
+> fundraising end date of **&lt;Project's name&gt;** to
+> **&lt;Requested end date&gt;**.
+
+**Withdrawn — fund goal** · grey ✕
+> **&lt;Owner's name&gt;** withdrew the request to change the fundraising goal of
+> **&lt;Project's name&gt;**.
+
+**Withdrawn — end date** · grey ✕
+> **&lt;Owner's name&gt;** withdrew the request to change the fundraising end date
+> of **&lt;Project's name&gt;**.
+
+The owner's reason is not in the row — rows never carry another person's free
+text. Clicking a row opens Requests with the Request detail popup open on that
+request.
+
+A request decided by another admin sends nothing. The list is the shared state,
+and a second admin who opens a decided request sees the outcome; approve and
+reject answer `409` (rule 3).
+
+### Email
+
+Sent when a request is raised. Not sent on withdraw.
+
+**Subjects**
+
+```
+Approval needed: fundraising goal — {projectTitle}
+Approval needed: fundraising end date — {projectTitle}
+```
+
+**Preheader**: `{ownerName} is asking for {requestedValue}.`
+
+**Body**
+
+```
+Hi {firstName},
+
+{ownerName} raised a change request on {projectTitle}.
+
+Fundraising goal   {currentValue} -> {requestedValue}
+
+Their reason
+{reason}
+
+Requested {requestedAt}
+
+[ Review the request ]
+
+You are receiving this because you handle change requests for Agathos.
+```
+
+`{currentValue}` here is the project's live value at send time, not
+`currentValue` on the request — at send time they are equal, but reading live
+keeps one rule instead of two (rule 7).
+
+The link opens the Requests list with the Request detail popup open, so the
+admin lands on the request itself rather than the queue.
+
+---
+
+## 9. Copy reference
 
 | Where | String |
 |---|---|
@@ -323,7 +408,7 @@ not from `currentValue` on the request — see rule 7.
 
 ---
 
-## 9. Open questions
+## 10. Open questions
 
 1. **Does a drifted request need re-raising?** Today the admin sees the drift and
    approving still writes `requestedValue`. The alternative is to auto-reject a
@@ -335,3 +420,9 @@ not from `currentValue` on the request — see rule 7.
    raises and withdraws repeatedly)? Not built; the data supports it.
 4. **Email frequency.** If a project has several owners, decide whether all of
    them are emailed or only `requestedBy`.
+5. **Who receives the admin email?** Today: every admin. A shared queue inbox
+   would cut N emails per request to one, at the cost of no per-admin read
+   state. Decide before the admin team grows past a handful.
+6. **Does an undecided request need a reminder?** Nothing chases an admin today.
+   A daily digest of what is still `PENDING` is the cheap version if requests
+   start ageing.
