@@ -37,6 +37,7 @@ runs the whole prototype, images included.
 
 | Route | Screen |
 |---|---|
+| `home.html` | Public homepage — where the admin shell's **Home** crumb goes |
 | `projects.html` | Project list |
 | `requests.html` | Change requests on projects — approve / reject |
 | `index.html` | Campaign list |

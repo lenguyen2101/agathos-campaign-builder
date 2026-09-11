@@ -103,7 +103,7 @@ function mountShell(activeKey){
     +   '<div class="mainarea">'
     +     '<header class="topbar">'
     +       '<button class="iconbtn" type="button" title="Collapse menu" onclick="toggleSidebar()">' + icon('menuFold', 20) + '</button>'
-    +       '<a class="crumb" href="index.html">' + icon('home', 16) + 'Home</a>'
+    +       '<a class="crumb" href="home.html">' + icon('home', 16) + 'Home</a>'
     +       '<span class="spacer"></span>'
     +       '<button class="iconbtn" type="button" title="Notifications">' + icon('bell', 19) + '</button>'
     +       '<span class="who"><span class="av">🧑‍💼</span>admin</span>'
