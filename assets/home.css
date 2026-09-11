@@ -370,9 +370,6 @@ h1,h2,h3,h4,p,blockquote,ul{margin:0;}
   .hp-nav-menu a:last-child{border-bottom:0;}
 
   /* everything reads centred on a phone */
-  .hp-hero-inner{padding-left:0;padding-right:0;text-align:center;}
-  .hp-hero h1,.hp-hero p{margin-left:auto;margin-right:auto;}
-  .hp-hero-cta{justify-content:center;}
   .hp-impact-intro{align-items:center;text-align:center;}
   .hp-stat{align-items:center;text-align:center;}
   .hp-tile{align-items:center;text-align:center;}
