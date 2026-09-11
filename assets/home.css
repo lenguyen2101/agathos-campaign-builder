@@ -376,9 +376,6 @@ h1,h2,h3,h4,p,blockquote,ul{margin:0;}
   .hp-tick{flex-direction:column;gap:12px;}
   .hp-sec-head{justify-content:center;text-align:center;}
   .hp-filter{justify-content:center;}
-  .hp-card{text-align:center;}
-  .hp-card-by{justify-content:center;}
-  .hp-card-link{align-self:center;}
   .hp-ways-head{margin-left:auto;margin-right:auto;text-align:center;}
   .hp-way{align-items:center;text-align:center;}
   .hp-way .no{align-self:center;}
@@ -402,9 +399,7 @@ h1,h2,h3,h4,p,blockquote,ul{margin:0;}
   .hp-team-visual{padding:16px 24px 24px 8px;}
   .hp-team-text{text-align:center;}
   .hp-sign,.hp-team-cta{justify-content:center;}
-  .hp-footer-grid{grid-template-columns:1fr;gap:28px;text-align:center;}
-  .hp-footer .logo{margin:0 auto;}
-  .hp-social{justify-content:center;}
+  .hp-footer-grid{grid-template-columns:1fr 1fr;}
 }
 @media (prefers-reduced-motion:reduce){
   .hp-hero-img,.hp-marquee,.hp-team-blob,.hp-hero-eyebrow i,.hp-live i,.hp-way-fig svg,.hp-step-fig svg,.hp-raise-path path{animation:none;}
