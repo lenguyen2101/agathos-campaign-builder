@@ -65,8 +65,6 @@ h1,h2,h3,h4,p,blockquote,ul{margin:0;}
 .hp-btn{display:inline-flex;align-items:center;gap:10px;font-weight:800;font-size:16px;padding:16px 28px;border-radius:14px;transition:transform .15s,background .15s;}
 .hp-btn.gold{background:var(--hp-gold);color:var(--hp-navy);box-shadow:0 12px 28px rgba(255,200,56,.35);}
 .hp-btn.gold:hover{transform:translateY(-2px);background:#FFD35C;color:var(--hp-navy);}
-.hp-btn.ghost{background:rgba(255,255,255,.1);color:#fff;font-weight:700;padding:16px 26px;border:1.5px solid rgba(255,255,255,.4);backdrop-filter:blur(6px);}
-.hp-btn.ghost:hover{transform:translateY(-2px);background:rgba(255,255,255,.18);color:#fff;}
 .hp-btn.outline{color:#fff;font-weight:700;padding:16px 24px;border:1.5px solid rgba(255,255,255,.4);}
 .hp-btn.outline:hover{background:rgba(255,255,255,.1);color:#fff;}
 .hp-btn.blue{background:var(--hp-blue);color:#fff;font-weight:700;padding:15px 28px;box-shadow:0 10px 24px rgba(44,80,168,.25);}
