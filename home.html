@@ -32,8 +32,20 @@
       <button class="lang" type="button" aria-label="Language: English"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M2.5 12h19M12 2.5c2.8 3 4.2 6.2 4.2 9.5S14.8 18.5 12 21.5c-2.8-3-4.2-6.2-4.2-9.5S9.2 5.5 12 2.5z"/></svg>EN</button>
       <a class="login" href="#">Log In</a>
       <a class="signup" href="#">Sign Up</a>
+      <button class="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nav-menu"><i></i><i></i><i></i></button>
     </div>
   </div>
+  <nav class="hp-nav-menu" id="nav-menu">
+    <a href="#causes">Support a Cause</a>
+    <a href="#ways">Join an Event</a>
+    <div class="grp">About Us</div>
+    <a class="sub" href="#team">Our Story</a>
+    <a class="sub" href="#team">Our Team</a>
+    <a class="sub" href="#">Advisory Board</a>
+    <a class="sub" href="#ways">How It Works</a>
+    <a href="#stories">News Highlights</a>
+    <a href="#">FAQ</a>
+  </nav>
 </header>
 
 <!-- HERO -->
@@ -483,6 +495,16 @@
   window.addEventListener('scroll', function(){
     nav.classList.toggle('scrolled', window.scrollY > 20);
   }, { passive:true });
+
+  /* phone menu */
+  var burger = nav.querySelector('.burger');
+  burger.addEventListener('click', function(){
+    var open = nav.classList.toggle('open');
+    burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  nav.querySelectorAll('.hp-nav-menu a').forEach(function(a){
+    a.addEventListener('click', function(){ nav.classList.remove('open'); burger.setAttribute('aria-expanded', 'false'); });
+  });
 
   /* cause filter: a card that does not match fades, it never disappears */
   var chips = Array.prototype.slice.call(document.querySelectorAll('.hp-chip'));
