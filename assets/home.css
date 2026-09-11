@@ -190,8 +190,6 @@ h1,h2,h3,h4,p,blockquote,ul{margin:0;}
 .hp-card-raised{margin-top:auto;padding-top:18px;}
 .hp-card-raised b{display:block;font-size:32px;font-weight:900;color:var(--hp-navy);letter-spacing:-.04em;line-height:1;}
 .hp-card-raised span{display:block;font-size:13.5px;color:var(--hp-text);margin-top:6px;}
-.hp-card-link{margin-top:14px;font-size:14px;font-weight:700;color:var(--hp-link);display:inline-flex;align-items:center;transition:color .15s;}
-.hp-card:hover .hp-card-link{color:var(--hp-navy);}
 
 /* ==========================================================================
    THREE WAYS
