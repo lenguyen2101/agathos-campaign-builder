@@ -850,7 +850,10 @@ var ACT={
   copyLink:function(t){ toast('Link copied'); },
   demoPick:function(t){ reset(t.getAttribute('data-s')); document.getElementById('ob-demo').classList.remove('open'); go(SCENARIOS[S.scenario].start); },
   demoReset:function(){ reset(S.scenario); document.getElementById('ob-demo').classList.remove('open'); go(SCENARIOS[S.scenario].start); },
-  demoToggle:function(){ document.getElementById('ob-demo').classList.toggle('open'); }
+  demoToggle:function(){ document.getElementById('ob-demo').classList.toggle('open'); },
+  demoFlow:function(){ document.getElementById('ob-demo').classList.remove('open'); flowModal(S.scenario); },
+  flowPick:function(t){ flowModal(t.getAttribute('data-s')); },
+  modalClose:function(){ closeModal(); }
 };
 
 /* ---------- modal, toast, demo panel ---------- */
@@ -868,7 +871,19 @@ function renderDemo(){
   el.innerHTML='<button type="button" data-act="demoToggle"><i></i>Demo · '+h(SCENARIOS[S.scenario].label)+'</button><div class="panel"><h4>Scenario</h4>'+
     Object.keys(SCENARIOS).map(function(k){ var s=SCENARIOS[k]; return '<label><input type="radio" name="demo" data-act="demoPick" data-s="'+k+'"'+(k===S.scenario?' checked':'')+'><div>'+h(s.label)+'<span>'+h(s.sub)+'</span></div></label>'; }).join('')+
     '<div class="hints"><b>Try in the forms</b><br>Email <code>josias@antioch21.org</code> → existing account.<br>Registration no. <code>T08SS0123A</code> → org already verified.<br>Registration no. <code>T21SS0456B</code> → application in progress.</div>'+
-    '<div class="acts"><button class="ob-btn ghost sm" type="button" data-act="demoReset">Reset this scenario</button></div></div>';
+    '<div class="acts"><button class="ob-btn ghost sm" type="button" data-act="demoReset">Reset scenario</button><button class="ob-btn primary sm" type="button" data-act="demoFlow">Flow diagram</button></div></div>';
+}
+
+function flowModal(key){
+  var F=OB_FLOWS.get(key);
+  modal('<div class="flow-top"><div class="flow-head"><div><h2>Flow diagram</h2><p class="lead">Where each demo scenario goes, per the handoff diagrams.</p></div><button class="flow-x" type="button" data-act="modalClose" aria-label="Close">×</button></div>'+
+    '<div class="flow-pick">'+OB_FLOWS.keys.map(function(k){ return '<button type="button" class="'+(k===key?'on':'')+'" data-act="flowPick" data-s="'+k+'">'+h(SCENARIOS[k].label)+'</button>'; }).join('')+'</div></div>'+
+    '<div class="flow-title"><b>'+h(F.title)+'</b><span>'+h(F.src)+'</span></div>'+
+    '<div class="flow-svg">'+OB_FLOWS.render(key)+'</div>'+
+    '<p class="flow-note">'+h(F.note)+'</p>'+
+    '<div class="flow-legend"><i class="step"></i>Screen<i class="dec"></i>Decision<i class="next"></i>Hand-off to another diagram<i class="end"></i>End state<i class="ext"></i>Branch this scenario does not take</div>');
+  modalEl.querySelector('.box').classList.add('flow');
+  var sv=modalEl.querySelector('.flow-svg'); sv.scrollLeft=(sv.scrollWidth-sv.clientWidth)/2;
 }
 
 /* ---------- nav (same behaviour as the homepage) ---------- */
