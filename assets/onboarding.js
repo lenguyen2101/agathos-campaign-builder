@@ -458,7 +458,7 @@ function viewEntry(){
   }
   if(orgs.length===1){
     var o=orgs[0];
-    body='<div class="ob-context"><span class="av">'+initials(o.name)+'</span><span class="t"><b>Continue with '+h(o.name)+'</b><span>'+roleBadge(o.role)+' Verified since '+fmtDate(o.verifiedSince)+'</span></span><span class="acts"><button class="ob-btn gold" type="button" data-go="org/'+o.id+'">Continue →</button><a class="alt" href="#/individual">Start an individual project instead</a></span></div>'+
+    body='<div class="ob-context"><span class="av">'+initials(o.name)+'</span><span class="t"><b>'+h(o.name)+'</b><span>'+roleBadge(o.role)+'<i>Verified since '+fmtDate(o.verifiedSince)+'</i></span></span><button class="ob-btn gold" type="button" data-go="org/'+o.id+'">Continue →</button></div><p class="ob-context-alt"><a href="#/individual">Start an individual project instead →</a></p>'+
       '<div class="ob-card"><div class="ob-sec-head"><h3>Campaigns by '+h(o.name)+'</h3><p>Verification is tied to the organisation, so every new campaign skips straight to the build.</p></div>'+campaignRows(o.id)+'</div>';
     return center({kicker:'Start a project', h1:'Welcome back, '+h(name), p:'', body:expiryBanner()+body});
   }
