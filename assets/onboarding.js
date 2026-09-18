@@ -12,7 +12,7 @@
 (function(){
 'use strict';
 
-var KEY = 'agathos.onboarding.v1';
+var KEY = 'agathos.onboarding.v2';
 var TODAY = new Date();
 
 /* ---------- reference data ---------- */
@@ -21,7 +21,7 @@ var CAUSES = [
   ['faith','Faith-based / ministry'], ['community','Community'], ['other','Other']
 ];
 var COUNTRIES = ['Singapore','Malaysia','Indonesia','Philippines','Thailand','Vietnam','Cambodia','Myanmar','Nepal','India','Other'];
-var CAMPAIGN_TYPES = [
+var PROJECT_TYPES = [
   {v:'once', t:'One-time need', d:'A specific need with a clear finish — a relief response, a build, a medical bill.'},
   {v:'ongoing', t:'Ongoing or recurring', d:'Operations you fund month after month. Donors can give monthly.'},
   {v:'event', t:'Tied to an event', d:'A run, a dinner, a mission trip. Has a date, so it has an end.'}
@@ -40,14 +40,14 @@ var KNOWN_EMAILS = ['adam@agathos.be','josias@antioch21.org'];
 var ORG_ANTIOCH = {id:'antioch21', name:'Antioch21', type:'charity', country:'Singapore', role:'Owner', verifiedSince:'2025-03-14', expiresOn:'2027-03-14', lastActive:'2026-09-02', regMasked:'T08SS••••A', contact:'Josias Ding', payoutMasked:'DBS ••••4821'};
 var ORG_TTB = {id:'treasurebox', name:'The Treasure Box Singapore', type:'charity', country:'Singapore', role:'Collaborator', verifiedSince:'2024-11-20', expiresOn:'2026-11-20', lastActive:'2026-08-15', regMasked:'T19SS••••C', contact:'Rachel Tan', payoutMasked:'OCBC ••••2210'};
 var ORG_YWAM = {id:'ywam', name:'YWAM Singapore', type:'charity', country:'Singapore', role:'Member', verifiedSince:'2023-06-01', expiresOn:'2027-06-01', lastActive:'2026-07-30', regMasked:'T04SS••••K', contact:'Daniel Koh', payoutMasked:'UOB ••••7734'};
-var CAMP_A = {id:'c1', name:'Special Needs Centre in Kurdistan Region of Iraq', org:'antioch21', status:'live', raised:20000, goal:60000, started:'2025-08-08'};
-var CAMP_B = {id:'c2', name:'Kurdistan Winter Relief 2025', org:'antioch21', status:'ended', raised:41200, goal:40000, started:'2025-11-02'};
+var PROJ_A = {id:'c1', name:'Special Needs Centre in Kurdistan Region of Iraq', org:'antioch21', status:'live', raised:20000, goal:60000, started:'2025-08-08'};
+var PROJ_B = {id:'c2', name:'Kurdistan Winter Relief 2025', org:'antioch21', status:'ended', raised:41200, goal:40000, started:'2025-11-02'};
 
 function base(){
   return {
     scenario:'new',
     auth:{loggedIn:false, name:'', email:''},
-    account:{orgs:[], individual:null, campaigns:[]},
+    account:{orgs:[], individual:null, projects:[]},
     s1:{mode:'visitor', intent:{}, account:{}, type:'', docs:{}, contact:{}, payout:{}, done:{}, status:'draft'},
     s2:{basics:{}, goal:{}, team:[], launch:{}, done:{}, status:''},
     requests:{}, update:null, selectedOrg:'', confirmed:{}
@@ -57,12 +57,12 @@ function loggedIn(s){ s.auth = {loggedIn:true, name:'Adam Le', email:'adam@agath
 
 var SCENARIOS = {
   'new':      {label:'New visitor', sub:'Not logged in — full Session 1', start:'start', seed:function(){ return base(); }},
-  'ret1':     {label:'Returning · one organisation', sub:'Owner of Antioch21, verified', start:'entry', seed:function(){ var s=loggedIn(base()); s.account.orgs=[clone(ORG_ANTIOCH)]; s.account.campaigns=[clone(CAMP_A),clone(CAMP_B)]; return s; }},
-  'ret2':     {label:'Returning · two organisations', sub:'Owner + Collaborator — org selector', start:'entry', seed:function(){ var s=loggedIn(base()); s.account.orgs=[clone(ORG_ANTIOCH),clone(ORG_TTB)]; s.account.campaigns=[clone(CAMP_A),clone(CAMP_B)]; return s; }},
-  'expiring': {label:'Returning · verification expiring', sub:'Refresh banner, 20 days left', start:'entry', seed:function(){ var s=loggedIn(base()); var o=clone(ORG_ANTIOCH); o.expiresOn=addDays(20); s.account.orgs=[o]; s.account.campaigns=[clone(CAMP_A)]; return s; }},
+  'ret1':     {label:'Returning · one organisation', sub:'Owner of Antioch21, verified', start:'entry', seed:function(){ var s=loggedIn(base()); s.account.orgs=[clone(ORG_ANTIOCH)]; s.account.projects=[clone(PROJ_A),clone(PROJ_B)]; return s; }},
+  'ret2':     {label:'Returning · two organisations', sub:'Owner + Collaborator — org selector', start:'entry', seed:function(){ var s=loggedIn(base()); s.account.orgs=[clone(ORG_ANTIOCH),clone(ORG_TTB)]; s.account.projects=[clone(PROJ_A),clone(PROJ_B)]; return s; }},
+  'expiring': {label:'Returning · verification expiring', sub:'Refresh banner, 20 days left', start:'entry', seed:function(){ var s=loggedIn(base()); var o=clone(ORG_ANTIOCH); o.expiresOn=addDays(20); s.account.orgs=[o]; s.account.projects=[clone(PROJ_A)]; return s; }},
   'indiv':    {label:'Returning · verified individual', sub:'No org, ID expiring soon', start:'entry', seed:function(){ var s=loggedIn(base()); s.account.individual={name:'Adam Le', verifiedSince:'2025-08-02', idMasked:'S••••567A', idExpires:addDays(25), address:'Tampines, Singapore'}; return s; }},
   'collab':   {label:'Returning · collaborator / no permission', sub:'Collaborator on one org, member of another', start:'entry', seed:function(){ var s=loggedIn(base()); s.account.orgs=[clone(ORG_TTB),clone(ORG_YWAM)]; return s; }},
-  'awaiting': {label:'Approved · awaiting publish', sub:'Dashboard with a scheduled campaign', start:'dashboard', seed:function(){ var s=loggedIn(base()); s.account.orgs=[clone(ORG_ANTIOCH)]; s.account.campaigns=[{id:'c3', name:'Living Waters Village', org:'antioch21', status:'scheduled', scheduledFor:addDays(7)+'T09:00', approvedOn:addDays(-2)}, clone(CAMP_A)]; s.selectedOrg='antioch21'; return s; }}
+  'awaiting': {label:'Approved · awaiting publish', sub:'Dashboard with a scheduled project', start:'dashboard', seed:function(){ var s=loggedIn(base()); s.account.orgs=[clone(ORG_ANTIOCH)]; s.account.projects=[{id:'c3', name:'Living Waters Village', org:'antioch21', status:'scheduled', scheduledFor:addDays(7)+'T09:00', approvedOn:addDays(-2)}, clone(PROJ_A)]; s.selectedOrg='antioch21'; return s; }}
 };
 
 /* ---------- state ---------- */
@@ -227,7 +227,7 @@ function s1Head(){
   if(S.update){
     return {kicker:'Update details', h1:'Just the part that changed', p:'Only this section is re-reviewed — usually the same day. Everything else stays verified.'};
   }
-  if(S.s1.mode==='addorg') return {kicker:'Add an organisation', h1:'Verify once, raise as often as you need', p:'Every campaign you run for this organisation starts from here. Documents are the only paperwork step.'};
+  if(S.s1.mode==='addorg') return {kicker:'Add an organisation', h1:'Verify once, raise as often as you need', p:'Every project you run for this organisation starts from here. Documents are the only paperwork step.'};
   return {kicker:'Start a project', h1:'Raise funds for your initiative', p:'One sitting, about ten minutes. Documents are the only paperwork step — the rest is a conversation.'};
 }
 function s1Shell(cur, card, noteHtml){
@@ -429,12 +429,12 @@ function addRows(){
   return '<button class="ob-org add" type="button" data-act="addOrg"><span class="av">'+I.plus+'</span><span class="t"><b>Add an organisation</b><span>Verify a charity or nonprofit you\'re part of</span></span><span class="chev">'+I.chev+'</span></button>'+
     '<button class="ob-org add" type="button" data-go="individual"><span class="av">'+I.user+'</span><span class="t"><b>'+(ind?'Continue as '+h(ind.name):'Start an individual project')+'</b><span>'+(ind?'Verified since '+fmtDate(ind.verifiedSince)+' — no re-verification needed':'Raise for a personal cause or an informal group')+'</span></span><span class="chev">'+I.chev+'</span></button>';
 }
-function campaignRows(orgId){
-  var list=S.account.campaigns.filter(function(c){ return !orgId || c.org===orgId; });
-  if(!list.length) return '<div class="ob-empty"><b>No campaigns yet</b>Your first one starts with the button above.</div>';
-  return list.map(campaignCard).join('');
+function projectRows(orgId){
+  var list=S.account.projects.filter(function(c){ return !orgId || c.org===orgId; });
+  if(!list.length) return '<div class="ob-empty"><b>No projects yet</b>Your first one starts with the button above.</div>';
+  return list.map(projectCard).join('');
 }
-function campaignCard(c){
+function projectCard(c){
   var st, acts='';
   if(c.status==='live'){ st=badge('live','Live'); acts='<a class="ob-btn ghost sm" href="#">View page</a><a class="ob-btn ghost sm" href="#">Post an update</a>'; }
   else if(c.status==='ended'){ st=badge('draft','Ended'); acts='<a class="ob-btn ghost sm" href="#">View report</a>'; }
@@ -446,7 +446,7 @@ function campaignCard(c){
     var since=Math.max(0,-daysUntil(c.approvedOn||addDays(0)));
     remind='<div class="ob-remind">Reminders until it\'s published:'+[3,7,14].map(function(d){ var next=[3,7,14].filter(function(x){ return x>since; })[0]; return '<i class="'+(d===next?'next':'')+'">day '+d+(d===next?' · '+fmtDate(addDays(d-since)):'')+'</i>'; }).join('')+'</div>';
   }
-  return '<div class="ob-camp"><div class="cover"></div><div class="t">'+st+'<b>'+h(c.name)+'</b><p>'+h(meta)+'</p>'+remind+'<div class="acts">'+acts+'</div></div></div>';
+  return '<div class="ob-proj"><div class="cover"></div><div class="t">'+st+'<b>'+h(c.name)+'</b><p>'+h(meta)+'</p>'+remind+'<div class="acts">'+acts+'</div></div></div>';
 }
 
 function viewEntry(){
@@ -459,10 +459,10 @@ function viewEntry(){
   if(orgs.length===1){
     var o=orgs[0];
     body='<div class="ob-context"><span class="av">'+initials(o.name)+'</span><span class="t"><b>'+h(o.name)+'</b><span>'+roleBadge(o.role)+'<i>Verified since '+fmtDate(o.verifiedSince)+'</i></span></span><button class="ob-btn gold" type="button" data-go="org/'+o.id+'">Continue →</button></div><p class="ob-context-alt"><a href="#/individual">Start an individual project instead →</a></p>'+
-      '<div class="ob-card"><div class="ob-sec-head"><h3>Campaigns by '+h(o.name)+'</h3><p>Verification is tied to the organisation, so every new campaign skips straight to the build.</p></div>'+campaignRows(o.id)+'</div>';
+      '<div class="ob-card"><div class="ob-sec-head"><h3>Projects by '+h(o.name)+'</h3><p>Verification is tied to the organisation, so every new project skips straight to the build.</p></div>'+projectRows(o.id)+'</div>';
     return center({kicker:'Start a project', h1:'Welcome back, '+h(name), p:'', body:expiryBanner()+body});
   }
-  body='<div class="ob-card"><h2>Which organisation is this for?</h2><p class="lead">You\'re on the team of more than one. Pick the one this campaign belongs to.</p><div class="ob-orglist">'+orgs.map(orgRow).join('')+addRows()+'</div></div>';
+  body='<div class="ob-card"><h2>Which organisation is this for?</h2><p class="lead">You\'re on the team of more than one. Pick the one this project belongs to.</p><div class="ob-orglist">'+orgs.map(orgRow).join('')+addRows()+'</div></div>';
   return center({kicker:'Start a project', h1:'Welcome back, '+h(name), p:'', body:expiryBanner()+body});
 }
 
@@ -478,14 +478,14 @@ function viewOrg(id){
     body='<div class="ob-card"><div class="ob-recog"><div class="av">'+initials(o.name)+'</div><div class="t">'+(warnB?badge('warn','Verification refresh due in '+d+' days'):badge('verified','Verified since '+fmtDate(o.verifiedSince)))+'<h2>'+h(o.name)+'</h2><p>Registered charity · '+h(o.country)+' · You\'re '+(o.role==='Owner'?'the owner':'an admin')+'</p></div></div>'+
       '<div class="ob-facts"><div><span>Registration</span>'+h(o.regMasked)+'</div><div><span>Primary contact</span>'+h(o.contact)+'</div><div><span>Payout account</span>'+h(o.payoutMasked)+'</div><div><span>Valid until</span>'+fmtDate(o.expiresOn)+'</div></div>'+pend+refreshed+
       '<div class="ob-confirm">'+checkbox({k:'confirmed.'+id, t:'These details are still accurate', d:'Takes a second, and it\'s what keeps donors trusting the platform. If something changed, update it below — only that part gets re-checked.'})+'</div>'+
-      '<div class="ob-actions"><button class="ob-btn text" type="button" data-go="org/'+id+'/changes">Something changed? Update details</button><div class="r"><button class="ob-btn primary" type="button" data-act="startCampaign"'+(confirmed?'':' disabled')+'>Start a new campaign →</button></div></div></div>'+
-      '<div class="ob-card"><div class="ob-sec-head"><h3>Campaigns by '+h(o.name)+'</h3></div>'+campaignRows(id)+'</div>';
+      '<div class="ob-actions"><button class="ob-btn text" type="button" data-go="org/'+id+'/changes">Something changed? Update details</button><div class="r"><button class="ob-btn primary" type="button" data-act="startOrgProject"'+(confirmed?'':' disabled')+'>Start a new project →</button></div></div></div>'+
+      '<div class="ob-card"><div class="ob-sec-head"><h3>Projects by '+h(o.name)+'</h3></div>'+projectRows(id)+'</div>';
     return center({kicker:kicker, h1:'Ready when you are', p:'', body:(S.account.orgs.length>1?'<a class="ob-btn text" href="#/entry" style="margin:-16px 0 8px -4px">← All organisations</a>':'')+expiryBanner()+body});
   }
   if(o.role==='Collaborator'){
     body='<div class="ob-card"><div class="ob-recog"><div class="av">'+initials(o.name)+'</div><div class="t">'+badge('verified','Verified since '+fmtDate(o.verifiedSince))+'<h2>'+h(o.name)+'</h2><p>Registered charity · '+h(o.country)+' · You\'re a collaborator</p></div></div>'+
-      '<div style="margin-top:22px">'+note('<b>You can build and launch campaigns.</b> Verification, payouts and team access are handled by the owner, '+h(o.contact)+'.')+'</div>'+
-      '<div class="ob-actions"><span></span><div class="r"><button class="ob-btn primary" type="button" data-act="startCampaign">Start a new campaign →</button></div></div></div>';
+      '<div style="margin-top:22px">'+note('<b>You can build and launch projects.</b> Verification, payouts and team access are handled by the owner, '+h(o.contact)+'.')+'</div>'+
+      '<div class="ob-actions"><span></span><div class="r"><button class="ob-btn primary" type="button" data-act="startOrgProject">Start a new project →</button></div></div></div>';
     return center({kicker:kicker, h1:'Ready when you are', p:'', body:(S.account.orgs.length>1?'<a class="ob-btn text" href="#/entry" style="margin:-16px 0 8px -4px">← All organisations</a>':'')+body});
   }
   var req=S.requests[id];
@@ -494,7 +494,7 @@ function viewOrg(id){
       '<div class="acts"><a class="ob-btn ghost" href="#/entry">Back</a><button class="ob-btn gold" type="button" data-act="demoGrant" data-org="'+id+'">Demo: approve →</button></div></div>';
   } else {
     body='<div class="ob-card"><div class="ob-recog"><div class="av">'+initials(o.name)+'</div><div class="t">'+badge('verified','Verified since '+fmtDate(o.verifiedSince))+'<h2>'+h(o.name)+'</h2><p>Registered charity · '+h(o.country)+' · You\'re a member</p></div></div>'+
-      '<div style="margin-top:22px">'+note('<b>You don\'t have permission to create campaigns for '+h(o.name)+' yet.</b> Ask an owner or admin. We\'ll notify '+h(o.contact)+' and let you know when it\'s approved — no re-verification needed.')+'</div>'+
+      '<div style="margin-top:22px">'+note('<b>You don\'t have permission to create projects for '+h(o.name)+' yet.</b> Ask an owner or admin. We\'ll notify '+h(o.contact)+' and let you know when it\'s approved — no re-verification needed.')+'</div>'+
       '<div class="ob-actions"><a class="ob-btn ghost" href="#/entry">Back</a><div class="r"><button class="ob-btn primary" type="button" data-act="requestPerm" data-org="'+id+'">Request access →</button></div></div></div>';
   }
   return center({kicker:kicker, h1:'Almost there', p:'', body:body});
@@ -538,7 +538,7 @@ function viewAccess(){
   var join=r.kind==='join';
   var body='<div class="ob-card ob-result"><div class="ic gold">'+I.clock+'</div><h2>'+(join?'Request to join sent':'Request sent')+'</h2><p class="lead">'+(join
     ? 'We\'ve told '+h(e.contact)+' you\'d like to join the <b>'+h(e.name)+'</b> application. They have <b>5 days</b> to respond — if we don\'t hear back, our team reviews your request directly.'
-    : 'We\'ve notified the primary contact at <b>'+h(e.name)+'</b>. Once they approve, you\'re added to the team and can start campaigns right away — no re-verification.')+'</p>'+
+    : 'We\'ve notified the primary contact at <b>'+h(e.name)+'</b>. Once they approve, you\'re added to the team and can start projects right away — no re-verification.')+'</p>'+
     badge('pending','Sent '+fmtDate(r.sent)+(join?' · response due '+fmtDate(addDays(5)):''))+
     '<div class="acts"><a class="ob-btn ghost" href="#/dashboard">Go to my dashboard</a><button class="ob-btn gold" type="button" data-act="demoJoin">Demo: approve →</button></div>'+
     (join?'<p style="margin-top:22px;font-size:13.5px;color:var(--hp-muted)">Not the right organisation after all? <a href="#" data-act="matchDismissGo">Start a separate application</a>.</p>':'')+
@@ -547,10 +547,10 @@ function viewAccess(){
 }
 
 /* ============================================================================
-   SESSION 2 — campaign build & launch
+   SESSION 2 — project build & launch
    ============================================================================ */
 var S2_STEPS=[
-  {id:'build/basics', lbl:'Campaign basics', sub:'Name, story, photos'},
+  {id:'build/basics', lbl:'Project basics', sub:'Name, story, photos'},
   {id:'build/goal', lbl:'Goal & needs', sub:'All optional'},
   {id:'build/team', lbl:'Team', sub:'Optional'},
   {id:'build/launch', lbl:'Launch', sub:'Now, later, or draft'}
@@ -559,7 +559,7 @@ function s2Shell(cur, card){
   var o=currentOrg(), ind=S.account.individual;
   var who = o ? o.name : (ind ? ind.name : S.auth.name);
   var noteHtml='<b>Building for '+h(who)+'</b>'+badge('verified','Verified')+'<div style="margin-top:8px">Saved as you go. Come back any time from your dashboard.</div>';
-  return shell({steps:S2_STEPS, cur:cur, done:S.s2.done, kicker:'Build your campaign', h1:'Now the good part', p:'Verification\'s done. Tell the story, set a goal if you want one, and choose when to go live.', card:card, note:noteHtml});
+  return shell({steps:S2_STEPS, cur:cur, done:S.s2.done, kicker:'Build your project', h1:'Now the good part', p:'Verification\'s done. Tell the story, set a goal if you want one, and choose when to go live.', card:card, note:noteHtml});
 }
 function s2Advance(cur){
   var i=-1; S2_STEPS.forEach(function(s,k){ if(s.id===cur) i=k; });
@@ -568,18 +568,18 @@ function s2Advance(cur){
 
 function viewBasics(){
   var b=S.s2.basics, imgs=b.images||[];
-  var hasPast=S.account.campaigns.some(function(c){ return c.status==='live'||c.status==='ended'; });
+  var hasPast=S.account.projects.some(function(c){ return c.status==='live'||c.status==='ended'; });
   var gallery='<div class="ob-field" data-field="s2.basics.images"><label>Cover image and gallery<span class="req">*</span></label><div class="ob-upload-grid">'+
     imgs.map(function(im,i){ return '<div class="thumb">'+(i===0?'<span class="tag">Cover</span>':'')+'<span>'+h(im.name)+'</span><button type="button" data-act="rmImg" data-i="'+i+'" aria-label="Remove">×</button></div>'; }).join('')+
     '<div class="ob-upload empty" data-up="s2.basics.images"'+(imgs.length?'':' data-req="1"')+'><div class="ic">'+I.upload+'</div><div><div class="t">'+(imgs.length?'Add more':'Add photos')+'</div></div><input type="file" accept="image/*" multiple data-upimg="1"></div>'+
     '</div><div class="hint">The first photo is the cover. Real photos of the people and place build more trust than stock.</div><div class="msg">Add at least one photo</div></div>';
-  var card='<div class="ob-card"><h2>Campaign basics</h2><p class="lead">What donors see first. Keep the name short and the story honest — you can add updates as things happen.</p>'+formErr()+'<div class="ob-form">'+
-    field({k:'s2.basics.name', label:'Campaign name', req:1, maxlen:80, placeholder:'What you\'re raising for, in a few words'})+
-    field({k:'s2.basics.story', label:'Campaign story', req:1, type:'textarea', toolbar:1, rows:8, maxlen:3000, placeholder:'Who is this for? What will change? Why now?'})+
+  var card='<div class="ob-card"><h2>Project basics</h2><p class="lead">What donors see first. Keep the name short and the story honest — you can add updates as things happen.</p>'+formErr()+'<div class="ob-form">'+
+    field({k:'s2.basics.name', label:'Project name', req:1, maxlen:80, placeholder:'What you\'re raising for, in a few words'})+
+    field({k:'s2.basics.story', label:'Project story', req:1, type:'textarea', toolbar:1, rows:8, maxlen:3000, placeholder:'Who is this for? What will change? Why now?'})+
     gallery+
-    choice({k:'s2.basics.type', label:'Campaign type', req:1, cols:3, options:CAMPAIGN_TYPES})+
-    (b.type==='event'?'<div class="ob-reveal">'+field({k:'s2.basics.eventDate', label:'Event date', req:1, type:'date', hint:'Sets the campaign\'s end date. You can change it in the next step.'})+'</div>':'')+
-    (hasPast?field({k:'s2.basics.relation', label:'Relationship to your past campaigns', opt:1, type:'select', options:[['new','A new initiative'],['cont','Continuation of a past campaign'],['same','Same cause, new drive']], hint:'Helps us pre-fill photos and story from a past campaign, and keeps your reports tidy.'}):'')+
+    choice({k:'s2.basics.type', label:'Project type', req:1, cols:3, options:PROJECT_TYPES})+
+    (b.type==='event'?'<div class="ob-reveal">'+field({k:'s2.basics.eventDate', label:'Event date', req:1, type:'date', hint:'Sets the project\'s end date. You can change it in the next step.'})+'</div>':'')+
+    (hasPast?field({k:'s2.basics.relation', label:'Relationship to your past projects', opt:1, type:'select', options:[['new','A new initiative'],['cont','Continuation of a past project'],['same','Same cause, new drive']], hint:'Helps us pre-fill photos and story from a past project, and keeps your reports tidy.'}):'')+
     '</div>'+actions({back:currentOrg()?'org/'+currentOrg().id:'individual', next:'Continue'})+'</div>';
   return s2Shell('build/basics', card);
 }
@@ -590,8 +590,8 @@ function viewGoal(){
   var vols=g.volunteers||[], items=g.items||[];
   var volRows=vols.map(function(v,i){ return '<div class="row"><input class="ob-input" placeholder="Position, e.g. Project manager" value="'+h(v.title)+'" data-list="volunteers" data-i="'+i+'" data-f="title"><input class="ob-input" type="number" min="1" placeholder="How many" value="'+h(v.count)+'" data-list="volunteers" data-i="'+i+'" data-f="count"><button type="button" data-act="rmRow" data-list="volunteers" data-i="'+i+'">Remove</button></div>'; }).join('');
   var itemRows=items.map(function(v,i){ return '<div class="row items"><input class="ob-input" placeholder="Item, e.g. 40 plastic chairs" value="'+h(v.title)+'" data-list="items" data-i="'+i+'" data-f="title"><input class="ob-input" type="number" min="1" placeholder="Qty" value="'+h(v.count)+'" data-list="items" data-i="'+i+'" data-f="count"><button type="button" data-act="rmRow" data-list="items" data-i="'+i+'">Remove</button></div>'; }).join('');
-  var card='<div class="ob-card"><h2>Goal & needs</h2><p class="lead">All optional. A goal helps donors see progress, but an open campaign is fine too — you can add or change any of this after launch.</p>'+formErr()+'<div class="ob-form">'+
-    chips({k:'s2.goal.range', label:'Fundraising goal', opt:1, options:GOALS, hint:'"Not sure yet" keeps the campaign open and ongoing.'})+
+  var card='<div class="ob-card"><h2>Goal & needs</h2><p class="lead">All optional. A goal helps donors see progress, but an open project is fine too — you can add or change any of this after launch.</p>'+formErr()+'<div class="ob-form">'+
+    chips({k:'s2.goal.range', label:'Fundraising goal', opt:1, options:GOALS, hint:'"Not sure yet" keeps the project open and ongoing.'})+
     (g.range==='exact'?'<div class="ob-reveal"><div class="ob-row">'+field({k:'s2.goal.currency', label:'Currency', type:'select', options:[['SGD','S$ SGD'],['USD','US$ USD'],['MYR','RM MYR']], placeholder:'S$ SGD'})+field({k:'s2.goal.amount', label:'Goal amount', req:1, type:'number', placeholder:'0'})+'</div></div>':'')+
     field({k:'s2.goal.milestone', label:'What a milestone covers', opt:1, placeholder:'e.g. S$5,000 keeps the shelter open for three months', hint:'An alternative to a hard target — donors love knowing what their gift does.'})+
     (ev?field({k:'s2.goal.endDate', label:'End date', req:1, type:'date', hint:'Tied to your event. Donations close at the end of this day.'}):'')+
@@ -618,8 +618,8 @@ function viewTeam(){
 
 function viewLaunch(){
   var l=S.s2.launch;
-  var labels={now:'Publish campaign', schedule:'Schedule campaign', draft:'Save as draft'};
-  var card='<div class="ob-card"><h2>When should it go live?</h2><p class="lead">Your campaign is approved, so this is entirely your call. Nothing is public until you say so.</p>'+formErr()+
+  var labels={now:'Publish project', schedule:'Schedule project', draft:'Save as draft'};
+  var card='<div class="ob-card"><h2>When should it go live?</h2><p class="lead">Your project is approved, so this is entirely your call. Nothing is public until you say so.</p>'+formErr()+
     choice({k:'s2.launch.mode', req:1, cols:3, options:[
       {v:'now', ic:I.rocket, t:'Go live now', d:'Published the moment you confirm. Share the link straight away.'},
       {v:'schedule', ic:I.calendar, t:'Schedule a date', d:'Pick the day and time. We\'ll remind you 24 hours before.'},
@@ -632,11 +632,11 @@ function viewLaunch(){
 }
 
 function viewDone(){
-  var c=S.account.campaigns[0]||{name:S.s2.basics.name};
-  var slug=(c.name||'campaign').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40);
-  var body='<div class="ob-card ob-result"><div class="ic ok">'+I.sparkle+'</div><h2>Your campaign is live</h2><p class="lead">Share it with the people who care most first — the first few gifts set the pace for everyone after.</p>'+
+  var c=S.account.projects[0]||{name:S.s2.basics.name};
+  var slug=(c.name||'project').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40);
+  var body='<div class="ob-card ob-result"><div class="ic ok">'+I.sparkle+'</div><h2>Your project is live</h2><p class="lead">Share it with the people who care most first — the first few gifts set the pace for everyone after.</p>'+
     '<div class="ob-link-box"><span>agathos.be/p/'+h(slug)+'</span><button class="ob-btn ghost sm" type="button" data-act="copyLink">Copy link</button></div>'+
-    '<div class="acts"><a class="ob-btn primary" href="#">View campaign page</a><a class="ob-btn ghost" href="#/dashboard">Go to my dashboard</a></div></div>'+
+    '<div class="acts"><a class="ob-btn primary" href="#">View project page</a><a class="ob-btn ghost" href="#/dashboard">Go to my dashboard</a></div></div>'+
     '<div class="ob-card"><div class="ob-recog"><div class="av" style="background:var(--hp-gold);color:var(--hp-navy)">'+I.star+'</div><div class="t"><h2 style="margin-top:0">Apply for the Agathos Trustmark</h2><p>A badge of trust for donors. Project owners with a good track record can earn it — it lifts donor confidence, visibility on the platform, and signals transparency.</p></div></div>'+
     '<div class="ob-actions"><span></span><div class="r"><a class="ob-btn text" href="#/dashboard">Not now</a><a class="ob-btn gold" href="#">Apply for Trustmark →</a></div></div></div>';
   return center({kicker:'Launched', h1:'🎉 It\'s out there', p:'', body:body});
@@ -653,10 +653,10 @@ function viewDashboard(){
   }).join('');
   if(ind) side+='<div class="ob-card" style="padding:22px 24px"><div class="ob-recog" style="gap:14px"><div class="av" style="width:48px;height:48px;font-size:15px;border-radius:14px">'+initials(ind.name)+'</div><div class="t"><h3 style="margin:0 0 4px;font-size:16px">'+h(ind.name)+'</h3>'+(daysUntil(ind.idExpires)<=30?badge('warn','ID expires in '+daysUntil(ind.idExpires)+' days'):badge('verified','Verified since '+fmtDate(ind.verifiedSince)))+'</div></div><div style="margin-top:14px"><a class="ob-btn ghost sm" href="#/individual">Details</a></div></div>';
   if(S.s1.status==='submitted') side+='<div class="ob-card" style="padding:22px 24px">'+badge('pending','Under review')+'<h3 style="margin:10px 0 4px;font-size:16px">'+h(S.s1.intent.name||'Your application')+'</h3><p style="font-size:13.5px;color:var(--hp-text)">Submitted '+fmtDate(S.s1.submittedAt)+'. We\'ll email you within 1–2 business days.</p><div style="margin-top:14px"><a class="ob-btn ghost sm" href="#/review">View submission</a></div></div>';
-  if(!side) side='<div class="ob-card" style="padding:22px 24px"><h3 style="margin:0 0 6px;font-size:16px">Not verified yet</h3><p style="font-size:13.5px;color:var(--hp-text)">Verify once as an organisation or individual, then every campaign starts straight at the build.</p><div style="margin-top:14px"><a class="ob-btn primary sm" href="#/entry">Get verified</a></div></div>';
+  if(!side) side='<div class="ob-card" style="padding:22px 24px"><h3 style="margin:0 0 6px;font-size:16px">Not verified yet</h3><p style="font-size:13.5px;color:var(--hp-text)">Verify once as an organisation or individual, then every project starts straight at the build.</p><div style="margin-top:14px"><a class="ob-btn primary sm" href="#/entry">Get verified</a></div></div>';
   var canBuild = orgs.some(function(o){ return o.role!=='Member'; }) || ind;
   var newBtn = canBuild ? '<button class="ob-btn gold" type="button" data-act="newProject">'+I.plus+' New project</button>' : '';
-  var main='<div class="ob-card"><div class="ob-sec-head"><h3>Campaigns</h3><p>'+S.account.campaigns.length+' total</p></div>'+(S.account.campaigns.length?S.account.campaigns.map(campaignCard).join(''):'<div class="ob-empty"><b>No campaigns yet</b>'+(canBuild?'Your verification is done — the first campaign starts at the build.':'Get verified first, then build your first campaign.')+'</div>')+'</div>';
+  var main='<div class="ob-card"><div class="ob-sec-head"><h3>Projects</h3><p>'+S.account.projects.length+' total</p></div>'+(S.account.projects.length?S.account.projects.map(projectCard).join(''):'<div class="ob-empty"><b>No projects yet</b>'+(canBuild?'Your verification is done — the first project starts at the build.':'Get verified first, then build your first project.')+'</div>')+'</div>';
   return '<div class="ob-wrap"><div class="ob-head" style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap"><div><span class="hp-kicker">My projects</span><h1>'+h(firstName(S.auth.name)||'Your')+'\'s dashboard</h1></div>'+newBtn+'</div>'+expiryBanner()+'<div class="ob-dash"><div>'+main+'</div><div style="display:grid;gap:16px">'+side+'</div></div></div>';
 }
 
@@ -668,7 +668,7 @@ function go(p){ var target='#/'+p; if(location.hash===target) render(); else loc
 function parts(){ return location.hash.replace(/^#\/?/,'').split('/').filter(Boolean); }
 function render(){
   var p=parts(), r=p[0]||'', html='';
-  if(!r){ go(S.auth.loggedIn ? (S.account.campaigns.length&&S.scenario==='awaiting'?'dashboard':'entry') : 'start'); return; }
+  if(!r){ go(S.auth.loggedIn ? (S.account.projects.length&&S.scenario==='awaiting'?'dashboard':'entry') : 'start'); return; }
   if(!S.auth.loggedIn && ['entry','org','individual','access','build','dashboard'].indexOf(r)>=0 && !(r==='individual')){ go('start'); return; }
   switch(r){
     case 'start': html=viewStart(); break;
@@ -805,11 +805,11 @@ var ACT={
     if(ind){ S.account.individual={name:s.docs.fullName||S.auth.name||'You', verifiedSince:addDays(0), idMasked:'S••••••'+(s.docs.fullName||'A').slice(-1).toUpperCase(), idExpires:addDays(1400), address:s.intent.country||'Singapore'}; }
     else { S.account.orgs.push({id:'org'+Date.now(), name:s.docs.legalName||s.intent.name||'Your organisation', type:'charity', country:s.docs.regCountry||s.intent.country||'Singapore', role:'Owner', verifiedSince:addDays(0), expiresOn:addDays(365), lastActive:addDays(0), regMasked:(s.docs.regNo||'T00SS0000A').slice(0,5)+'••••'+(s.docs.regNo||'A').slice(-1), contact:s.contact.name||S.auth.name, payoutMasked:(s.payout.bank||'Bank')+' ••••'+(s.payout.account||'0000').slice(-4)}); }
     if(!S.auth.name) S.auth.name=s.contact.name||'You';
-    S.s1.status='approved'; save(); toast('Approved — verification is on file for future campaigns'); go('entry');
+    S.s1.status='approved'; save(); toast('Approved — verification is on file for future projects'); go('entry');
   },
   login:function(){ reset('ret1'); toast('Signed in as Adam Le'); go('entry'); },
   addOrg:function(){ S.s1={mode:'addorg', intent:{}, account:{}, type:'charity', docs:{}, contact:{}, payout:{}, done:{}, status:'draft'}; save(); go('start'); },
-  startCampaign:function(){ S.s2={basics:{}, goal:{}, team:[], launch:{}, done:{}, status:''}; save(); go('build/basics'); },
+  startOrgProject:function(){ S.s2={basics:{}, goal:{}, team:[], launch:{}, done:{}, status:''}; save(); go('build/basics'); },
   startProject:function(){ S.selectedOrg=''; S.s2={basics:{}, goal:{}, team:[], launch:{}, done:{}, status:''}; save(); go('build/basics'); },
   newProject:function(){ S.s2={basics:{}, goal:{}, team:[], launch:{}, done:{}, status:''}; save(); var elig=S.account.orgs.filter(function(o){ return o.role!=='Member'; }); if(elig.length===1 && !S.account.individual){ S.selectedOrg=elig[0].id; save(); go('build/basics'); } else go('entry'); },
   requestPerm:function(t){ var id=t.getAttribute('data-org'); S.requests[id]={sent:addDays(0)}; save(); render(); },
@@ -843,10 +843,10 @@ var ACT={
     if(l.mode==='now'){ c.status='live'; c.raised=0; c.started=addDays(0); if(S.s2.goal.range==='exact') c.goal=+S.s2.goal.amount||0; }
     else if(l.mode==='schedule'){ c.status='scheduled'; c.scheduledFor=l.at; }
     else { c.status='draft'; }
-    S.account.campaigns.unshift(c); S.s2.status=c.status; S.s2.done['build/launch']=true; save();
+    S.account.projects.unshift(c); S.s2.status=c.status; S.s2.done['build/launch']=true; save();
     if(c.status==='live') go('build/done'); else { toast(c.status==='scheduled'?'Scheduled for '+fmtDateTime(c.scheduledFor):'Saved as a draft'); go('dashboard'); }
   },
-  publishNow:function(t){ var c=S.account.campaigns.filter(function(x){ return x.id===t.getAttribute('data-id'); })[0]; c.status='live'; c.raised=0; c.started=addDays(0); save(); toast('Published — '+c.name+' is live'); render(); },
+  publishNow:function(t){ var c=S.account.projects.filter(function(x){ return x.id===t.getAttribute('data-id'); })[0]; c.status='live'; c.raised=0; c.started=addDays(0); save(); toast('Published — '+c.name+' is live'); render(); },
   copyLink:function(t){ toast('Link copied'); },
   demoPick:function(t){ reset(t.getAttribute('data-s')); document.getElementById('ob-demo').classList.remove('open'); go(SCENARIOS[S.scenario].start); },
   demoReset:function(){ reset(S.scenario); document.getElementById('ob-demo').classList.remove('open'); go(SCENARIOS[S.scenario].start); },
