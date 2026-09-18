@@ -250,7 +250,7 @@ textarea.ob-input{min-height:112px;resize:vertical;}
 .ob-org .av{flex:none;width:46px;height:46px;border-radius:13px;background:#EEF3FF;color:var(--hp-navy);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;}
 .ob-org .t{flex:1;min-width:0;}
 .ob-org .t b{display:flex;align-items:center;gap:10px;font-size:15.5px;color:var(--hp-navy);}
-.ob-org .t span{display:block;font-size:13px;color:var(--hp-muted);margin-top:3px;}
+.ob-org .t > span{display:block;font-size:13px;color:var(--hp-muted);margin-top:3px;}
 .ob-org .chev{flex:none;color:#A8B0BE;}
 .ob-org.add{border-style:dashed;background:#FBFCFE;}
 .ob-org.add .av{background:#fff;border:1.5px dashed #BFCBDF;color:var(--hp-blue);}
