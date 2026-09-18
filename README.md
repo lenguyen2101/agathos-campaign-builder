@@ -38,6 +38,7 @@ runs the whole prototype, images included.
 | Route | Screen |
 |---|---|
 | `home.html` | Public homepage — where the admin shell's **Home** crumb goes |
+| `onboarding.html` | Project-owner onboarding (`/onboarding`) — verification, returning-user routing, campaign build & launch. Demo scenarios in the bottom-left pill |
 | `projects.html` | Project list |
 | `requests.html` | Change requests on projects — approve / reject |
 | `index.html` | Campaign list |
