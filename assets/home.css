@@ -226,11 +226,12 @@ h1,h2,h3,h4,p,blockquote,ul{margin:0;}
 /* ==========================================================================
    PARTNERS
    ========================================================================== */
-.hp-partners{padding:48px var(--hp-gutter);background:var(--hp-cream);border-top:1px solid var(--hp-cream-line);border-bottom:1px solid var(--hp-cream-line);}
-.hp-partners p{text-align:center;margin-bottom:26px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--hp-muted);}
-.hp-partner-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:16px;}
-.hp-partner{height:96px;padding:12px;background:#fff;border:1px solid var(--hp-cream-line);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;}
-.hp-partner img{max-width:82%;max-height:60px;object-fit:contain;display:block;}
+.hp-partners{padding:56px var(--hp-gutter);background:#fff;border-top:1px solid var(--hp-line);border-bottom:1px solid var(--hp-line);}
+.hp-partners p{text-align:center;margin-bottom:26px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--hp-navy);}
+.hp-partner-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:20px 28px;}
+.hp-partner{height:96px;padding:6px 10px;display:flex;align-items:center;justify-content:center;}
+.hp-partner img{width:100%;height:100%;object-fit:contain;display:block;}
+.hp-partner img.inv{filter:invert(1);}
 .hp-partner .ph{white-space:nowrap;padding:4px 8px;border:1px dashed #D9CCAE;border-radius:6px;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--hp-muted);}
 .hp-partner .nm{font-size:13px;font-weight:700;color:#3C4658;text-align:center;line-height:1.2;}
 
@@ -355,8 +356,8 @@ h1,h2,h3,h4,p,blockquote,ul{margin:0;}
   .hp-card-body h3{font-size:17px;}
   .hp-card-raised b{font-size:26px;}
   .hp-causes-cta{margin-top:28px;}
-  .hp-partner-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
-  .hp-partner{height:84px;padding:8px;}
+  .hp-partner-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 20px;}
+  .hp-partner{height:76px;padding:4px 8px;}
   .hp-ways-head{margin-left:auto;margin-right:auto;text-align:center;}
   .hp-way{align-items:center;text-align:center;}
   .hp-way .no{align-self:center;}
