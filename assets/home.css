@@ -288,7 +288,7 @@ h1,h2,h3,h4,p,blockquote,ul{margin:0;}
 .hp-verse{padding:clamp(80px,10vw,130px) var(--hp-gutter);background:var(--hp-navy);color:#fff;text-align:center;position:relative;overflow:hidden;}
 .hp-verse-glow{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:900px;height:900px;border-radius:50%;background:radial-gradient(circle,rgba(255,200,56,.12),rgba(255,200,56,0) 60%);pointer-events:none;}
 .hp-verse-inner{position:relative;max-width:980px;margin:0 auto;}
-.hp-verse-lead{margin:0 auto 28px;max-width:640px;font-size:clamp(16px,1.3vw,19px);line-height:1.5;font-weight:500;color:var(--hp-gold);text-wrap:balance;}
+.hp-verse-lead{margin:0 auto 28px;max-width:640px;font-size:clamp(12.5px,1vw,14px);line-height:1.6;font-weight:400;letter-spacing:.09em;color:#DCC189;text-wrap:balance;}
 .hp-verse blockquote{margin-bottom:30px;font-size:clamp(30px,3.8vw,50px);line-height:1.25;font-weight:900;letter-spacing:-.03em;text-wrap:balance;}
 .hp-verse .who{font-size:18px;font-weight:800;}
 .hp-verse .ref{font-size:15px;opacity:.7;margin-top:4px;}
