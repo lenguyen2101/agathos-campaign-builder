@@ -424,7 +424,8 @@ function expiryBanner(){
   return out;
 }
 function orgRow(o){
-  return '<button class="ob-org" type="button" data-go="org/'+o.id+'"><span class="av">'+initials(o.name)+'</span><span class="t"><b>'+h(o.name)+' '+roleBadge(o.role)+'</b><span>Verified since '+fmtDate(o.verifiedSince)+' · Last active '+fmtDate(o.lastActive)+'</span></span><span class="chev">'+I.chev+'</span></button>';
+  var open=(o.role==='Owner'||o.role==='Admin') ? 'data-act="orgStart" data-org="'+o.id+'"' : 'data-go="org/'+o.id+'"';
+  return '<button class="ob-org" type="button" '+open+'><span class="av">'+initials(o.name)+'</span><span class="t"><b>'+h(o.name)+' '+roleBadge(o.role)+'</b><span>Verified since '+fmtDate(o.verifiedSince)+' · Last active '+fmtDate(o.lastActive)+'</span></span><span class="chev">'+I.chev+'</span></button>';
 }
 function addRows(){
   var ind=S.account.individual;
@@ -448,21 +449,29 @@ function viewEntry(){
   return center({kicker:'Start a project', h1:'Welcome back, '+h(name), p:'', body:expiryBanner()+body});
 }
 
+function orgSummary(o){
+  var d=daysUntil(o.expiresOn), warnB = d>0 && d<=30 && !o.refreshPending;
+  var pend = o.pending && o.pending.length ? '<div class="ob-banner info" style="margin-top:22px"><div class="ic">'+I.clock+'</div><div><b>'+h(o.pending.map(function(s){ return {docs:'Registration details', contact:'Contact & authority', payout:'Payout details'}[s]; }).join(', '))+' under expedited review</b><p>Usually same day. You can build and launch meanwhile'+(o.pending.indexOf('payout')>=0?' — payouts pause until the bank details are re-verified.':'.')+'</p></div></div>' : '';
+  var refreshed = o.refreshPending ? '<div class="ob-banner ok" style="margin-top:22px"><div class="ic">'+I.check+'</div><div><b>Refresh submitted</b><p>We\'ll confirm within a business day. Nothing else changes for you.</p></div></div>' : '';
+  return '<div class="ob-recog"><div class="av">'+initials(o.name)+'</div><div class="t">'+(warnB?badge('warn','Verification refresh due in '+d+' days'):badge('verified','Verified since '+fmtDate(o.verifiedSince)))+'<h2>'+h(o.name)+'</h2><p>Registered charity · '+h(o.country)+' · You\'re '+(o.role==='Owner'?'the owner':'an admin')+'</p></div></div>'+
+    '<div class="ob-facts"><div><span>Registration</span>'+h(o.regMasked)+'</div><div><span>Primary contact</span>'+h(o.contact)+'</div><div><span>Payout account</span>'+h(o.payoutMasked)+'</div><div><span>Valid until</span>'+fmtDate(o.expiresOn)+'</div></div>'+pend+refreshed;
+}
+/* starting a project for an org you own or admin: confirm its details once, in a modal */
+function orgConfirm(id){
+  var o=findOrg(id);
+  var phases='<ol class="ob-phases">'+['Confirm details','Build','Launch'].map(function(t,i){ return '<li'+(i===0?' class="current"':'')+'><span class="n">'+(i+1)+'</span>'+t+'</li>'; }).join('')+'</ol>';
+  modal('<button class="ob-x" type="button" data-act="modalClose" aria-label="Close">×</button>'+phases+orgSummary(o)+
+    '<p class="ob-confirm-q">Are these details still accurate?</p>'+
+    '<div class="acts"><button class="ob-btn ghost" type="button" data-act="orgChanged" data-org="'+id+'">Something changed</button><button class="ob-btn primary" type="button" data-act="startOrgProject" data-org="'+id+'">Yes, continue →</button></div>');
+}
 function viewOrg(id){
   var o=findOrg(id); if(!o){ go('entry'); return ''; }
   S.selectedOrg=id; save();
   var body='', kicker='Start a project', allOrgs='<a class="ob-btn text" href="#/entry" style="margin:-16px 0 8px -4px">← All organisations</a>';
   if(o.role==='Owner'||o.role==='Admin'){
-    var d=daysUntil(o.expiresOn), warnB = d>0 && d<=30 && !o.refreshPending;
-    var pend = o.pending && o.pending.length ? '<div class="ob-banner info" style="margin-top:22px"><div class="ic">'+I.clock+'</div><div><b>'+h(o.pending.map(function(s){ return {docs:'Registration details', contact:'Contact & authority', payout:'Payout details'}[s]; }).join(', '))+' under expedited review</b><p>Usually same day. You can build and launch meanwhile'+(o.pending.indexOf('payout')>=0?' — payouts pause until the bank details are re-verified.':'.')+'</p></div></div>' : '';
-    var refreshed = o.refreshPending ? '<div class="ob-banner ok" style="margin-top:22px"><div class="ic">'+I.check+'</div><div><b>Refresh submitted</b><p>We\'ll confirm within a business day. Nothing else changes for you.</p></div></div>' : '';
-    var confirmed=!!S.confirmed[id];
-    body='<div class="ob-card"><div class="ob-recog"><div class="av">'+initials(o.name)+'</div><div class="t">'+(warnB?badge('warn','Verification refresh due in '+d+' days'):badge('verified','Verified since '+fmtDate(o.verifiedSince)))+'<h2>'+h(o.name)+'</h2><p>Registered charity · '+h(o.country)+' · You\'re '+(o.role==='Owner'?'the owner':'an admin')+'</p></div></div>'+
-      '<div class="ob-facts"><div><span>Registration</span>'+h(o.regMasked)+'</div><div><span>Primary contact</span>'+h(o.contact)+'</div><div><span>Payout account</span>'+h(o.payoutMasked)+'</div><div><span>Valid until</span>'+fmtDate(o.expiresOn)+'</div></div>'+pend+refreshed+
-      '<div class="ob-confirm">'+checkbox({k:'confirmed.'+id, t:'These details are still accurate', d:'Takes a second, and it\'s what keeps donors trusting the platform. If something changed, update it below — only that part gets re-checked.'})+'</div>'+
-      '<div class="ob-actions"><button class="ob-btn text" type="button" data-go="org/'+id+'/changes">Something changed? Update details</button><div class="r"><button class="ob-btn primary" type="button" data-act="startOrgProject"'+(confirmed?'':' disabled')+'>Start a new project →</button></div></div></div>';
-    var phases='<ol class="ob-phases">'+['Confirm details','Build','Launch'].map(function(t,i){ return '<li'+(i===0?' class="current"':'')+'><span class="n">'+(i+1)+'</span>'+t+'</li>'; }).join('')+'</ol>';
-    return center({kicker:kicker, h1:'Ready when you are', p:'', body:allOrgs+expiryBanner()+phases+body});
+    body='<div class="ob-card">'+orgSummary(o)+
+      '<div class="ob-actions"><button class="ob-btn text" type="button" data-go="org/'+id+'/changes">Something changed? Update details</button><div class="r"><button class="ob-btn primary" type="button" data-act="orgStart" data-org="'+id+'">Start a new project →</button></div></div></div>';
+    return center({kicker:kicker, h1:'Ready when you are', p:'', body:allOrgs+expiryBanner()+body});
   }
   if(o.role==='Collaborator'){
     body='<div class="ob-card"><div class="ob-recog"><div class="av">'+initials(o.name)+'</div><div class="t">'+badge('verified','Verified since '+fmtDate(o.verifiedSince))+'<h2>'+h(o.name)+'</h2><p>Registered charity · '+h(o.country)+' · You\'re a collaborator</p></div></div>'+
@@ -729,7 +738,7 @@ function render(){
   var dn=main.querySelector('.dash-nav'); if(dn){ var toEnd=function(){ dn.scrollLeft=dn.scrollWidth; }; toEnd(); document.fonts.ready.then(toEnd); }
   renderNav(); renderDemo();
   var key=location.hash;
-  if(key!==lastRoute){ window.scrollTo(0,0); lastRoute=key; }
+  if(key!==lastRoute){ window.scrollTo(0,0); lastRoute=key; closeModal(); }
 }
 window.addEventListener('hashchange', render);
 
@@ -864,7 +873,9 @@ var ACT={
   },
   login:function(){ reset('ret1'); toast('Signed in as Adam Le'); go('entry'); },
   addOrg:function(){ S.s1={mode:'addorg', intent:{}, account:{}, type:'charity', docs:{}, contact:{}, payout:{}, done:{}, status:'draft'}; save(); go('start'); },
-  startOrgProject:function(){ S.s2={basics:{}, goal:{}, team:[], launch:{}, done:{}, status:''}; save(); go('build/basics'); },
+  orgStart:function(t){ orgConfirm(t.getAttribute('data-org')); },
+  orgChanged:function(t){ closeModal(); go('org/'+t.getAttribute('data-org')+'/changes'); },
+  startOrgProject:function(t){ var id=t.getAttribute('data-org'); if(id) S.selectedOrg=id; S.s2={basics:{}, goal:{}, team:[], launch:{}, done:{}, status:''}; save(); closeModal(); go('build/basics'); },
   startProject:function(){ S.selectedOrg=''; S.s2={basics:{}, goal:{}, team:[], launch:{}, done:{}, status:''}; save(); go('build/basics'); },
   dashSel:function(t){ S.dashSel=t.getAttribute('data-id'); S.dashTab='projects'; save(); render(); },
   dashTab:function(t){ S.dashTab=t.getAttribute('data-t'); save(); render(); },
@@ -873,6 +884,8 @@ var ACT={
     var id=t.getAttribute('data-id');
     S.s2={basics:{}, goal:{}, team:[], launch:{}, done:{}, status:''};
     if(id==='personal'){ S.selectedOrg=''; save(); go(S.account.individual?'build/basics':'individual'); return; }
+    var o=findOrg(id);
+    if(o.role==='Owner'||o.role==='Admin'){ save(); orgConfirm(id); return; }
     S.selectedOrg=id; save(); go('build/basics');
   },
   requestPerm:function(t){ var id=t.getAttribute('data-org'); S.requests[id]={sent:addDays(0)}; save(); render(); },

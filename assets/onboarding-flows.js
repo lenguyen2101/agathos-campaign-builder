@@ -33,7 +33,7 @@ var FLOWS = {
   },
   'ret1': {
     title:'Owner of one organisation', src:'Diagram 1c → 3 · Spec "Returning-user flow"',
-    note:'Verification is tied to the organisation, not the project. The confirm checkbox keeps mild friction on purpose; a change re-opens only that section and the build can start while the expedited review runs.',
+    note:'Verification is tied to the organisation, not the project. The confirm modal keeps mild friction on purpose; a change re-opens only that section and the build can start while the expedited review runs.',
     cols:3,
     nodes:[
       {id:'a', t:'start', r:0, c:1, l:'Logged in', s:'Direct login or email match'},
@@ -45,7 +45,7 @@ var FLOWS = {
       {id:'d', t:'dec', r:3, c:1, l:'Role on this org?'},
       {id:'d0', t:'ext', r:3, c:0, l:'Anything else', s:'→ request permissions'},
       {id:'d2', t:'ext', r:3, c:2, l:'Collaborator', s:'→ straight to build'},
-      {id:'e', t:'step', r:4, c:1, l:'Recognised-org screen', s:'Verified since [date] · details summary'},
+      {id:'e', t:'step', r:4, c:1, l:'Confirm modal', s:'Verified since [date] · details summary'},
       {id:'f', t:'dec', r:5, c:1, l:'Details still accurate?'},
       {id:'f1', t:'step', r:5, c:2, l:'What\'s-changed checklist', s:'Payout · registration · contact'},
       {id:'f2', t:'step', r:6, c:2, l:'Only that section reopens', s:'Expedited review, often same day'},
@@ -68,7 +68,7 @@ var FLOWS = {
       {id:'d', t:'dec', r:3, c:1, l:'Role on the chosen org?'},
       {id:'d0', t:'ext', r:3, c:0, l:'Anything else', s:'→ request permissions'},
       {id:'d2', t:'step', r:3, c:2, l:'Collaborator (Treasure Box)', s:'Straight to build · owner handles verification & payout'},
-      {id:'e', t:'step', r:4, c:1, l:'Recognised-org screen (Antioch21)', s:'Verified since · confirm details'},
+      {id:'e', t:'step', r:4, c:1, l:'Confirm modal (Antioch21)', s:'Verified since · details still accurate?'},
       {id:'f', t:'step', r:5, c:1, l:'Start a new project'},
       {id:'g', t:'next', r:6, c:1, l:'Session 2 — build & launch', s:'Diagram 3'}
     ],
@@ -82,7 +82,7 @@ var FLOWS = {
       {id:'a', t:'start', r:0, c:1, l:'Logged in · one org'},
       {id:'b', t:'step', r:1, c:1, l:'Org selector', s:'Banner shows here and on the org screen'},
       {id:'c', t:'dec', r:2, c:1, l:'Verification expires within 30 days?'},
-      {id:'c1', t:'ext', r:2, c:2, l:'Recognised-org screen', s:'As usual'},
+      {id:'c1', t:'ext', r:2, c:2, l:'Confirm modal', s:'As usual'},
       {id:'d', t:'step', r:3, c:1, l:'Proactive banner', s:'"Refresh due in [n] days" — before they try to launch'},
       {id:'e', t:'dec', r:4, c:1, l:'Refresh now?'},
       {id:'e1', t:'step', r:4, c:2, l:'Later', s:'Continue as usual · blocked once the date passes'},
@@ -95,7 +95,7 @@ var FLOWS = {
   },
   'indiv': {
     title:'Individual, already verified', src:'Diagram 1c → 2c · Handoff §D',
-    note:'Same pattern as the recognised-org screen with individual fields. The ID-expiry warning is a badge variant on the same screen, not a separate screen.',
+    note:'Same details summary as the org confirm, with individual fields. The ID-expiry warning is a badge variant on the same screen, not a separate screen.',
     cols:3,
     nodes:[
       {id:'a', t:'start', r:0, c:1, l:'Logged in · no org'},
@@ -122,7 +122,7 @@ var FLOWS = {
       {id:'b', t:'step', r:1, c:1, l:'Org selector', s:'Treasure Box · Collaborator / YWAM · Member'},
       {id:'c', t:'dec', r:2, c:1, l:'Role on the chosen org?'},
       {id:'c0', t:'step', r:2, c:0, l:'Collaborator (Treasure Box)', s:'Straight to build · owner handles verification & payout'},
-      {id:'c2', t:'ext', r:2, c:2, l:'Owner / Admin', s:'→ recognised-org screen'},
+      {id:'c2', t:'ext', r:2, c:2, l:'Owner / Admin', s:'→ confirm modal'},
       {id:'d', t:'step', r:3, c:1, l:'Request-permissions screen', s:'Explanation + "Request access"'},
       {id:'e', t:'step', r:4, c:1, l:'Pending state', s:'Owner / Admin notified · request shown as sent'},
       {id:'f', t:'dec', r:5, c:1, l:'Approved by Owner / Admin?'},

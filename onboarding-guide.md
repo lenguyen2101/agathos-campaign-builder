@@ -71,14 +71,17 @@ Phiên này tách riêng có chủ đích: sau khi được duyệt, người d�
 
 ## 5. Người quay lại: chia luồng theo số org và role
 
-- **Màn "Ready when you are"** (Owner/Admin):
-  - Trên cùng là link "← All organisations" để quay lại màn chọn org.
+- **Owner/Admin bấm vào org của mình → modal xác nhận** (cũng hiện khi bấm "+ New project" ở Dashboard):
   - Step indicator: Confirm details → Build → Launch.
   - Huy hiệu "Verified since…" và các thông tin đã xác minh (số đăng ký, người liên hệ, tài khoản nhận tiền, ngày hết hạn).
-  - Ô **"These details are still accurate"**: phải tick mới bắt đầu Project được. Spec cố tình giữ chút "ma sát" này để donor tin nền tảng.
+  - Câu hỏi **"Are these details still accurate?"**:
+    - **Yes, continue** → vào thẳng Phiên 2.
+    - **Something changed** → danh sách "What's changed".
+  - Spec cố tình giữ bước xác nhận này (một cú bấm) để donor tin nền tảng.
+- **Trang chi tiết org** ("Ready when you are") vẫn còn, mở từ Dashboard → Actions → Organization details. Nút "Start a new project" ở đó cũng mở modal trên.
 - **Có gì thay đổi** (ngân hàng, đăng ký, người liên hệ): người dùng tick vào danh sách "What's changed". Chỉ phần đã tick mở lại để duyệt nhanh, thường trong ngày, và họ vẫn tạo Project song song.
 - **Xác minh sắp hết hạn** (còn dưới 30 ngày): hiện banner nhắc làm mới trước khi hết hạn.
-- **Collaborator**: thấy một màn ngắn có nút "Start a new project", không cần tick xác nhận. Xác minh và payout là việc của owner.
+- **Collaborator**: thấy một màn ngắn có nút "Start a new project", không cần xác nhận thông tin. Xác minh và payout là việc của owner.
 - **Member**: chưa có quyền, bấm "Request access" và chờ owner duyệt. Duyệt xong thì thành Collaborator.
 - **Cá nhân đã xác minh**: màn tương tự màn của org, có huy hiệu cảnh báo khi giấy tờ tùy thân sắp hết hạn.
 
@@ -111,7 +114,7 @@ Mở `/onboarding` và bấm nút **Demo** (viên thuốc ở góc dưới trái
    - Submit xong, bấm "Demo: approve now" để giả lập đã được duyệt.
 
 **Logged in · starting a project** (đăng nhập là Adam Le)
-2. **Owner of one organisation**: màn chọn org có Antioch21, Add an organisation và Start an individual project. Chọn Antioch21 → "Ready when you are" → tick ô xác nhận → Start a new project → đi hết Phiên 2.
+2. **Owner of one organisation**: màn chọn org có Antioch21, Add an organisation và Start an individual project. Chọn Antioch21 → modal xác nhận → Yes, continue → đi hết Phiên 2.
 3. **In two organisations**: cùng màn chọn org, có thêm The Treasure Box (Collaborator).
 4. **Individual, already verified**: không có org, làm Project cá nhân mà không phải nộp lại giấy tờ.
 5. **Collaborator or member**: so sánh Collaborator (tạo Project được) với Member (phải xin quyền).
@@ -133,7 +136,8 @@ Prototype lưu mọi thứ trong trình duyệt, nên đóng tab rồi mở lạ
 
 - User đã đăng nhập không còn bị hỏi lại "Your account" và "Who is raising".
 - User có 1 org thấy cùng màn chọn org như user có 2+ org, nên lúc nào cũng có Add an organisation và Start an individual project.
-- Màn "Ready when you are" có step indicator Confirm details → Build → Launch, và bỏ danh sách Project (đã có ở Dashboard).
+- Xác nhận thông tin org chuyển thành modal khi bắt đầu Project (thay cho ô tick trên trang), có step indicator Confirm details → Build → Launch.
+- Trang chi tiết org bỏ danh sách Project (đã có ở Dashboard).
 - Bước Team nhắc khi có email đã gõ mà chưa mời; người đã mời hiện "Invite sent".
 - Bước "Verify your identity" bỏ câu hỏi cách dùng tiền, vì Step 1 đã hỏi.
 

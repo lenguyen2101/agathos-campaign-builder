@@ -362,7 +362,7 @@ textarea.ob-input{min-height:112px;resize:vertical;}
 
 /* modal */
 .ob-modal{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(18,39,94,.55);backdrop-filter:blur(2px);}
-.ob-modal .box{width:100%;max-width:560px;background:#fff;border-radius:22px;padding:32px 34px 28px;box-shadow:0 30px 80px rgba(0,0,0,.3);animation:ob-pop .2s ease-out;}
+.ob-modal .box{position:relative;width:100%;max-width:560px;background:#fff;border-radius:22px;padding:32px 34px 28px;box-shadow:0 30px 80px rgba(0,0,0,.3);animation:ob-pop .2s ease-out;}
 @keyframes ob-pop{from{opacity:0;transform:translateY(10px) scale(.98);}to{opacity:1;transform:none;}}
 .ob-modal .box h2{font-size:22px;font-weight:900;letter-spacing:-.02em;color:var(--hp-navy);margin-bottom:10px;}
 .ob-modal .box .lead{font-size:14.5px;margin-bottom:18px;}
@@ -371,6 +371,11 @@ textarea.ob-input{min-height:112px;resize:vertical;}
 .ob-modal .ic svg{width:26px;height:26px;}
 .ob-modal .ic.warn{background:#FDE9D6;color:#A34A00;}
 .ob-modal .ic.err{background:#FDF2F3;color:var(--ob-err);}
+.ob-modal .ob-banner .ic{width:34px;height:34px;border-radius:10px;margin-bottom:0;}
+.ob-modal .ob-banner .ic svg{width:18px;height:18px;}
+.ob-x{position:absolute;top:16px;right:16px;width:34px;height:34px;border:0;border-radius:50%;background:#F3F4F6;font:inherit;font-size:20px;line-height:1;color:var(--hp-navy);cursor:pointer;}
+.ob-x:hover{background:#E9EBEF;}
+.ob-confirm-q{margin-top:22px;font-size:15.5px;font-weight:700;color:var(--hp-navy);}
 /* flow-diagram modal */
 .ob-modal .box.flow{max-width:1020px;max-height:92vh;overflow:auto;padding:0 28px 24px;}
 .flow-top{position:sticky;top:0;z-index:1;background:#fff;padding-top:26px;}
@@ -483,6 +488,7 @@ svg.flow .fl.dim{fill:#8A94A6;}
   .ob-list .row,.ob-list .row.items{grid-template-columns:1fr;}
   .ob-modal{padding:12px;align-items:flex-end;}
   .ob-modal .box{padding:24px 20px 20px;border-radius:18px;}
+  .ob-modal .ob-phases{margin-top:30px;}
   .ob-modal .acts .ob-btn{flex:1;}
   .ob-modal .box.flow{padding:0 16px 18px;max-height:88vh;}
   .flow-top{padding-top:20px;}
