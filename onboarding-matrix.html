@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agathos — Roles &amp; permissions</title>
+<link rel="stylesheet" href="assets/home.css">
+<style>
+:root{
+  --bg:#F5F7FB;
+  --paper:#FFFFFF;
+  --ink:#12275E;
+  --text:#3B4660;
+  --muted:#6B7690;
+  --line:#DDE3EE;
+  --line-soft:#EBEFF6;
+  --accent:#2C50A8;
+  --gold:#E9B527;
+  --yes-bg:#E6F4EC; --yes-fg:#157347;
+  --no-bg:#EEF1F5;  --no-fg:#6B7280;
+  --q-bg:#FFF4D6;   --q-fg:#8A5A00;
+  --head-bg:#F0F3F9;
+}
+*{box-sizing:border-box;}
+html{background:var(--bg);}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Be Vietnam Pro',system-ui,-apple-system,'Segoe UI',sans-serif;font-size:15px;line-height:1.6;}
+.wrap{max-width:980px;margin:0 auto;padding-inline:20px;padding-block:48px 72px;}
+h1,h2,h3{color:var(--ink);text-wrap:balance;margin:0;}
+h1{font-size:clamp(28px,4vw,38px);font-weight:800;letter-spacing:-.025em;line-height:1.12;}
+h2{font-size:21px;font-weight:700;letter-spacing:-.015em;line-height:1.25;}
+h3{font-size:15.5px;font-weight:700;line-height:1.35;}
+p{margin:0;max-width:68ch;text-wrap:pretty;}
+.eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);}
+.eyebrow::before{content:"";width:22px;height:3px;border-radius:2px;background:var(--gold);}
+header{display:grid;gap:14px;padding-bottom:28px;border-bottom:1px solid var(--line);}
+header .lead{font-size:16.5px;color:var(--text);}
+.src a{color:var(--accent);}
+.src{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--muted);line-height:1.7;}
+section{display:grid;gap:16px;padding-top:40px;}
+.layers{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;}
+.layer{display:grid;gap:8px;align-content:start;padding:16px 18px;background:var(--paper);border:1px solid var(--line);border-radius:14px;}
+.layer .k{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+.layer .roles{display:flex;flex-wrap:wrap;gap:6px;}
+.role{display:inline-block;padding:2px 9px;border-radius:6px;font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:var(--head-bg);color:var(--ink);border:1px solid var(--line);}
+.layer p{font-size:13.5px;}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13px;color:var(--muted);}
+.legend span{display:inline-flex;align-items:center;gap:8px;}
+.legend i{font-style:normal;}
+.tbl{overflow-x:auto;background:var(--paper);border:1px solid var(--line);border-radius:14px;}
+table{width:100%;border-collapse:collapse;min-width:640px;font-size:14px;}
+th,td{padding:12px 14px;text-align:left;vertical-align:top;border-top:1px solid var(--line-soft);}
+thead th{border-top:0;background:var(--head-bg);font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink);white-space:nowrap;}
+thead th:first-child{border-top-left-radius:14px;}
+thead th:last-child{border-top-right-radius:14px;}
+tbody th{font-weight:600;color:var(--ink);width:34%;}
+tbody th small{display:block;font-weight:400;color:var(--muted);font-size:12.5px;margin-top:2px;}
+.c{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap;}
+.y{background:var(--yes-bg);color:var(--yes-fg);}
+.n{background:var(--no-bg);color:var(--no-fg);}
+.q{background:var(--q-bg);color:var(--q-fg);}
+td .note{display:block;font-size:12.5px;color:var(--muted);margin-top:4px;line-height:1.45;}
+.issues{display:grid;gap:12px;}
+.issue{display:grid;gap:6px;padding:16px 18px;background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:10px;}
+.issue p{font-size:14px;}
+.issue .where{font-size:12.5px;color:var(--muted);}
+ol.qs{margin:0;padding:0;list-style:none;display:grid;gap:0;background:var(--paper);border:1px solid var(--line);border-radius:14px;counter-reset:q;}
+ol.qs li{counter-increment:q;display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:4px 12px;align-items:baseline;padding:14px 18px;border-top:1px solid var(--line-soft);}
+ol.qs li:first-child{border-top:0;}
+ol.qs li::before{content:"Q" counter(q);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;color:var(--accent);}
+ol.qs li p{font-size:14.5px;color:var(--ink);}
+ol.qs li .who{font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;}
+footer{padding-top:36px;font-size:13.5px;color:var(--muted);}
+@media (max-width:560px){
+  .wrap{padding-block:32px 56px;padding-inline:16px;}
+  ol.qs li{grid-template-columns:30px minmax(0,1fr);}
+  ol.qs li .who{grid-column:2;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Onboarding feedback · Draft 1</span>
+    <h1>Who can do what: roles and permissions</h1>
+    <p class="lead">The feedback on "Selecting Org as Collaborator" asked for a review of roles. This page lists every role in the onboarding prototype, what each one can do today, where the rules conflict, and the questions to settle. Nothing here is final. The prototype's behaviour is a placeholder until the team decides.</p>
+    <p class="src">Sources: handoff, Diagram 1c · flow spec, Step 5 and Step 10 · prototype at <a href="onboarding.html">/onboarding</a> · change-request PRD (admin portal)</p>
+  </header>
+
+  <section>
+    <h2>Two sets of roles, plus Agathos staff</h2>
+    <div class="layers">
+      <div class="layer">
+        <span class="k">Organisation roles</span>
+        <div class="roles"><span class="role">Owner</span><span class="role">Admin</span><span class="role">Collaborator</span><span class="role">Member</span></div>
+        <p>One per person per organisation. Decides what they see when they start a project. The handoff names Owner, Admin and Collaborator. "Member" is the prototype's name for the handoff's "anything else".</p>
+      </div>
+      <div class="layer">
+        <span class="k">Project roles</span>
+        <div class="roles"><span class="role">Editor</span><span class="role">Viewer</span><span class="role">Withdrawal-authorised</span></div>
+        <p>Given per project in the Team step, by email invite. Straight from flow spec Step 10.</p>
+      </div>
+      <div class="layer">
+        <span class="k">Agathos staff</span>
+        <div class="roles"><span class="role">Agathos admin</span></div>
+        <p>Works in the admin portal. Approves verification and change requests on live projects. Not a user role, but it shares the word "Admin".</p>
+      </div>
+      <div class="layer">
+        <span class="k">Individual fundraisers</span>
+        <div class="roles"><span class="role">One person</span></div>
+        <p>No organisation, so no roles. The individual does everything, and can invite project roles like anyone else.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Organisation roles today</h2>
+    <div class="legend"><span><i class="c y">Yes</i> the prototype allows it</span><span><i class="c n">No</i> the prototype blocks it</span><span><i class="c q">Not defined</i> needs a decision</span></div>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Action</th><th>Owner</th><th>Admin</th><th>Collaborator</th><th>Member</th></tr></thead>
+        <tbody>
+          <tr><th>See the verified details<small>Registration, primary contact, payout account (masked), valid-until date</small></th><td><span class="c y">Yes</span></td><td><span class="c y">Yes</span></td><td><span class="c n">No</span><span class="note">Name and verified badge only</span></td><td><span class="c n">No</span><span class="note">Name and verified badge only</span></td></tr>
+          <tr><th>Confirm "details still accurate" before a new project</th><td><span class="c y">Yes</span></td><td><span class="c y">Yes</span></td><td><span class="c n">No</span><span class="note">Skips this step</span></td><td><span class="c n">No</span></td></tr>
+          <tr><th>Update registration, contact or payout<small>Re-opens only that section for review</small></th><td><span class="c y">Yes</span></td><td><span class="c y">Yes</span></td><td><span class="c n">No</span></td><td><span class="c n">No</span></td></tr>
+          <tr><th>Refresh an expiring verification</th><td><span class="c y">Yes</span></td><td><span class="c y">Yes</span></td><td><span class="c n">No</span><span class="note">Doesn't see the reminder</span></td><td><span class="c n">No</span></td></tr>
+          <tr><th>Start, build and launch a project for the organisation</th><td><span class="c y">Yes</span></td><td><span class="c y">Yes</span></td><td><span class="c y">Yes</span></td><td><span class="c n">No</span><span class="note">Asks for access. On approval they become a Collaborator</span></td></tr>
+          <tr><th>Invite people to a project<small>Any project role, including Withdrawal-authorised</small></th><td><span class="c y">Yes</span></td><td><span class="c y">Yes</span></td><td><span class="c y">Yes</span><span class="note">Conflicts with the collaborator notice, see below</span></td><td><span class="c n">No</span></td></tr>
+          <tr><th>Approve a member's access request</th><td><span class="c q">Not defined</span></td><td><span class="c q">Not defined</span></td><td><span class="c n">No</span></td><td><span class="c n">No</span></td></tr>
+          <tr><th>Request a withdrawal</th><td><span class="c q">Not defined</span></td><td><span class="c q">Not defined</span></td><td><span class="c q">Not defined</span></td><td><span class="c q">Not defined</span></td></tr>
+          <tr><th>Ask Agathos to change a live project's goal or end date</th><td><span class="c q">Not defined</span></td><td><span class="c q">Not defined</span></td><td><span class="c q">Not defined</span></td><td><span class="c q">Not defined</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13.5px;color:var(--muted)">Withdrawals don't follow organisation roles at all today. They go to the people typed under Contact &amp; authority, plus anyone invited to a project as Withdrawal-authorised.</p>
+  </section>
+
+  <section>
+    <h2>Project roles today</h2>
+    <p>The Team step describes each role in one line: editors can update the page, viewers can see the numbers, withdrawal-authorised members can request payouts. The Yes and No below come from those lines. The prototype doesn't enforce project roles yet.</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Action</th><th>Editor</th><th>Viewer</th><th>Withdrawal-authorised</th></tr></thead>
+        <tbody>
+          <tr><th>Edit the project page<small>Story, photos, needs</small></th><td><span class="c y">Yes</span></td><td><span class="c n">No</span></td><td><span class="c q">Not defined</span></td></tr>
+          <tr><th>See amounts raised</th><td><span class="c q">Not defined</span></td><td><span class="c y">Yes</span></td><td><span class="c q">Not defined</span></td></tr>
+          <tr><th>See donor names and emails</th><td><span class="c q">Not defined</span></td><td><span class="c q">Not defined</span></td><td><span class="c q">Not defined</span></td></tr>
+          <tr><th>Request a payout</th><td><span class="c n">No</span></td><td><span class="c n">No</span></td><td><span class="c y">Yes</span></td></tr>
+          <tr><th>Publish, schedule or unpublish</th><td><span class="c q">Not defined</span></td><td><span class="c q">Not defined</span></td><td><span class="c q">Not defined</span></td></tr>
+          <tr><th>Invite or remove other people</th><td><span class="c q">Not defined</span></td><td><span class="c q">Not defined</span></td><td><span class="c q">Not defined</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Where the rules conflict</h2>
+    <div class="issues">
+      <div class="issue">
+        <h3>"Admin" means two different people</h3>
+        <p>An organisation Admin is a user on the charity's side. An Agathos admin is our staff member who approves change requests. On a screen that says "ask an admin", users can't tell which one.</p>
+      </div>
+      <div class="issue">
+        <h3>A collaborator can hand out payout rights</h3>
+        <p>The collaborator screen says payouts and team access belong to the owner. But in the Team step, a collaborator can invite anyone as Withdrawal-authorised.</p>
+        <span class="where">Collaborator screen · Team step</span>
+      </div>
+      <div class="issue">
+        <h3>Withdrawal rights are set in two places</h3>
+        <p>Contact &amp; authority asks for names in free text during verification. The Team step gives the Withdrawal-authorised role by email. A hint asks for them to match, but nothing checks it. Partnerships is already deciding whether the first field is needed at all.</p>
+        <span class="where">Contact &amp; authority · Team step · feedback item on withdrawal POC</span>
+      </div>
+      <div class="issue">
+        <h3>No one clearly approves access requests</h3>
+        <p>A member is told to "ask an owner or admin", but the prototype only notifies the organisation's primary contact. There's no rule for what happens if that person never answers.</p>
+        <span class="where">Request-access screen</span>
+      </div>
+      <div class="issue">
+        <h3>Owner and Admin behave the same</h3>
+        <p>Every check in the prototype treats them as equal. If they are equal, one of them isn't needed. If they differ, the difference isn't written down anywhere.</p>
+      </div>
+      <div class="issue">
+        <h3>Collaborators see an extra screen</h3>
+        <p>The handoff sends a collaborator straight to project creation. The prototype shows a screen with a notice and a Start button first. This is the screen in the feedback.</p>
+        <span class="where">Handoff, Diagram 1c · collaborator screen</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Questions for the team</h2>
+    <ol class="qs">
+      <li><p>Keep two sets of roles (organisation and project), or merge them into one list?</p><span class="who">Product</span></li>
+      <li><p>Rename the organisation "Admin" role so it can't be confused with Agathos admins?</p><span class="who">Product</span></li>
+      <li><p>What can an Owner do that an Admin can't? For example: change the payout account, remove people, transfer ownership.</p><span class="who">Product</span></li>
+      <li><p>Who may give someone payout rights: the Owner only, Owner and Admin, or collaborators too?</p><span class="who">Partnerships</span></li>
+      <li><p>Who approves a member's access request, and what happens if no one responds?</p><span class="who">Product</span></li>
+      <li><p>Does "see the numbers" include donor names and emails, or totals only?</p><span class="who">Compliance</span></li>
+      <li><p>Which roles may ask Agathos to change a live project's goal or end date?</p><span class="who">Product</span></li>
+      <li><p>Should collaborators skip straight to project creation, as the handoff says?</p><span class="who">Product</span></li>
+    </ol>
+  </section>
+
+  <footer>
+    Once these are answered, the role checks in the prototype and the teammate invitation flow get built from this table.
+  </footer>
+</div>
+</body>
+</html>
