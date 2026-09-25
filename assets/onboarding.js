@@ -56,13 +56,13 @@ function base(){
 function loggedIn(s){ s.auth = {loggedIn:true, name:'Adam Le', email:'adam@agathos.be'}; return s; }
 
 var SCENARIOS = {
-  'new':      {label:'New visitor', sub:'Not logged in — full Session 1', start:'start', seed:function(){ return base(); }},
-  'ret1':     {label:'Returning · one organisation', sub:'Owner of Antioch21, verified', start:'entry', seed:function(){ var s=loggedIn(base()); s.account.orgs=[clone(ORG_ANTIOCH)]; s.account.projects=[clone(PROJ_A),clone(PROJ_B)]; return s; }},
-  'ret2':     {label:'Returning · two organisations', sub:'Owner + Collaborator — org selector', start:'entry', seed:function(){ var s=loggedIn(base()); s.account.orgs=[clone(ORG_ANTIOCH),clone(ORG_TTB)]; s.account.projects=[clone(PROJ_A),clone(PROJ_B)]; return s; }},
-  'expiring': {label:'Returning · verification expiring', sub:'Refresh banner, 20 days left', start:'entry', seed:function(){ var s=loggedIn(base()); var o=clone(ORG_ANTIOCH); o.expiresOn=addDays(20); s.account.orgs=[o]; s.account.projects=[clone(PROJ_A)]; return s; }},
-  'indiv':    {label:'Returning · verified individual', sub:'No org, ID expiring soon', start:'entry', seed:function(){ var s=loggedIn(base()); s.account.individual={name:'Adam Le', verifiedSince:'2025-08-02', idMasked:'S••••567A', idExpires:addDays(25), address:'Tampines, Singapore'}; return s; }},
-  'collab':   {label:'Returning · collaborator / no permission', sub:'Collaborator on one org, member of another', start:'entry', seed:function(){ var s=loggedIn(base()); s.account.orgs=[clone(ORG_TTB),clone(ORG_YWAM)]; return s; }},
-  'awaiting': {label:'Approved · awaiting publish', sub:'Dashboard with a scheduled project', start:'dashboard', seed:function(){ var s=loggedIn(base()); s.account.orgs=[clone(ORG_ANTIOCH)]; s.account.projects=[{id:'c3', name:'Living Waters Village', org:'antioch21', status:'scheduled', scheduledFor:addDays(7)+'T09:00', approvedOn:addDays(-2)}, clone(PROJ_A)]; s.selectedOrg='antioch21'; return s; }}
+  'new':      {label:'New visitor', sub:'Sign up, verify, then build a project', start:'start', seed:function(){ return base(); }},
+  'ret1':     {label:'Owner of one organisation', sub:'Goes straight to Antioch21', start:'entry', seed:function(){ var s=loggedIn(base()); s.account.orgs=[clone(ORG_ANTIOCH)]; s.account.projects=[clone(PROJ_A),clone(PROJ_B)]; return s; }},
+  'ret2':     {label:'In two organisations', sub:'Picks which one first', start:'entry', seed:function(){ var s=loggedIn(base()); s.account.orgs=[clone(ORG_ANTIOCH),clone(ORG_TTB)]; s.account.projects=[clone(PROJ_A),clone(PROJ_B)]; return s; }},
+  'expiring': {label:'Verification expiring', sub:'Refresh reminder, 20 days left', start:'entry', seed:function(){ var s=loggedIn(base()); var o=clone(ORG_ANTIOCH); o.expiresOn=addDays(20); s.account.orgs=[o]; s.account.projects=[clone(PROJ_A)]; return s; }},
+  'indiv':    {label:'Individual, already verified', sub:'No organisation, raises personally', start:'entry', seed:function(){ var s=loggedIn(base()); s.account.individual={name:'Adam Le', verifiedSince:'2025-08-02', idMasked:'S••••567A', idExpires:addDays(25), address:'Tampines, Singapore'}; return s; }},
+  'collab':   {label:'Collaborator or member', sub:'Builds without verifying, or asks the owner for access', start:'entry', seed:function(){ var s=loggedIn(base()); s.account.orgs=[clone(ORG_TTB),clone(ORG_YWAM)]; return s; }},
+  'awaiting': {label:'Project awaiting publish', sub:'Dashboard with a scheduled project', start:'dashboard', seed:function(){ var s=loggedIn(base()); s.account.orgs=[clone(ORG_ANTIOCH)]; s.account.projects=[{id:'c3', name:'Living Waters Village', org:'antioch21', status:'scheduled', scheduledFor:addDays(7)+'T09:00', approvedOn:addDays(-2)}, clone(PROJ_A)]; s.selectedOrg='antioch21'; return s; }}
 };
 
 /* ---------- state ---------- */
@@ -952,11 +952,18 @@ modalEl.addEventListener('click', function(ev){ if(ev.target.classList.contains(
 var toastEl=document.getElementById('ob-toast'), toastT;
 function toast(msg){ toastEl.textContent=msg; toastEl.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(function(){ toastEl.classList.remove('show'); }, 2800); }
 
+/* scenarios grouped the way a reviewer thinks about them: logged out, then logged in by what the account has */
+var DEMO_GROUPS=[
+  {h:'Not logged in', keys:['new']},
+  {h:'Logged in · starting a project', keys:['ret1','ret2','indiv','collab']},
+  {h:'Logged in · other states', keys:['expiring','awaiting']}
+];
+var DEMO_ORDER=DEMO_GROUPS.reduce(function(a,g){ return a.concat(g.keys); }, []);
 function renderDemo(){
   var el=document.getElementById('ob-demo');
-  el.innerHTML='<button type="button" data-act="demoToggle"><i></i>Demo · '+h(SCENARIOS[S.scenario].label)+'</button><div class="panel"><h4>Scenario</h4>'+
-    Object.keys(SCENARIOS).map(function(k){ var s=SCENARIOS[k]; return '<label><input type="radio" name="demo" data-act="demoPick" data-s="'+k+'"'+(k===S.scenario?' checked':'')+'><div>'+h(s.label)+'<span>'+h(s.sub)+'</span></div></label>'; }).join('')+
-    '<div class="hints"><b>Try in the forms</b><br>Email <code>josias@antioch21.org</code> → existing account.<br>Registration no. <code>T08SS0123A</code> → org already verified.<br>Registration no. <code>T21SS0456B</code> → application in progress.</div>'+
+  var tryIt='<div class="try"><b>Try in the forms</b><code>josias@antioch21.org</code> → existing account<br><code>T08SS0123A</code> → org already verified<br><code>T21SS0456B</code> → application in progress</div>';
+  el.innerHTML='<button type="button" data-act="demoToggle"><i></i>Demo · '+h(SCENARIOS[S.scenario].label)+'</button><div class="panel">'+
+    DEMO_GROUPS.map(function(g){ return '<h4>'+h(g.h)+'</h4>'+g.keys.map(function(k){ var s=SCENARIOS[k]; return '<label><input type="radio" name="demo" data-act="demoPick" data-s="'+k+'"'+(k===S.scenario?' checked':'')+'><div>'+h(s.label)+'<span>'+h(s.sub)+'</span></div></label>'+(k==='new'?tryIt:''); }).join(''); }).join('')+
     '<div class="acts"><button class="ob-btn ghost sm" type="button" data-act="demoReset">Reset scenario</button><button class="ob-btn primary sm" type="button" data-act="demoFlow">Flow diagram</button></div>'+
     '<div class="acts"><a class="ob-btn ghost sm" href="onboarding-matrix.html">View matrix</a></div></div>';
 }
@@ -964,7 +971,7 @@ function renderDemo(){
 function flowModal(key){
   var F=OB_FLOWS.get(key);
   modal('<div class="flow-top"><div class="flow-head"><div><h2>Flow diagram</h2><p class="lead">Where each demo scenario goes, per the handoff diagrams.</p></div><button class="flow-x" type="button" data-act="modalClose" aria-label="Close">×</button></div>'+
-    '<div class="flow-pick">'+OB_FLOWS.keys.map(function(k){ return '<button type="button" class="'+(k===key?'on':'')+'" data-act="flowPick" data-s="'+k+'">'+h(SCENARIOS[k].label)+'</button>'; }).join('')+'</div></div>'+
+    '<div class="flow-pick">'+DEMO_ORDER.map(function(k){ return '<button type="button" class="'+(k===key?'on':'')+'" data-act="flowPick" data-s="'+k+'">'+h(SCENARIOS[k].label)+'</button>'; }).join('')+'</div></div>'+
     '<div class="flow-title"><b>'+h(F.title)+'</b><span>'+h(F.src)+'</span></div>'+
     '<div class="flow-svg">'+OB_FLOWS.render(key)+'</div>'+
     '<p class="flow-note">'+h(F.note)+'</p>'+

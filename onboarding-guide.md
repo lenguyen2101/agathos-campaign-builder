@@ -101,18 +101,24 @@ Dựng theo tab **Manage Pages** của trang tài khoản trên Agathos hiện t
 
 ## 7. Tự bấm thử khoảng 15 phút
 
-Mở `/onboarding` và bấm nút **Demo** (viên thuốc ở góc dưới trái):
+Mở `/onboarding` và bấm nút **Demo** (viên thuốc ở góc dưới trái). Các scenario chia làm 3 nhóm:
 
-1. **New visitor**: đi hết Phiên 1. Ở bước Documents, thử số đăng ký:
-   - `T08SS0123A`: tổ chức đã xác minh.
-   - `T21SS0456B`: tổ chức đang có đơn khác.
-   - Ở bước tạo tài khoản, email `josias@antioch21.org` là tài khoản đã có.
+**Not logged in**
+1. **New visitor**: đi hết Phiên 1. Ngay dưới dòng này có khối "Try in the forms":
+   - `josias@antioch21.org` ở bước tạo tài khoản: email đã có tài khoản.
+   - `T08SS0123A` ở bước Documents: tổ chức đã xác minh.
+   - `T21SS0456B` ở bước Documents: tổ chức đang có đơn khác.
    - Submit xong, bấm "Demo: approve now" để giả lập đã được duyệt.
-2. **Returning · one organisation**: vào thẳng màn "Ready when you are". Tick ô xác nhận, bấm Start a new project, đi hết Phiên 2.
-3. **Returning · two organisations**: xem màn chọn org.
-4. **Returning · collaborator / no permission**: so sánh Collaborator với Member.
-5. **Returning · verification expiring**: xem banner nhắc làm mới.
-6. **Approved · awaiting publish**: xem dashboard có Project đã hẹn giờ và các mốc nhắc.
+
+**Logged in · starting a project** (đăng nhập là Adam Le)
+2. **Owner of one organisation**: vào thẳng màn "Ready when you are" của Antioch21. Tick ô xác nhận, bấm Start a new project, đi hết Phiên 2.
+3. **In two organisations**: xem màn chọn org.
+4. **Individual, already verified**: không có org, làm Project cá nhân mà không phải nộp lại giấy tờ.
+5. **Collaborator or member**: so sánh Collaborator (tạo Project được) với Member (phải xin quyền).
+
+**Logged in · other states**
+6. **Verification expiring**: xem banner nhắc làm mới.
+7. **Project awaiting publish**: xem dashboard có Project đã hẹn giờ và các mốc nhắc.
 
 Trong panel Demo còn có:
 - **Flow diagram**: sơ đồ luồng của từng scenario.

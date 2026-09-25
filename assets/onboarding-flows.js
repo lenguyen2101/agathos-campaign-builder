@@ -32,7 +32,7 @@ var FLOWS = {
     edges:[['a','b'],['b','c'],['c','d'],['d','d1','Yes',1],['d','e','No'],['e','e1','Individual',1],['e','f','Charity'],['f','g'],['g','g1','Verified'],['g','g2','Pending (2b)'],['g2','g3','',1],['g','h','No match'],['h','i'],['i','j'],['j','k'],['k','l']]
   },
   'ret1': {
-    title:'Returning · one organisation', src:'Diagram 1c → 3 · Spec "Returning-user flow"',
+    title:'Owner of one organisation', src:'Diagram 1c → 3 · Spec "Returning-user flow"',
     note:'Verification is tied to the organisation, not the project. The confirm checkbox keeps mild friction on purpose; a change re-opens only that section and the build can start while the expedited review runs.',
     cols:3,
     nodes:[
@@ -55,7 +55,7 @@ var FLOWS = {
     edges:[['a','b'],['b','b0','0',1],['b','b2','2+',1],['b','c','1'],['c','c1','',1],['d','d0','Other',1],['d','d2','Collaborator',1],['c','d'],['d','e','Owner / Admin'],['e','f'],['f','f1','Changed'],['f1','f2'],['f','g','Confirm'],['g','h'],['f2','h','Build meanwhile']]
   },
   'ret2': {
-    title:'Returning · two organisations', src:'Diagram 1c (v4) · Spec "Is this for the same organization as before?"',
+    title:'In two organisations', src:'Diagram 1c (v4) · Spec "Is this for the same organization as before?"',
     note:'One login, several organisations. The selector decides which verification record, payout account and public "by [Org]" the project uses. An individual project is always available from this screen.',
     cols:3,
     nodes:[
@@ -76,7 +76,7 @@ var FLOWS = {
     edges:[['a','b'],['b','b0','0',1],['b','b1','1',1],['b','c','2+'],['c','c0','',1],['c','c2','',1],['c','d'],['d','d0','Other',1],['d','d2','Collaborator'],['d','e','Owner / Admin'],['e','f'],['f','g'],['d2','g']]
   },
   'expiring': {
-    title:'Returning · verification expiring', src:'Diagram 1c · Spec UX note "expiring within 30 days"',
+    title:'Verification expiring', src:'Diagram 1c · Spec UX note "expiring within 30 days"',
     note:'Spec triggers for the lightweight re-verification (never the full Session 1): payout details changed · 12+ months since last verification · registration expiry passed · new cause outside what was declared → manual review.',
     cols:3,
     nodes:[
@@ -95,7 +95,7 @@ var FLOWS = {
     edges:[['a','b'],['b','c'],['c','c1','No',1],['c','d','Yes'],['d','e'],['e','e1','Later'],['e','f','Now'],['f','g'],['g','h'],['h','i'],['e1','i']]
   },
   'indiv': {
-    title:'Returning · verified individual', src:'Diagram 1c → 2c · Handoff §D',
+    title:'Individual, already verified', src:'Diagram 1c → 2c · Handoff §D',
     note:'Same pattern as the recognised-org screen with individual fields. The ID-expiry warning is a badge variant on the same screen, not a separate screen.',
     cols:3,
     nodes:[
@@ -115,7 +115,7 @@ var FLOWS = {
     edges:[['a','b'],['b','b0','',1],['b','c','Individual'],['c','c1','No',1],['c','d','Yes'],['d','e'],['e','e1','Yes'],['e','f','No'],['e1','f'],['f','f1','Changed'],['f','g','Confirm'],['g','h'],['f1','h','After update']]
   },
   'collab': {
-    title:'Returning · collaborator / no permission', src:'Diagram 1c (v4) · Handoff "Request-permissions screen"',
+    title:'Collaborator or member', src:'Diagram 1c (v4) · Handoff "Request-permissions screen"',
     note:'A collaborator builds and launches without verifying anything — the owner already did. Anyone else on the org asks an Owner/Admin; on approval they loop back here with no re-verification.',
     cols:3,
     nodes:[
@@ -134,7 +134,7 @@ var FLOWS = {
     edges:[['a','b'],['b','c'],['c','c0','Collaborator'],['c','c2','Owner / Admin',1],['c','d','Anything else (YWAM)'],['d','e'],['e','f'],['f','f1','No reply',1],['f','g','Yes'],['g','h'],['c0','h']]
   },
   'awaiting': {
-    title:'Approved · awaiting publish', src:'Diagram 3 · Spec Steps 9–11',
+    title:'Project awaiting publish', src:'Diagram 3 · Spec Steps 9–11',
     note:'Launch timing is a real decision (three equal cards, not a dropdown). Schedule and draft both land in "Approved, awaiting publish" — a dashboard state, not a one-time screen — with reminders on day 3, 7 and 14.',
     cols:3,
     nodes:[
