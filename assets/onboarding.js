@@ -895,7 +895,8 @@ function renderDemo(){
   el.innerHTML='<button type="button" data-act="demoToggle"><i></i>Demo · '+h(SCENARIOS[S.scenario].label)+'</button><div class="panel"><h4>Scenario</h4>'+
     Object.keys(SCENARIOS).map(function(k){ var s=SCENARIOS[k]; return '<label><input type="radio" name="demo" data-act="demoPick" data-s="'+k+'"'+(k===S.scenario?' checked':'')+'><div>'+h(s.label)+'<span>'+h(s.sub)+'</span></div></label>'; }).join('')+
     '<div class="hints"><b>Try in the forms</b><br>Email <code>josias@antioch21.org</code> → existing account.<br>Registration no. <code>T08SS0123A</code> → org already verified.<br>Registration no. <code>T21SS0456B</code> → application in progress.</div>'+
-    '<div class="acts"><button class="ob-btn ghost sm" type="button" data-act="demoReset">Reset scenario</button><button class="ob-btn primary sm" type="button" data-act="demoFlow">Flow diagram</button></div></div>';
+    '<div class="acts"><button class="ob-btn ghost sm" type="button" data-act="demoReset">Reset scenario</button><button class="ob-btn primary sm" type="button" data-act="demoFlow">Flow diagram</button></div>'+
+    '<div class="acts"><a class="ob-btn ghost sm" href="onboarding-matrix.html">View matrix</a></div></div>';
 }
 
 function flowModal(key){
