@@ -215,8 +215,11 @@ function s1Steps(){
     return S.update.sections.map(function(id){ return {id:id, lbl:'Update: '+({docs:S.update.kind==='individual'?'identity':'registration', contact:'contact & authority', payout:'payout details'})[id], sub:''}; });
   }
   var st=[{id:'start', lbl:'About your cause', sub:'Under a minute'}];
-  if(S.s1.mode!=='addorg') st.push({id:'account', lbl:'Your account', sub:'So you can resume any time'});
-  st.push({id:'type', lbl:'Who is raising', sub:'Organisation or individual'});
+  /* a logged-in user already picked org or individual at the entry screen */
+  if(S.s1.mode==='visitor'){
+    st.push({id:'account', lbl:'Your account', sub:'So you can resume any time'});
+    st.push({id:'type', lbl:'Who is raising', sub:'Organisation or individual'});
+  }
   st.push({id:'docs', lbl:S.s1.type==='individual'?'Verify your identity':'Documents', sub:'The one paperwork step'});
   st.push({id:'contact', lbl:'Contact & authority', sub:'Who we talk to'});
   st.push({id:'payout', lbl:'Payout details', sub:'Where donations go'});
@@ -247,7 +250,7 @@ function s1Advance(cur){
 function s1Back(cur){
   var st=s1Steps(), i=-1; st.forEach(function(s,k){ if(s.id===cur) i=k; });
   if(S.update && i===0) return S.update.kind==='individual' ? 'individual' : 'org/'+S.update.id;
-  return i>0 ? st[i-1].id : (S.s1.mode==='addorg' ? 'entry' : '');
+  return i>0 ? st[i-1].id : (S.s1.mode!=='visitor' ? 'entry' : '');
 }
 function finishUpdate(){
   var u=S.update; S.update=null;
@@ -266,7 +269,7 @@ function viewStart(){
     field({k:'s1.intent.name', label:'Organisation or fundraiser name', req:1, placeholder:'The name donors will recognise'})+
     '<div class="ob-row">'+field({k:'s1.intent.cause', label:'Cause category', req:1, type:'select', options:CAUSES})+field({k:'s1.intent.country', label:'Country of operation', req:1, type:'select', options:COUNTRIES})+'</div>'+
     field({k:'s1.intent.purpose', label:'What are you raising funds for?', req:1, type:'textarea', rows:3, maxlen:300, placeholder:'One or two sentences is plenty.', hint:'Read by our review team only — nothing here is public yet.'})+
-    '</div>'+actions({back:S.s1.mode==='addorg'?'entry':'', next:'Continue'})+'</div>';
+    '</div>'+actions({back:S.s1.mode!=='visitor'?'entry':'', next:'Continue'})+'</div>';
   return s1Shell('start', card);
 }
 
@@ -305,7 +308,6 @@ function viewDocs(){
       field({k:'s1.docs.fullName', label:'Full legal name', req:1, placeholder:'Exactly as on your ID'})+
       upload({k:'s1.docs.idFile', label:'Government-issued ID', req:1, hint:'Passport, NRIC or national ID. Front and back on one page is fine.'})+
       upload({k:'s1.docs.addressFile', label:'Proof of address', req:1, hint:'A utility bill or bank statement from the last three months.'})+
-      field({k:'s1.docs.explanation', label:'What the cause is and how funds will be used', req:1, type:'textarea', rows:5, maxlen:1000, placeholder:'Who benefits, what the money pays for, and roughly when.'})+
       upload({k:'s1.docs.letterFile', label:'Supporting letter', opt:1, hint:'From a beneficiary, hospital or community leader. Not required, but it helps with the trust badge later.'})+
       '</div>'+actions({back:s1Back('docs'), next:'Continue'})+'</div>';
   } else {
@@ -385,9 +387,9 @@ function viewReview(){
     sec('About your cause','start',[row('Name',h(s.intent.name)), row('Cause',h(causeLabel(s.intent.cause))), row('Country',h(s.intent.country)), row('Raising for',h(s.intent.purpose))]),
   ];
   if(!S.auth.loggedIn || s.account.email) secs.push(sec('Account','account',[row('Login email',h(s.account.email||S.auth.email)), row('Phone',h(s.account.phone))]));
-  secs.push(sec('Who is raising','type',[row('Type', ind?'Individual or informal group':'Registered charity or nonprofit')]));
+  if(s.mode==='visitor') secs.push(sec('Who is raising','type',[row('Type', ind?'Individual or informal group':'Registered charity or nonprofit')]));
   if(ind){
-    secs.push(sec('Identity','docs',[row('Full legal name',h(s.docs.fullName)), row('Government ID',fileChip(s.docs.idFile)), row('Proof of address',fileChip(s.docs.addressFile)), row('Cause and fund use',h(s.docs.explanation)), row('Supporting letter',fileChip(s.docs.letterFile))]));
+    secs.push(sec('Identity','docs',[row('Full legal name',h(s.docs.fullName)), row('Government ID',fileChip(s.docs.idFile)), row('Proof of address',fileChip(s.docs.addressFile)), row('Supporting letter',fileChip(s.docs.letterFile))]));
   } else {
     secs.push(sec('Documents','docs',[row('Legal entity',h(s.docs.legalName)), row('Registration no.',h(s.docs.regNo)), row('Registered in',h(s.docs.regCountry)), row('Certificate',fileChip(s.docs.certFile)), row('Charitable status',fileChip(s.docs.taxFile)), row('Financials',fileChip(s.docs.finFile, s.docs.finPending)), row('Website',h(s.docs.website))]));
   }
@@ -456,20 +458,21 @@ function viewEntry(){
     body='<div class="ob-card"><h2>'+(ind?'Pick up where you left off':'What are you raising for?')+'</h2><p class="lead">'+(ind?'You\'re verified as an individual. Add an organisation if you\'re raising on behalf of one.':'Verify once for an organisation, or start as an individual. Either way, you only do this once.')+'</p><div class="ob-orglist">'+addRows()+'</div></div>';
     return center({kicker:'Start a project', h1:'Welcome back, '+h(name), p:'', body:expiryBanner()+body});
   }
-  if(orgs.length===1){
-    var o=orgs[0];
-    body='<div class="ob-context"><span class="av">'+initials(o.name)+'</span><span class="t"><b>'+h(o.name)+'</b><span>'+roleBadge(o.role)+'<i>Verified since '+fmtDate(o.verifiedSince)+'</i></span></span><button class="ob-btn gold" type="button" data-go="org/'+o.id+'">Continue →</button></div><p class="ob-context-alt"><a href="#/individual">Start an individual project instead →</a></p>'+
-      '<div class="ob-card"><div class="ob-sec-head"><h3>Projects by '+h(o.name)+'</h3><p>Verification is tied to the organisation, so every new project skips straight to the build.</p></div>'+projectRows(o.id)+'</div>';
-    return center({kicker:'Start a project', h1:'Welcome back, '+h(name), p:'', body:expiryBanner()+body});
-  }
+  /* handoff 1c: with one org the context bar is not a screen — it sits on top of the org screen */
+  if(orgs.length===1){ history.replaceState(null, '', '#/org/'+orgs[0].id); render(); return ''; }
   body='<div class="ob-card"><h2>Which organisation is this for?</h2><p class="lead">You\'re on the team of more than one. Pick the one this project belongs to.</p><div class="ob-orglist">'+orgs.map(orgRow).join('')+addRows()+'</div></div>';
   return center({kicker:'Start a project', h1:'Welcome back, '+h(name), p:'', body:expiryBanner()+body});
 }
 
+function orgContext(o){
+  if(S.account.orgs.length>1) return '<a class="ob-btn text" href="#/entry" style="margin:-16px 0 8px -4px">← All organisations</a>';
+  var ind=S.account.individual;
+  return '<div class="ob-ctx"><span>Raising for <b>'+h(o.name)+'</b></span><a href="#/individual">'+(ind?'Continue as '+h(ind.name)+' instead':'Start an individual project instead')+' →</a></div>';
+}
 function viewOrg(id){
   var o=findOrg(id); if(!o){ go('entry'); return ''; }
   S.selectedOrg=id; save();
-  var body='', kicker='Start a project';
+  var body='', kicker='Start a project', back=S.account.orgs.length>1?'#/entry':'#/dashboard';
   if(o.role==='Owner'||o.role==='Admin'){
     var d=daysUntil(o.expiresOn), warnB = d>0 && d<=30 && !o.refreshPending;
     var pend = o.pending && o.pending.length ? '<div class="ob-banner info" style="margin-top:22px"><div class="ic">'+I.clock+'</div><div><b>'+h(o.pending.map(function(s){ return {docs:'Registration details', contact:'Contact & authority', payout:'Payout details'}[s]; }).join(', '))+' under expedited review</b><p>Usually same day. You can build and launch meanwhile'+(o.pending.indexOf('payout')>=0?' — payouts pause until the bank details are re-verified.':'.')+'</p></div></div>' : '';
@@ -480,24 +483,25 @@ function viewOrg(id){
       '<div class="ob-confirm">'+checkbox({k:'confirmed.'+id, t:'These details are still accurate', d:'Takes a second, and it\'s what keeps donors trusting the platform. If something changed, update it below — only that part gets re-checked.'})+'</div>'+
       '<div class="ob-actions"><button class="ob-btn text" type="button" data-go="org/'+id+'/changes">Something changed? Update details</button><div class="r"><button class="ob-btn primary" type="button" data-act="startOrgProject"'+(confirmed?'':' disabled')+'>Start a new project →</button></div></div></div>'+
       '<div class="ob-card"><div class="ob-sec-head"><h3>Projects by '+h(o.name)+'</h3></div>'+projectRows(id)+'</div>';
-    return center({kicker:kicker, h1:'Ready when you are', p:'', body:(S.account.orgs.length>1?'<a class="ob-btn text" href="#/entry" style="margin:-16px 0 8px -4px">← All organisations</a>':'')+expiryBanner()+body});
+    var phases='<ol class="ob-phases">'+['Confirm details','Build','Launch'].map(function(t,i){ return '<li'+(i===0?' class="current"':'')+'><span class="n">'+(i+1)+'</span>'+t+'</li>'; }).join('')+'</ol>';
+    return center({kicker:kicker, h1:'Ready when you are', p:'', body:orgContext(o)+expiryBanner()+phases+body});
   }
   if(o.role==='Collaborator'){
     body='<div class="ob-card"><div class="ob-recog"><div class="av">'+initials(o.name)+'</div><div class="t">'+badge('verified','Verified since '+fmtDate(o.verifiedSince))+'<h2>'+h(o.name)+'</h2><p>Registered charity · '+h(o.country)+' · You\'re a collaborator</p></div></div>'+
       '<div style="margin-top:22px">'+note('<b>You can build and launch projects.</b> Verification, payouts and team access are handled by the owner, '+h(o.contact)+'.')+'</div>'+
       '<div class="ob-actions"><span></span><div class="r"><button class="ob-btn primary" type="button" data-act="startOrgProject">Start a new project →</button></div></div></div>';
-    return center({kicker:kicker, h1:'Ready when you are', p:'', body:(S.account.orgs.length>1?'<a class="ob-btn text" href="#/entry" style="margin:-16px 0 8px -4px">← All organisations</a>':'')+body});
+    return center({kicker:kicker, h1:'Ready when you are', p:'', body:orgContext(o)+body});
   }
   var req=S.requests[id];
   if(req){
     body='<div class="ob-card ob-result"><div class="ic gold">'+I.clock+'</div><h2>Request sent</h2><p class="lead">We\'ve asked '+h(o.contact)+' to give you access to <b>'+h(o.name)+'</b>. You\'ll get an email the moment it\'s approved, and you\'ll land right back here.</p>'+badge('pending','Sent '+fmtDate(req.sent)+' · waiting on '+h(o.contact))+
-      '<div class="acts"><a class="ob-btn ghost" href="#/entry">Back</a><button class="ob-btn gold" type="button" data-act="demoGrant" data-org="'+id+'">Demo: approve →</button></div></div>';
+      '<div class="acts"><a class="ob-btn ghost" href="'+back+'">Back</a><button class="ob-btn gold" type="button" data-act="demoGrant" data-org="'+id+'">Demo: approve →</button></div></div>';
   } else {
     body='<div class="ob-card"><div class="ob-recog"><div class="av">'+initials(o.name)+'</div><div class="t">'+badge('verified','Verified since '+fmtDate(o.verifiedSince))+'<h2>'+h(o.name)+'</h2><p>Registered charity · '+h(o.country)+' · You\'re a member</p></div></div>'+
       '<div style="margin-top:22px">'+note('<b>You don\'t have permission to create projects for '+h(o.name)+' yet.</b> Ask an owner or admin. We\'ll notify '+h(o.contact)+' and let you know when it\'s approved — no re-verification needed.')+'</div>'+
-      '<div class="ob-actions"><a class="ob-btn ghost" href="#/entry">Back</a><div class="r"><button class="ob-btn primary" type="button" data-act="requestPerm" data-org="'+id+'">Request access →</button></div></div></div>';
+      '<div class="ob-actions"><a class="ob-btn ghost" href="'+back+'">Back</a><div class="r"><button class="ob-btn primary" type="button" data-act="requestPerm" data-org="'+id+'">Request access →</button></div></div></div>';
   }
-  return center({kicker:kicker, h1:'Almost there', p:'', body:body});
+  return center({kicker:kicker, h1:'Almost there', p:'', body:(S.account.orgs.length>1?'':orgContext(o))+body});
 }
 
 function viewChanges(id){
@@ -512,7 +516,11 @@ function viewChanges(id){
 
 function viewIndividual(){
   var ind=S.account.individual;
-  if(!ind){ S.s1.type='individual'; save(); go('start'); return ''; }
+  if(!ind){
+    if(S.auth.loggedIn && S.s1.mode!=='addind') S.s1={mode:'addind', intent:{}, account:{}, type:'individual', docs:{}, contact:{}, payout:{}, done:{}, status:'draft'};
+    else S.s1.type='individual';
+    save(); go('start'); return '';
+  }
   var d=daysUntil(ind.idExpires), warnB=d<=30 && !ind.pending;
   var pend = ind.pending ? '<div class="ob-banner info" style="margin-top:22px"><div class="ic">'+I.clock+'</div><div><b>Identity update under expedited review</b><p>Usually same day. You can build and launch meanwhile.</p></div></div>' : '';
   var confirmed=!!S.confirmed.individual;
@@ -609,9 +617,10 @@ function viewGoal(){
 
 function viewTeam(){
   var t=S.s2.team;
-  var rows=t.length?'<div class="ob-team">'+t.map(function(m,i){ return '<div class="row"><span class="av">'+initials(m.email.split('@')[0].replace(/[._-]/g,' '))+'</span><span class="t">'+h(m.email)+'</span>'+roleBadge(({editor:'Editor',viewer:'Viewer',withdraw:'Withdrawal'})[m.role])+'<button type="button" data-act="rmMember" data-i="'+i+'">Remove</button></div>'; }).join('')+'</div>':'<div class="ob-empty" style="margin-top:16px"><b>Just you for now</b>Invite people any time, before or after launch.</div>';
+  var rows=t.length?'<div class="ob-team">'+t.map(function(m,i){ return '<div class="row"><span class="av">'+initials(m.email.split('@')[0].replace(/[._-]/g,' '))+'</span><span class="t">'+h(m.email)+'<span class="st">Invite sent</span></span>'+roleBadge(({editor:'Editor',viewer:'Viewer',withdraw:'Withdrawal'})[m.role])+'<button type="button" data-act="rmMember" data-i="'+i+'">Remove</button></div>'; }).join('')+'</div>':'<div class="ob-empty" style="margin-top:16px"><b>Just you for now</b>Invite people any time, before or after launch.</div>';
+  var unsent='<div class="ob-banner info ob-unsent" id="inv-unsent" hidden><div class="ic">'+I.mail+'</div><div><b>This invite hasn\'t been sent</b><p id="inv-unsent-email"></p><div class="acts"><button class="ob-btn primary sm" type="button" data-act="inviteAndNext">Invite and continue</button><button class="ob-btn text sm" type="button" data-act="nextNoInvite">Continue without inviting</button></div></div></div>';
   var card='<div class="ob-card"><h2>Who else is on this?</h2><p class="lead">Optional. Editors can update the page, viewers can see the numbers, and withdrawal-authorised members can request payouts.</p>'+
-    '<div class="ob-field"><label>Invite by email</label><div class="ob-inline"><input class="ob-input" type="email" id="inv-email" placeholder="name@organisation.org"><select class="ob-input" id="inv-role" style="max-width:220px">'+ROLES.map(function(r){ return '<option value="'+r[0]+'">'+r[1]+'</option>'; }).join('')+'</select><button class="ob-btn ghost" type="button" data-act="addMember">Invite</button></div><div class="hint">Withdrawal-authorised members should match who you named under Contact & authority.</div></div>'+rows+
+    '<div class="ob-field"><label>Invite by email</label><div class="ob-inline"><input class="ob-input" type="email" id="inv-email" placeholder="name@organisation.org"><select class="ob-input" id="inv-role" style="max-width:220px">'+ROLES.map(function(r){ return '<option value="'+r[0]+'">'+r[1]+'</option>'; }).join('')+'</select><button class="ob-btn ghost" type="button" data-act="addMember">Invite</button></div><div class="hint">Withdrawal-authorised members should match who you named under Contact & authority.</div></div>'+rows+unsent+
     actions({back:'build/goal', next:'Continue', skip:'skipTeam'})+'</div>';
   return s2Shell('build/team', card);
 }
@@ -722,6 +731,7 @@ document.addEventListener('input', function(ev){
     var cnt=el.parentNode.querySelector('.ob-count'); if(cnt && el.maxLength>0) cnt.textContent=el.value.length+'/'+el.maxLength;
     if(el.getAttribute('data-k')==='s1.payout.holder') holderCheck(el.value);
   }
+  if(el.id==='inv-email'){ var un=document.getElementById('inv-unsent'); if(un) un.hidden=true; }
   if(el.hasAttribute('data-list')){
     var list=S.s2.goal[el.getAttribute('data-list')]; list[+el.getAttribute('data-i')][el.getAttribute('data-f')]=el.value; save();
   }
@@ -768,9 +778,22 @@ var ACT={
       var e=matchOrg();
       if(e && S.s1.docs.matchDismissed!==e.id){ orgMatchModal(e); return; }
     }
+    if(r==='build' && parts()[1]==='team'){
+      var inv=document.getElementById('inv-email'), un=document.getElementById('inv-unsent');
+      if(inv.value.trim()){
+        document.getElementById('inv-unsent-email').textContent='You typed '+inv.value.trim()+' but didn\'t press Invite.';
+        un.hidden=false; un.scrollIntoView({behavior:'smooth', block:'center'}); return;
+      }
+    }
     if(r==='build'){ s2Advance('build/'+parts()[1]); return; }
     s1Advance(r);
   },
+  inviteAndNext:function(){
+    var email=document.getElementById('inv-email').value.trim();
+    if(!ACT.addMember()){ document.getElementById('inv-unsent').hidden=true; return; }
+    toast('Invite sent to '+email); s2Advance('build/team');
+  },
+  nextNoInvite:function(){ s2Advance('build/team'); },
   sendLink:function(t){
     var card=t.closest('.ob-card'); if(!validate(card)) return;
     set('s1.account.sent', true); render();
@@ -832,8 +855,9 @@ var ACT={
   rmRow:function(t){ var k=t.getAttribute('data-list'); S.s2.goal[k].splice(+t.getAttribute('data-i'),1); save(); render(); },
   addMember:function(){
     var e=document.getElementById('inv-email'), r=document.getElementById('inv-role');
-    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e.value.trim())){ e.focus(); e.closest('.ob-field').classList.add('err'); return; }
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e.value.trim())){ e.focus(); e.closest('.ob-field').classList.add('err'); return false; }
     S.s2.team.push({email:e.value.trim(), role:r.value}); save(); render();
+    return true;
   },
   rmMember:function(t){ S.s2.team.splice(+t.getAttribute('data-i'),1); save(); render(); },
   launch:function(t){
