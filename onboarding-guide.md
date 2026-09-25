@@ -20,8 +20,8 @@ Muốn gây quỹ trên Agathos, người dùng phải **được xác minh trư
 NGƯỜI MỚI                              NGƯỜI QUAY LẠI (đã login)
 Phiên 1 – Xác minh (7 bước)            Có bao nhiêu org?
    ↓ submit                              0 → chọn: thêm org / làm cá nhân
-Agathos duyệt tay (1–2 ngày)             1 → vào thẳng màn của org đó
-   ↓ duyệt xong                          2+ → chọn org trong danh sách
+Agathos duyệt tay (1–2 ngày)             1 trở lên → màn chọn org
+   ↓ duyệt xong                            (các org + thêm org + làm cá nhân)
 Phiên 2 – Tạo Project & launch (4 bước)      ↓ tuỳ role
    ↓                                     Owner/Admin → xác nhận thông tin → Phiên 2
 Live / hẹn giờ / nháp                    Collaborator → Phiên 2
@@ -72,7 +72,7 @@ Phiên này tách riêng có chủ đích: sau khi được duyệt, người d�
 ## 5. Người quay lại: chia luồng theo số org và role
 
 - **Màn "Ready when you are"** (Owner/Admin):
-  - Trên cùng là thanh "Raising for [Org]", kèm link chuyển sang làm Project cá nhân.
+  - Trên cùng là link "← All organisations" để quay lại màn chọn org.
   - Step indicator: Confirm details → Build → Launch.
   - Huy hiệu "Verified since…" và các thông tin đã xác minh (số đăng ký, người liên hệ, tài khoản nhận tiền, ngày hết hạn).
   - Ô **"These details are still accurate"**: phải tick mới bắt đầu Project được. Spec cố tình giữ chút "ma sát" này để donor tin nền tảng.
@@ -111,8 +111,8 @@ Mở `/onboarding` và bấm nút **Demo** (viên thuốc ở góc dưới trái
    - Submit xong, bấm "Demo: approve now" để giả lập đã được duyệt.
 
 **Logged in · starting a project** (đăng nhập là Adam Le)
-2. **Owner of one organisation**: vào thẳng màn "Ready when you are" của Antioch21. Tick ô xác nhận, bấm Start a new project, đi hết Phiên 2.
-3. **In two organisations**: xem màn chọn org.
+2. **Owner of one organisation**: màn chọn org có Antioch21, Add an organisation và Start an individual project. Chọn Antioch21 → "Ready when you are" → tick ô xác nhận → Start a new project → đi hết Phiên 2.
+3. **In two organisations**: cùng màn chọn org, có thêm The Treasure Box (Collaborator).
 4. **Individual, already verified**: không có org, làm Project cá nhân mà không phải nộp lại giấy tờ.
 5. **Collaborator or member**: so sánh Collaborator (tạo Project được) với Member (phải xin quyền).
 
@@ -132,7 +132,8 @@ Prototype lưu mọi thứ trong trình duyệt, nên đóng tab rồi mở lạ
 ## 8. Đã sửa theo feedback Draft 1
 
 - User đã đăng nhập không còn bị hỏi lại "Your account" và "Who is raising".
-- User có 1 org vào thẳng màn của org, có thanh "Raising for…" và step indicator (bám handoff Diagram 1c).
+- User có 1 org thấy cùng màn chọn org như user có 2+ org, nên lúc nào cũng có Add an organisation và Start an individual project.
+- Màn "Ready when you are" có step indicator Confirm details → Build → Launch, và bỏ danh sách Project (đã có ở Dashboard).
 - Bước Team nhắc khi có email đã gõ mà chưa mời; người đã mời hiện "Invite sent".
 - Bước "Verify your identity" bỏ câu hỏi cách dùng tiền, vì Step 1 đã hỏi.
 

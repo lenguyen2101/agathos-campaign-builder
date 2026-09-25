@@ -39,8 +39,8 @@ var FLOWS = {
       {id:'a', t:'start', r:0, c:1, l:'Logged in', s:'Direct login or email match'},
       {id:'b', t:'dec', r:1, c:1, l:'How many orgs on the account?'},
       {id:'b0', t:'ext', r:1, c:0, l:'Zero-org prompt', s:'Add org · start individual'},
-      {id:'b2', t:'ext', r:1, c:2, l:'Org selector', s:'Pick org · add org · individual'},
-      {id:'c', t:'step', r:2, c:1, l:'Context bar', s:'Sits on the org screen · Raising for [Org]'},
+      {id:'c', t:'step', r:2, c:1, l:'Org selector', s:'Antioch21 · + Add org · + Individual'},
+      {id:'c0', t:'ext', r:2, c:0, l:'Add organisation', s:'→ Diagram 2'},
       {id:'c1', t:'ext', r:2, c:2, l:'Start individual project', s:'→ Diagram 2c'},
       {id:'d', t:'dec', r:3, c:1, l:'Role on this org?'},
       {id:'d0', t:'ext', r:3, c:0, l:'Anything else', s:'→ request permissions'},
@@ -52,7 +52,7 @@ var FLOWS = {
       {id:'g', t:'step', r:6, c:1, l:'Start a new project'},
       {id:'h', t:'next', r:7, c:1, l:'Session 2 — build & launch', s:'Diagram 3 · one dashboard for all projects'}
     ],
-    edges:[['a','b'],['b','b0','0',1],['b','b2','2+',1],['b','c','1'],['c','c1','',1],['d','d0','Other',1],['d','d2','Collaborator',1],['c','d'],['d','e','Owner / Admin'],['e','f'],['f','f1','Changed'],['f1','f2'],['f','g','Confirm'],['g','h'],['f2','h','Build meanwhile']]
+    edges:[['a','b'],['b','b0','0',1],['b','c','1 or more'],['c','c0','',1],['c','c1','',1],['d','d0','Other',1],['d','d2','Collaborator',1],['c','d'],['d','e','Owner / Admin'],['e','f'],['f','f1','Changed'],['f1','f2'],['f','g','Confirm'],['g','h'],['f2','h','Build meanwhile']]
   },
   'ret2': {
     title:'In two organisations', src:'Diagram 1c (v4) · Spec "Is this for the same organization as before?"',
@@ -62,7 +62,6 @@ var FLOWS = {
       {id:'a', t:'start', r:0, c:1, l:'Logged in'},
       {id:'b', t:'dec', r:1, c:1, l:'How many orgs on the account?'},
       {id:'b0', t:'ext', r:1, c:0, l:'Zero-org prompt'},
-      {id:'b1', t:'ext', r:1, c:2, l:'Context bar', s:'Single org'},
       {id:'c', t:'step', r:2, c:1, l:'Org selector', s:'Orgs with role badges · + Add org · + Individual'},
       {id:'c0', t:'ext', r:2, c:0, l:'Add organisation', s:'→ Diagram 2, account and org-type steps skipped'},
       {id:'c2', t:'ext', r:2, c:2, l:'Start individual project', s:'→ Diagram 2c'},
@@ -73,7 +72,7 @@ var FLOWS = {
       {id:'f', t:'step', r:5, c:1, l:'Start a new project'},
       {id:'g', t:'next', r:6, c:1, l:'Session 2 — build & launch', s:'Diagram 3'}
     ],
-    edges:[['a','b'],['b','b0','0',1],['b','b1','1',1],['b','c','2+'],['c','c0','',1],['c','c2','',1],['c','d'],['d','d0','Other',1],['d','d2','Collaborator'],['d','e','Owner / Admin'],['e','f'],['f','g'],['d2','g']]
+    edges:[['a','b'],['b','b0','0',1],['b','c','1 or more'],['c','c0','',1],['c','c2','',1],['c','d'],['d','d0','Other',1],['d','d2','Collaborator'],['d','e','Owner / Admin'],['e','f'],['f','g'],['d2','g']]
   },
   'expiring': {
     title:'Verification expiring', src:'Diagram 1c · Spec UX note "expiring within 30 days"',
@@ -81,7 +80,7 @@ var FLOWS = {
     cols:3,
     nodes:[
       {id:'a', t:'start', r:0, c:1, l:'Logged in · one org'},
-      {id:'b', t:'step', r:1, c:1, l:'Context bar', s:'Sits on the org screen · Raising for [Org]'},
+      {id:'b', t:'step', r:1, c:1, l:'Org selector', s:'Banner shows here and on the org screen'},
       {id:'c', t:'dec', r:2, c:1, l:'Verification expires within 30 days?'},
       {id:'c1', t:'ext', r:2, c:2, l:'Recognised-org screen', s:'As usual'},
       {id:'d', t:'step', r:3, c:1, l:'Proactive banner', s:'"Refresh due in [n] days" — before they try to launch'},

@@ -57,8 +57,8 @@ function loggedIn(s){ s.auth = {loggedIn:true, name:'Adam Le', email:'adam@agath
 
 var SCENARIOS = {
   'new':      {label:'New visitor', sub:'Sign up, verify, then build a project', start:'start', seed:function(){ return base(); }},
-  'ret1':     {label:'Owner of one organisation', sub:'Goes straight to Antioch21', start:'entry', seed:function(){ var s=loggedIn(base()); s.account.orgs=[clone(ORG_ANTIOCH)]; s.account.projects=[clone(PROJ_A),clone(PROJ_B)]; return s; }},
-  'ret2':     {label:'In two organisations', sub:'Picks which one first', start:'entry', seed:function(){ var s=loggedIn(base()); s.account.orgs=[clone(ORG_ANTIOCH),clone(ORG_TTB)]; s.account.projects=[clone(PROJ_A),clone(PROJ_B)]; return s; }},
+  'ret1':     {label:'Owner of one organisation', sub:'Owner of Antioch21', start:'entry', seed:function(){ var s=loggedIn(base()); s.account.orgs=[clone(ORG_ANTIOCH)]; s.account.projects=[clone(PROJ_A),clone(PROJ_B)]; return s; }},
+  'ret2':     {label:'In two organisations', sub:'Owner of one, collaborator on another', start:'entry', seed:function(){ var s=loggedIn(base()); s.account.orgs=[clone(ORG_ANTIOCH),clone(ORG_TTB)]; s.account.projects=[clone(PROJ_A),clone(PROJ_B)]; return s; }},
   'expiring': {label:'Verification expiring', sub:'Refresh reminder, 20 days left', start:'entry', seed:function(){ var s=loggedIn(base()); var o=clone(ORG_ANTIOCH); o.expiresOn=addDays(20); s.account.orgs=[o]; s.account.projects=[clone(PROJ_A)]; return s; }},
   'indiv':    {label:'Individual, already verified', sub:'No organisation, raises personally', start:'entry', seed:function(){ var s=loggedIn(base()); s.account.individual={name:'Adam Le', verifiedSince:'2025-08-02', idMasked:'S••••567A', idExpires:addDays(25), address:'Tampines, Singapore'}; return s; }},
   'collab':   {label:'Collaborator or member', sub:'Builds without verifying, or asks the owner for access', start:'entry', seed:function(){ var s=loggedIn(base()); s.account.orgs=[clone(ORG_TTB),clone(ORG_YWAM)]; return s; }},
@@ -431,20 +431,6 @@ function addRows(){
   return '<button class="ob-org add" type="button" data-act="addOrg"><span class="av">'+I.plus+'</span><span class="t"><b>Add an organisation</b><span>Verify a charity or nonprofit you\'re part of</span></span><span class="chev">'+I.chev+'</span></button>'+
     '<button class="ob-org add" type="button" data-go="individual"><span class="av">'+I.user+'</span><span class="t"><b>'+(ind?'Continue as '+h(ind.name):'Start an individual project')+'</b><span>'+(ind?'Verified since '+fmtDate(ind.verifiedSince)+' — no re-verification needed':'Raise for a personal cause or an informal group')+'</span></span><span class="chev">'+I.chev+'</span></button>';
 }
-function projectRows(orgId){
-  var list=S.account.projects.filter(function(c){ return !orgId || c.org===orgId; });
-  if(!list.length) return '<div class="ob-empty"><b>No projects yet</b>Your first one starts with the button above.</div>';
-  return list.map(projectCard).join('');
-}
-function projectCard(c){
-  var st, acts='';
-  if(c.status==='live'){ st=badge('live','Live'); acts='<a class="ob-btn ghost sm" href="#">View page</a><a class="ob-btn ghost sm" href="#">Post an update</a>'; }
-  else if(c.status==='ended'){ st=badge('draft','Ended'); acts='<a class="ob-btn ghost sm" href="#">View report</a>'; }
-  else if(c.status==='scheduled'){ st=badge('pending','Approved · scheduled for '+fmtDateTime(c.scheduledFor)); acts='<button class="ob-btn primary sm" type="button" data-act="publishNow" data-id="'+c.id+'">Publish now</button><button class="ob-btn ghost sm" type="button" data-go="build/launch">Change date</button>'; }
-  else { st=badge('draft','Approved · draft, not published'); acts='<button class="ob-btn primary sm" type="button" data-act="publishNow" data-id="'+c.id+'">Publish now</button><button class="ob-btn ghost sm" type="button" data-go="build/basics">Keep editing</button>'; }
-  var meta = c.status==='live'||c.status==='ended' ? money(c.raised)+' raised'+(c.goal?' of '+money(c.goal):'')+' · started '+fmtDate(c.started) : 'Approved '+fmtDate(c.approvedOn||addDays(0));
-  return '<div class="ob-proj"><div class="cover"></div><div class="t">'+st+'<b>'+h(c.name)+'</b><p>'+h(meta)+'</p>'+remindHtml(c)+'<div class="acts">'+acts+'</div></div></div>';
-}
 function remindHtml(c){
   if(c.status!=='scheduled' && c.status!=='draft') return '';
   var since=Math.max(0,-daysUntil(c.approvedOn||addDays(0)));
@@ -458,21 +444,14 @@ function viewEntry(){
     body='<div class="ob-card"><h2>'+(ind?'Pick up where you left off':'What are you raising for?')+'</h2><p class="lead">'+(ind?'You\'re verified as an individual. Add an organisation if you\'re raising on behalf of one.':'Verify once for an organisation, or start as an individual. Either way, you only do this once.')+'</p><div class="ob-orglist">'+addRows()+'</div></div>';
     return center({kicker:'Start a project', h1:'Welcome back, '+h(name), p:'', body:expiryBanner()+body});
   }
-  /* handoff 1c: with one org the context bar is not a screen — it sits on top of the org screen */
-  if(orgs.length===1){ history.replaceState(null, '', '#/org/'+orgs[0].id); render(); return ''; }
-  body='<div class="ob-card"><h2>Which organisation is this for?</h2><p class="lead">You\'re on the team of more than one. Pick the one this project belongs to.</p><div class="ob-orglist">'+orgs.map(orgRow).join('')+addRows()+'</div></div>';
+  body='<div class="ob-card"><h2>Which organisation is this for?</h2><p class="lead">Pick the one this project belongs to.</p><div class="ob-orglist">'+orgs.map(orgRow).join('')+addRows()+'</div></div>';
   return center({kicker:'Start a project', h1:'Welcome back, '+h(name), p:'', body:expiryBanner()+body});
 }
 
-function orgContext(o){
-  if(S.account.orgs.length>1) return '<a class="ob-btn text" href="#/entry" style="margin:-16px 0 8px -4px">← All organisations</a>';
-  var ind=S.account.individual;
-  return '<div class="ob-ctx"><span>Raising for <b>'+h(o.name)+'</b></span><a href="#/individual">'+(ind?'Continue as '+h(ind.name)+' instead':'Start an individual project instead')+' →</a></div>';
-}
 function viewOrg(id){
   var o=findOrg(id); if(!o){ go('entry'); return ''; }
   S.selectedOrg=id; save();
-  var body='', kicker='Start a project', back=S.account.orgs.length>1?'#/entry':'#/dashboard';
+  var body='', kicker='Start a project', allOrgs='<a class="ob-btn text" href="#/entry" style="margin:-16px 0 8px -4px">← All organisations</a>';
   if(o.role==='Owner'||o.role==='Admin'){
     var d=daysUntil(o.expiresOn), warnB = d>0 && d<=30 && !o.refreshPending;
     var pend = o.pending && o.pending.length ? '<div class="ob-banner info" style="margin-top:22px"><div class="ic">'+I.clock+'</div><div><b>'+h(o.pending.map(function(s){ return {docs:'Registration details', contact:'Contact & authority', payout:'Payout details'}[s]; }).join(', '))+' under expedited review</b><p>Usually same day. You can build and launch meanwhile'+(o.pending.indexOf('payout')>=0?' — payouts pause until the bank details are re-verified.':'.')+'</p></div></div>' : '';
@@ -481,27 +460,26 @@ function viewOrg(id){
     body='<div class="ob-card"><div class="ob-recog"><div class="av">'+initials(o.name)+'</div><div class="t">'+(warnB?badge('warn','Verification refresh due in '+d+' days'):badge('verified','Verified since '+fmtDate(o.verifiedSince)))+'<h2>'+h(o.name)+'</h2><p>Registered charity · '+h(o.country)+' · You\'re '+(o.role==='Owner'?'the owner':'an admin')+'</p></div></div>'+
       '<div class="ob-facts"><div><span>Registration</span>'+h(o.regMasked)+'</div><div><span>Primary contact</span>'+h(o.contact)+'</div><div><span>Payout account</span>'+h(o.payoutMasked)+'</div><div><span>Valid until</span>'+fmtDate(o.expiresOn)+'</div></div>'+pend+refreshed+
       '<div class="ob-confirm">'+checkbox({k:'confirmed.'+id, t:'These details are still accurate', d:'Takes a second, and it\'s what keeps donors trusting the platform. If something changed, update it below — only that part gets re-checked.'})+'</div>'+
-      '<div class="ob-actions"><button class="ob-btn text" type="button" data-go="org/'+id+'/changes">Something changed? Update details</button><div class="r"><button class="ob-btn primary" type="button" data-act="startOrgProject"'+(confirmed?'':' disabled')+'>Start a new project →</button></div></div></div>'+
-      '<div class="ob-card"><div class="ob-sec-head"><h3>Projects by '+h(o.name)+'</h3></div>'+projectRows(id)+'</div>';
+      '<div class="ob-actions"><button class="ob-btn text" type="button" data-go="org/'+id+'/changes">Something changed? Update details</button><div class="r"><button class="ob-btn primary" type="button" data-act="startOrgProject"'+(confirmed?'':' disabled')+'>Start a new project →</button></div></div></div>';
     var phases='<ol class="ob-phases">'+['Confirm details','Build','Launch'].map(function(t,i){ return '<li'+(i===0?' class="current"':'')+'><span class="n">'+(i+1)+'</span>'+t+'</li>'; }).join('')+'</ol>';
-    return center({kicker:kicker, h1:'Ready when you are', p:'', body:orgContext(o)+expiryBanner()+phases+body});
+    return center({kicker:kicker, h1:'Ready when you are', p:'', body:allOrgs+expiryBanner()+phases+body});
   }
   if(o.role==='Collaborator'){
     body='<div class="ob-card"><div class="ob-recog"><div class="av">'+initials(o.name)+'</div><div class="t">'+badge('verified','Verified since '+fmtDate(o.verifiedSince))+'<h2>'+h(o.name)+'</h2><p>Registered charity · '+h(o.country)+' · You\'re a collaborator</p></div></div>'+
       '<div style="margin-top:22px">'+note('<b>You can build and launch projects.</b> Verification, payouts and team access are handled by the owner, '+h(o.contact)+'.')+'</div>'+
       '<div class="ob-actions"><span></span><div class="r"><button class="ob-btn primary" type="button" data-act="startOrgProject">Start a new project →</button></div></div></div>';
-    return center({kicker:kicker, h1:'Ready when you are', p:'', body:orgContext(o)+body});
+    return center({kicker:kicker, h1:'Ready when you are', p:'', body:allOrgs+body});
   }
   var req=S.requests[id];
   if(req){
     body='<div class="ob-card ob-result"><div class="ic gold">'+I.clock+'</div><h2>Request sent</h2><p class="lead">We\'ve asked '+h(o.contact)+' to give you access to <b>'+h(o.name)+'</b>. You\'ll get an email the moment it\'s approved, and you\'ll land right back here.</p>'+badge('pending','Sent '+fmtDate(req.sent)+' · waiting on '+h(o.contact))+
-      '<div class="acts"><a class="ob-btn ghost" href="'+back+'">Back</a><button class="ob-btn gold" type="button" data-act="demoGrant" data-org="'+id+'">Demo: approve →</button></div></div>';
+      '<div class="acts"><a class="ob-btn ghost" href="#/entry">Back</a><button class="ob-btn gold" type="button" data-act="demoGrant" data-org="'+id+'">Demo: approve →</button></div></div>';
   } else {
     body='<div class="ob-card"><div class="ob-recog"><div class="av">'+initials(o.name)+'</div><div class="t">'+badge('verified','Verified since '+fmtDate(o.verifiedSince))+'<h2>'+h(o.name)+'</h2><p>Registered charity · '+h(o.country)+' · You\'re a member</p></div></div>'+
       '<div style="margin-top:22px">'+note('<b>You don\'t have permission to create projects for '+h(o.name)+' yet.</b> Ask an owner or admin. We\'ll notify '+h(o.contact)+' and let you know when it\'s approved — no re-verification needed.')+'</div>'+
-      '<div class="ob-actions"><a class="ob-btn ghost" href="'+back+'">Back</a><div class="r"><button class="ob-btn primary" type="button" data-act="requestPerm" data-org="'+id+'">Request access →</button></div></div></div>';
+      '<div class="ob-actions"><a class="ob-btn ghost" href="#/entry">Back</a><div class="r"><button class="ob-btn primary" type="button" data-act="requestPerm" data-org="'+id+'">Request access →</button></div></div></div>';
   }
-  return center({kicker:kicker, h1:'Almost there', p:'', body:(S.account.orgs.length>1?'':orgContext(o))+body});
+  return center({kicker:kicker, h1:'Almost there', p:'', body:body});
 }
 
 function viewChanges(id){
