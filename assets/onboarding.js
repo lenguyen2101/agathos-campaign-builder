@@ -40,8 +40,8 @@ var KNOWN_EMAILS = ['adam@agathos.be','josias@antioch21.org'];
 var ORG_ANTIOCH = {id:'antioch21', name:'Antioch21', type:'charity', country:'Singapore', role:'Owner', verifiedSince:'2025-03-14', expiresOn:'2027-03-14', lastActive:'2026-09-02', regMasked:'T08SS••••A', contact:'Josias Ding', payoutMasked:'DBS ••••4821'};
 var ORG_TTB = {id:'treasurebox', name:'The Treasure Box Singapore', type:'charity', country:'Singapore', role:'Collaborator', verifiedSince:'2024-11-20', expiresOn:'2026-11-20', lastActive:'2026-08-15', regMasked:'T19SS••••C', contact:'Rachel Tan', payoutMasked:'OCBC ••••2210'};
 var ORG_YWAM = {id:'ywam', name:'YWAM Singapore', type:'charity', country:'Singapore', role:'Member', verifiedSince:'2023-06-01', expiresOn:'2027-06-01', lastActive:'2026-07-30', regMasked:'T04SS••••K', contact:'Daniel Koh', payoutMasked:'UOB ••••7734'};
-var PROJ_A = {id:'c1', name:'Special Needs Centre in Kurdistan Region of Iraq', org:'antioch21', status:'live', raised:20000, goal:60000, started:'2025-08-08'};
-var PROJ_B = {id:'c2', name:'Kurdistan Winter Relief 2025', org:'antioch21', status:'ended', raised:41200, goal:40000, started:'2025-11-02'};
+var PROJ_A = {id:'c1', name:'Special Needs Centre in Kurdistan Region of Iraq', org:'antioch21', status:'live', raised:20000, goal:60000, contributions:186, started:'2025-08-08'};
+var PROJ_B = {id:'c2', name:'Kurdistan Winter Relief 2025', org:'antioch21', status:'ended', raised:41200, goal:40000, contributions:402, started:'2025-11-02'};
 
 function base(){
   return {
@@ -90,7 +90,7 @@ function firstName(name){ return (name||'').split(' ')[0]; }
 function fmtSize(b){ return b>1048576 ? (b/1048576).toFixed(1)+' MB' : Math.max(1,Math.round(b/1024))+' KB'; }
 function money(n){ return 'S$'+Number(n||0).toLocaleString('en-SG'); }
 function findOrg(id){ return S.account.orgs.filter(function(o){ return o.id===id; })[0]; }
-function currentOrg(){ return findOrg(S.selectedOrg) || S.account.orgs[0]; }
+function currentOrg(){ return findOrg(S.selectedOrg); }
 function causeLabel(v){ var c=CAUSES.filter(function(x){ return x[0]===v; })[0]; return c?c[1]:''; }
 
 var I = {
@@ -443,12 +443,12 @@ function projectCard(c){
   else if(c.status==='scheduled'){ st=badge('pending','Approved · scheduled for '+fmtDateTime(c.scheduledFor)); acts='<button class="ob-btn primary sm" type="button" data-act="publishNow" data-id="'+c.id+'">Publish now</button><button class="ob-btn ghost sm" type="button" data-go="build/launch">Change date</button>'; }
   else { st=badge('draft','Approved · draft, not published'); acts='<button class="ob-btn primary sm" type="button" data-act="publishNow" data-id="'+c.id+'">Publish now</button><button class="ob-btn ghost sm" type="button" data-go="build/basics">Keep editing</button>'; }
   var meta = c.status==='live'||c.status==='ended' ? money(c.raised)+' raised'+(c.goal?' of '+money(c.goal):'')+' · started '+fmtDate(c.started) : 'Approved '+fmtDate(c.approvedOn||addDays(0));
-  var remind='';
-  if(c.status==='scheduled'||c.status==='draft'){
-    var since=Math.max(0,-daysUntil(c.approvedOn||addDays(0)));
-    remind='<div class="ob-remind">Reminders until it\'s published:'+[3,7,14].map(function(d){ var next=[3,7,14].filter(function(x){ return x>since; })[0]; return '<i class="'+(d===next?'next':'')+'">day '+d+(d===next?' · '+fmtDate(addDays(d-since)):'')+'</i>'; }).join('')+'</div>';
-  }
-  return '<div class="ob-proj"><div class="cover"></div><div class="t">'+st+'<b>'+h(c.name)+'</b><p>'+h(meta)+'</p>'+remind+'<div class="acts">'+acts+'</div></div></div>';
+  return '<div class="ob-proj"><div class="cover"></div><div class="t">'+st+'<b>'+h(c.name)+'</b><p>'+h(meta)+'</p>'+remindHtml(c)+'<div class="acts">'+acts+'</div></div></div>';
+}
+function remindHtml(c){
+  if(c.status!=='scheduled' && c.status!=='draft') return '';
+  var since=Math.max(0,-daysUntil(c.approvedOn||addDays(0)));
+  return '<div class="ob-remind">Reminders until it\'s published:'+[3,7,14].map(function(d){ var next=[3,7,14].filter(function(x){ return x>since; })[0]; return '<i class="'+(d===next?'next':'')+'">day '+d+(d===next?' · '+fmtDate(addDays(d-since)):'')+'</i>'; }).join('')+'</div>';
 }
 
 function viewEntry(){
@@ -652,21 +652,69 @@ function viewDone(){
 }
 
 /* ============================================================================
-   DASHBOARD — what a returning org sees
+   DASHBOARD — rebuilt after the "Manage Pages" tab of the live account area:
+   Personal and each organisation on the left, the selected one's projects on the right
    ============================================================================ */
+var DASH_TABS=[['My Dashboard','Overview of your impact'],['Contributions','Track your donations & support'],['Tickets','View purchased tickets'],['Transactions Log','A detailed view of your donations & ticket purchases'],['Manage Pages','For Project, Event & Organization Owners']];
+function fmtDMY(iso){ var d=new Date(iso); return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear(); }
+function dashEntities(){
+  var list=[{id:'personal', label:'Personal', name:S.auth.name||S.auth.email}];
+  S.account.orgs.forEach(function(o){ list.push({id:o.id, label:'Organization', name:o.name, org:o}); });
+  if(S.s1.status==='submitted'){
+    if(S.s1.type==='individual') list[0].pill=true;
+    else list.push({id:'pending', label:'Organization', name:S.s1.docs.legalName||S.s1.intent.name||'Your organisation', pill:true});
+  }
+  return list;
+}
+function dashCard(c){
+  var st={live:['Ongoing','on'], ended:['Completed','done'], scheduled:['Scheduled','wait'], draft:['Draft','wait']}[c.status];
+  var left, box;
+  if(c.status==='live'||c.status==='ended'){
+    var pct=c.goal?parseFloat((c.raised/c.goal*100).toFixed(2)):0, priv=c.visibility==='private';
+    left='<a class="dc-manage" href="#">'+I.draft+'Manage Project</a>';
+    box='<div class="r1"><span>Started: '+fmtDMY(c.started)+'</span><span class="dc-vis'+(priv?' priv':'')+'">'+(priv?'Private':'Public')+'</span></div>'+
+      '<div class="r2"><b>'+(c.raised?money(c.raised):'0')+'</b>'+(c.contributions?'<span>'+c.contributions+' contributions</span>':'')+'</div>'+
+      (c.goal?'<div class="bar"><i style="width:'+Math.min(100,pct)+'%"></i></div><div class="r3">'+pct+'% of '+money(c.goal)+'</div>':'');
+  } else {
+    left='<a class="dc-manage" href="#/'+(c.status==='scheduled'?'build/launch':'build/basics')+'">'+I.draft+'Manage Project</a><button class="ob-btn primary sm" type="button" data-act="publishNow" data-id="'+c.id+'">Publish now</button>';
+    box='<div class="r1"><span>Approved: '+fmtDMY(c.approvedOn||addDays(0))+'</span><span class="dc-vis off">Not published</span></div>'+
+      '<div class="r2"><b class="sm">'+(c.status==='scheduled'?'Goes live '+fmtDateTime(c.scheduledFor):'Saved as a draft')+'</b></div>'+remindHtml(c);
+  }
+  return '<div class="dc"><div class="dc-img"><span class="dc-st '+st[1]+'">'+st[0]+'</span></div><div class="dc-main"><h3>'+h(c.name)+'</h3><div class="dc-acts">'+left+'</div></div><div class="dc-stats">'+box+'</div></div>';
+}
+function dashActions(o){
+  var items='<a href="#/org/'+o.id+'">Organization details</a>';
+  if(o.role==='Owner'||o.role==='Admin'){
+    items+='<a href="#/org/'+o.id+'/changes">Update details</a>';
+    var d=daysUntil(o.expiresOn); if(d>0 && d<=30 && !o.refreshPending) items+='<button type="button" data-act="refresh" data-org="'+o.id+'">Refresh verification</button>';
+  }
+  return '<div class="dash-actions"><button type="button" class="dash-act-btn" data-act="dashMenu">Actions<span aria-hidden="true">⋮</span></button><div class="dash-menu">'+items+'</div></div>';
+}
+function dashPending(){
+  return '<div class="dash-pending">'+note('<b>Submission received.</b> We review within 1–2 business days and email '+h(S.s1.contact.email||S.s1.account.email||S.auth.email)+' when there\'s news.')+
+    '<div class="acts"><a class="ob-btn ghost sm" href="#/review">View submission</a><button class="ob-btn gold sm" type="button" data-act="demoApprove">Demo: approve now →</button></div></div>';
+}
 function viewDashboard(){
-  var orgs=S.account.orgs, ind=S.account.individual;
-  var side=orgs.map(function(o){
-    var d=daysUntil(o.expiresOn), warnB=d>0&&d<=30&&!o.refreshPending;
-    return '<div class="ob-card" style="padding:22px 24px"><div class="ob-recog" style="gap:14px"><div class="av" style="width:48px;height:48px;font-size:15px;border-radius:14px">'+initials(o.name)+'</div><div class="t"><h3 style="margin:0 0 4px;font-size:16px">'+h(o.name)+' '+roleBadge(o.role)+'</h3>'+(warnB?badge('warn','Refresh due in '+d+' days'):badge('verified','Verified since '+fmtDate(o.verifiedSince)))+'</div></div>'+(o.role==='Owner'||o.role==='Admin'?'<div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap"><a class="ob-btn ghost sm" href="#/org/'+o.id+'">Details</a>'+(warnB?'<button class="ob-btn primary sm" type="button" data-act="refresh" data-org="'+o.id+'">Refresh now</button>':'')+'</div>':'')+'</div>';
-  }).join('');
-  if(ind) side+='<div class="ob-card" style="padding:22px 24px"><div class="ob-recog" style="gap:14px"><div class="av" style="width:48px;height:48px;font-size:15px;border-radius:14px">'+initials(ind.name)+'</div><div class="t"><h3 style="margin:0 0 4px;font-size:16px">'+h(ind.name)+'</h3>'+(daysUntil(ind.idExpires)<=30?badge('warn','ID expires in '+daysUntil(ind.idExpires)+' days'):badge('verified','Verified since '+fmtDate(ind.verifiedSince)))+'</div></div><div style="margin-top:14px"><a class="ob-btn ghost sm" href="#/individual">Details</a></div></div>';
-  if(S.s1.status==='submitted') side+='<div class="ob-card" style="padding:22px 24px">'+badge('pending','Under review')+'<h3 style="margin:10px 0 4px;font-size:16px">'+h(S.s1.intent.name||'Your application')+'</h3><p style="font-size:13.5px;color:var(--hp-text)">Submitted '+fmtDate(S.s1.submittedAt)+'. We\'ll email you within 1–2 business days.</p><div style="margin-top:14px"><a class="ob-btn ghost sm" href="#/review">View submission</a></div></div>';
-  if(!side) side='<div class="ob-card" style="padding:22px 24px"><h3 style="margin:0 0 6px;font-size:16px">Not verified yet</h3><p style="font-size:13.5px;color:var(--hp-text)">Verify once as an organisation or individual, then every project starts straight at the build.</p><div style="margin-top:14px"><a class="ob-btn primary sm" href="#/entry">Get verified</a></div></div>';
-  var canBuild = orgs.some(function(o){ return o.role!=='Member'; }) || ind;
-  var newBtn = canBuild ? '<button class="ob-btn gold" type="button" data-act="newProject">'+I.plus+' New project</button>' : '';
-  var main='<div class="ob-card"><div class="ob-sec-head"><h3>Projects</h3><p>'+S.account.projects.length+' total</p></div>'+(S.account.projects.length?S.account.projects.map(projectCard).join(''):'<div class="ob-empty"><b>No projects yet</b>'+(canBuild?'Your verification is done — the first project starts at the build.':'Get verified first, then build your first project.')+'</div>')+'</div>';
-  return '<div class="ob-wrap"><div class="ob-head" style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap"><div><span class="hp-kicker">My projects</span><h1>'+h(firstName(S.auth.name)||'Your')+'\'s dashboard</h1></div>'+newBtn+'</div>'+expiryBanner()+'<div class="ob-dash"><div>'+main+'</div><div style="display:grid;gap:16px">'+side+'</div></div></div>';
+  var list=dashEntities(), sel=S.dashSel;
+  if(!list.some(function(x){ return x.id===sel; })) sel=findOrg(S.selectedOrg) ? S.selectedOrg : (S.account.orgs[0] ? S.account.orgs[0].id : 'personal');
+  var e=list.filter(function(x){ return x.id===sel; })[0], o=e.org, tab=S.dashTab==='events'?'events':'projects', panel;
+  var nav='<nav class="dash-nav">'+DASH_TABS.map(function(t,i){ var on=i===DASH_TABS.length-1; return '<a href="'+(on?'#/dashboard':'#')+'"'+(on?' class="on"':'')+'><b>'+t[0]+'</b><span>'+t[1]+'</span></a>'; }).join('')+'</nav>';
+  var side='<aside class="dash-side">'+list.map(function(x){ return '<button type="button" class="dash-ent'+(x.id===sel?' on':'')+'" data-act="dashSel" data-id="'+x.id+'"><span class="av">'+initials(x.name)+'</span><span class="t"><span>'+x.label+'</span><b>'+h(x.name)+'</b></span>'+(x.pill?'<span class="dash-pill">Submission Received</span>':'')+'</button>'; }).join('')+'</aside>';
+  if(e.id==='pending'){
+    panel='<div class="dash-head"><div class="t"><h2>'+h(e.name)+'</h2></div></div>'+dashPending();
+  } else {
+    var projects=S.account.projects.filter(function(c){ return o ? c.org===o.id : !c.org; });
+    var canNew = o ? o.role!=='Member' : true, content;
+    var head = o ? '<div class="dash-head"><div class="t"><h2>'+h(o.name)+'</h2><span class="dash-role">'+h(o.role)+'</span></div>'+dashActions(o)+'</div>' : (e.pill ? dashPending() : '');
+    var tabs='<div class="dash-tabs"><button type="button" class="'+(tab==='projects'?'on':'')+'" data-act="dashTab" data-t="projects">Projects</button><button type="button" class="'+(tab==='events'?'on':'')+'" data-act="dashTab" data-t="events">Events</button>'+
+      (canNew && tab==='projects'?'<button class="ob-btn gold sm dash-new" type="button" data-act="dashNew" data-id="'+e.id+'">'+I.plus+' New project</button>':'')+'</div>';
+    if(tab==='events') content='<div class="ob-empty"><b>No events yet</b></div>';
+    else if(projects.length) content=projects.map(dashCard).join('');
+    else if(!canNew) content='<div class="ob-empty"><b>No projects you can manage</b>You can\'t create projects for '+h(o.name)+' yet. <a href="#/org/'+o.id+'">Request access</a></div>';
+    else content='<div class="ob-empty"><b>No projects yet</b>'+(o||S.account.individual?'':'New project starts with a one-time identity check.')+'</div>';
+    panel=head+tabs+'<div class="dash-list">'+content+'</div>';
+  }
+  return '<div class="ob-wrap">'+nav+expiryBanner()+'<div class="dash">'+side+'<section class="dash-main">'+panel+'</section></div></div>';
 }
 
 /* ============================================================================
@@ -698,6 +746,9 @@ function render(){
   }
   if(html===''){ return; }
   main.innerHTML=html;
+  main.classList.toggle('is-dash', r==='dashboard');
+  /* on a phone the tab strip scrolls; keep the active Manage Pages tab in view, again once web fonts widen it */
+  var dn=main.querySelector('.dash-nav'); if(dn){ var toEnd=function(){ dn.scrollLeft=dn.scrollWidth; }; toEnd(); document.fonts.ready.then(toEnd); }
   renderNav(); renderDemo();
   var key=location.hash;
   if(key!==lastRoute){ window.scrollTo(0,0); lastRoute=key; }
@@ -722,6 +773,9 @@ document.addEventListener('click', function(ev){
   if(t.hasAttribute('data-up-rm')){ set(t.getAttribute('data-up-rm'), null); render(); return; }
   var act=t.getAttribute('data-act');
   if(ACT[act]){ ev.preventDefault(); ACT[act](t); }
+});
+document.addEventListener('click', function(ev){
+  var m=document.querySelector('.dash-actions.open'); if(m && !m.contains(ev.target)) m.classList.remove('open');
 });
 document.addEventListener('input', function(ev){
   var el=ev.target;
@@ -821,7 +875,7 @@ var ACT={
   unmask:function(){ set('s1.payout.masked', false); render(); setTimeout(function(){ var el=document.querySelector('[data-k="s1.payout.account"]'); if(el) el.focus(); }, 0); },
   submit:function(t){
     var card=t.closest('.ob-card'); if(!validate(card)) return;
-    S.s1.status='submitted'; S.s1.submittedAt=addDays(0); S.s1.done.review=true; save(); go('submitted');
+    S.s1.status='submitted'; S.s1.submittedAt=addDays(0); S.s1.done.review=true; S.dashSel=S.s1.type==='individual'?'personal':'pending'; save(); go('submitted');
   },
   demoApprove:function(){
     var s=S.s1, ind=s.type==='individual';
@@ -834,7 +888,15 @@ var ACT={
   addOrg:function(){ S.s1={mode:'addorg', intent:{}, account:{}, type:'charity', docs:{}, contact:{}, payout:{}, done:{}, status:'draft'}; save(); go('start'); },
   startOrgProject:function(){ S.s2={basics:{}, goal:{}, team:[], launch:{}, done:{}, status:''}; save(); go('build/basics'); },
   startProject:function(){ S.selectedOrg=''; S.s2={basics:{}, goal:{}, team:[], launch:{}, done:{}, status:''}; save(); go('build/basics'); },
-  newProject:function(){ S.s2={basics:{}, goal:{}, team:[], launch:{}, done:{}, status:''}; save(); var elig=S.account.orgs.filter(function(o){ return o.role!=='Member'; }); if(elig.length===1 && !S.account.individual){ S.selectedOrg=elig[0].id; save(); go('build/basics'); } else go('entry'); },
+  dashSel:function(t){ S.dashSel=t.getAttribute('data-id'); S.dashTab='projects'; save(); render(); },
+  dashTab:function(t){ S.dashTab=t.getAttribute('data-t'); save(); render(); },
+  dashMenu:function(t){ t.closest('.dash-actions').classList.toggle('open'); },
+  dashNew:function(t){
+    var id=t.getAttribute('data-id');
+    S.s2={basics:{}, goal:{}, team:[], launch:{}, done:{}, status:''};
+    if(id==='personal'){ S.selectedOrg=''; save(); go(S.account.individual?'build/basics':'individual'); return; }
+    S.selectedOrg=id; save(); go('build/basics');
+  },
   requestPerm:function(t){ var id=t.getAttribute('data-org'); S.requests[id]={sent:addDays(0)}; save(); render(); },
   demoGrant:function(t){ var o=findOrg(t.getAttribute('data-org')); o.role='Collaborator'; delete S.requests[o.id]; save(); toast('Access approved by '+o.contact); render(); },
   refresh:function(t){ var id=t.getAttribute('data-org'); S.update={kind:'org', id:id, sections:['docs'], refresh:true}; S.s1.docs={}; S.s1.done={}; save(); go('docs'); },
@@ -867,7 +929,7 @@ var ACT={
     if(l.mode==='now'){ c.status='live'; c.raised=0; c.started=addDays(0); if(S.s2.goal.range==='exact') c.goal=+S.s2.goal.amount||0; }
     else if(l.mode==='schedule'){ c.status='scheduled'; c.scheduledFor=l.at; }
     else { c.status='draft'; }
-    S.account.projects.unshift(c); S.s2.status=c.status; S.s2.done['build/launch']=true; save();
+    S.account.projects.unshift(c); S.s2.status=c.status; S.s2.done['build/launch']=true; S.dashSel=o?o.id:'personal'; S.dashTab='projects'; save();
     if(c.status==='live') go('build/done'); else { toast(c.status==='scheduled'?'Scheduled for '+fmtDateTime(c.scheduledFor):'Saved as a draft'); go('dashboard'); }
   },
   publishNow:function(t){ var c=S.account.projects.filter(function(x){ return x.id===t.getAttribute('data-id'); })[0]; c.status='live'; c.raised=0; c.started=addDays(0); save(); toast('Published — '+c.name+' is live'); render(); },
