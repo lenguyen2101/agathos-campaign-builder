@@ -39,7 +39,7 @@ header .lead{font-size:16.5px;color:var(--text);}
 .src a{color:var(--accent);}
 .src{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--muted);line-height:1.7;}
 section{display:grid;gap:16px;padding-top:40px;}
-.layers{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;}
+.layers{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;}
 .layer{display:grid;gap:8px;align-content:start;padding:16px 18px;background:var(--paper);border:1px solid var(--line);border-radius:14px;}
 .layer .k{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
 .layer .roles{display:flex;flex-wrap:wrap;gap:6px;}
@@ -71,6 +71,8 @@ ol.qs li:first-child{border-top:0;}
 ol.qs li::before{content:"Q" counter(q);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;color:var(--accent);}
 ol.qs li p{font-size:14.5px;color:var(--ink);}
 ol.qs li .who{font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;}
+ol.qs li .ans{display:block;margin-top:6px;font-size:13.5px;line-height:1.5;color:var(--text);}
+ol.qs li .ans b{font-weight:600;color:var(--accent);}
 footer{padding-top:36px;font-size:13.5px;color:var(--muted);}
 @media (max-width:560px){
   .wrap{padding-block:32px 56px;padding-inline:16px;}
@@ -83,128 +85,104 @@ footer{padding-top:36px;font-size:13.5px;color:var(--muted);}
 <div class="wrap">
   <a class="back" href="onboarding.html">← Back to onboarding</a>
   <header>
-    <span class="eyebrow">Onboarding feedback · Draft 1</span>
+    <span class="eyebrow">Onboarding · v1.2</span>
     <h1>Who can do what: roles and permissions</h1>
-    <p class="lead">The feedback on "Selecting Org as Collaborator" asked for a review of roles. This page lists every role in the onboarding prototype, what each one can do today, where the rules conflict, and the questions to settle. Nothing here is final. The prototype's behaviour is a placeholder until the team decides.</p>
-    <p class="src">Sources: handoff, Diagram 1c · flow spec, Step 5 and Step 10 · prototype at <a href="onboarding.html">/onboarding</a> · change-request PRD (admin portal)</p>
+    <p class="lead">Following the team's answers of 2 October 2026, v1.2 merges the roles into one list for organisations and projects: Owner, Manager and Viewer. This page shows what each role can do in the prototype, what is still open, and the answers it is based on.</p>
+    <p class="src">Sources: team answers, 2 Oct 2026 · handoff, Diagram 1c · flow spec, Step 5 and Step 10 · prototype at <a href="onboarding.html">/onboarding</a></p>
   </header>
 
   <section>
-    <h2>Two sets of roles, plus Agathos staff</h2>
+    <h2>One list of roles</h2>
     <div class="layers">
       <div class="layer">
-        <span class="k">Organisation roles</span>
-        <div class="roles"><span class="role">Owner</span><span class="role">Admin</span><span class="role">Collaborator</span><span class="role">Member</span></div>
-        <p>One per person per organisation. Decides what they see when they start a project. The handoff names Owner, Admin and Collaborator. "Member" is the prototype's name for the handoff's "anything else".</p>
+        <span class="k">Owner</span>
+        <div class="roles"><span class="role">Owner</span></div>
+        <p>Owns the organisation on Agathos.</p>
       </div>
       <div class="layer">
-        <span class="k">Project roles</span>
-        <div class="roles"><span class="role">Editor</span><span class="role">Viewer</span><span class="role">Withdrawal-authorised</span></div>
-        <p>Given per project in the Team step, by email invite. Straight from flow spec Step 10.</p>
+        <span class="k">Manager</span>
+        <div class="roles"><span class="role">Manager</span></div>
+        <p>Replaces "Admin" and "Collaborator". Runs the organisation's page, projects and events. A new name, so it can't be confused with Agathos admins.</p>
+      </div>
+      <div class="layer">
+        <span class="k">Viewer</span>
+        <div class="roles"><span class="role">Viewer</span></div>
+        <p>Given per project. Sees the numbers, including who gave.</p>
+      </div>
+      <div class="layer">
+        <span class="k">Not a role</span>
+        <div class="roles"><span class="role">Payout permission</span></div>
+        <p>Lets a person request payouts. Switched on per person, for Owners and Managers only.</p>
       </div>
       <div class="layer">
         <span class="k">Agathos staff</span>
         <div class="roles"><span class="role">Agathos admin</span></div>
-        <p>Works in the admin portal. Approves verification and change requests on live projects. Not a user role, but it shares the word "Admin".</p>
-      </div>
-      <div class="layer">
-        <span class="k">Individual fundraisers</span>
-        <div class="roles"><span class="role">One person</span></div>
-        <p>No organisation, so no roles. The individual does everything, and can invite project roles like anyone else.</p>
+        <p>Works in the admin portal. Approves verification, project proposals and change requests.</p>
       </div>
     </div>
   </section>
 
   <section>
-    <h2>Organisation roles today</h2>
+    <h2>What each role can do</h2>
     <div class="legend"><span><i class="c y">Yes</i> the prototype allows it</span><span><i class="c n">No</i> the prototype blocks it</span><span><i class="c q">Not defined</i> needs a decision</span></div>
     <div class="tbl">
       <table>
-        <thead><tr><th>Action</th><th>Owner</th><th>Admin</th><th>Collaborator</th><th>Member</th></tr></thead>
+        <thead><tr><th>Action</th><th>Owner</th><th>Manager</th><th>Viewer</th></tr></thead>
         <tbody>
-          <tr><th>See the verified details<small>Registration, primary contact, payout account (masked), valid-until date</small></th><td><span class="c y">Yes</span></td><td><span class="c y">Yes</span></td><td><span class="c n">No</span><span class="note">Name and verified badge only</span></td><td><span class="c n">No</span><span class="note">Name and verified badge only</span></td></tr>
-          <tr><th>Confirm "details still accurate" before a new project</th><td><span class="c y">Yes</span></td><td><span class="c y">Yes</span></td><td><span class="c n">No</span><span class="note">Skips this step</span></td><td><span class="c n">No</span></td></tr>
-          <tr><th>Update registration, contact or payout<small>Re-opens only that section for review</small></th><td><span class="c y">Yes</span></td><td><span class="c y">Yes</span></td><td><span class="c n">No</span></td><td><span class="c n">No</span></td></tr>
-          <tr><th>Refresh an expiring verification</th><td><span class="c y">Yes</span></td><td><span class="c y">Yes</span></td><td><span class="c n">No</span><span class="note">Doesn't see the reminder</span></td><td><span class="c n">No</span></td></tr>
-          <tr><th>Start, build and launch a project for the organisation</th><td><span class="c y">Yes</span></td><td><span class="c y">Yes</span></td><td><span class="c y">Yes</span></td><td><span class="c n">No</span><span class="note">Asks for access. On approval they become a Collaborator</span></td></tr>
-          <tr><th>Invite people to a project<small>Any project role, including Withdrawal-authorised</small></th><td><span class="c y">Yes</span></td><td><span class="c y">Yes</span></td><td><span class="c y">Yes</span><span class="note">Conflicts with the collaborator notice, see below</span></td><td><span class="c n">No</span></td></tr>
-          <tr><th>Approve a member's access request</th><td><span class="c q">Not defined</span></td><td><span class="c q">Not defined</span></td><td><span class="c n">No</span></td><td><span class="c n">No</span></td></tr>
-          <tr><th>Request a withdrawal</th><td><span class="c q">Not defined</span></td><td><span class="c q">Not defined</span></td><td><span class="c q">Not defined</span></td><td><span class="c q">Not defined</span></td></tr>
-          <tr><th>Ask Agathos to change a live project's goal or end date</th><td><span class="c q">Not defined</span></td><td><span class="c q">Not defined</span></td><td><span class="c q">Not defined</span></td><td><span class="c q">Not defined</span></td></tr>
+          <tr><th>See the verified details<small>Registration, primary contact, payout account (masked), valid-until date</small></th><td><span class="c y">Yes</span></td><td><span class="c y">Yes</span></td><td><span class="c n">No</span></td></tr>
+          <tr><th>Confirm the details and propose a project<small>Every project is reviewed by Agathos before its page is built</small></th><td><span class="c y">Yes</span></td><td><span class="c y">Yes</span></td><td><span class="c n">No</span></td></tr>
+          <tr><th>Update organization details or documents<small>Also: refresh an expiring verification</small></th><td><span class="c y">Yes</span></td><td><span class="c y">Yes</span></td><td><span class="c n">No</span></td></tr>
+          <tr><th>Set up and publish the organisation page<small>Including donations for running costs</small></th><td><span class="c y">Yes</span></td><td><span class="c y">Yes</span></td><td><span class="c n">No</span></td></tr>
+          <tr><th>Build and publish an approved project</th><td><span class="c y">Yes</span></td><td><span class="c y">Yes</span></td><td><span class="c n">No</span></td></tr>
+          <tr><th>Create an event for the organisation</th><td><span class="c y">Yes</span></td><td><span class="c y">Yes</span></td><td><span class="c n">No</span></td></tr>
+          <tr><th>Invite people and give payout permission</th><td><span class="c y">Yes</span></td><td><span class="c y">Yes</span></td><td><span class="c n">No</span></td></tr>
+          <tr><th>See amounts raised, and donor names and emails</th><td><span class="c y">Yes</span></td><td><span class="c y">Yes</span></td><td><span class="c y">Yes</span></td></tr>
+          <tr><th>Request a payout</th><td><span class="c y">Yes</span><span class="note">Only with payout permission</span></td><td><span class="c y">Yes</span><span class="note">Only with payout permission</span></td><td><span class="c n">No</span></td></tr>
+          <tr><th>Ask Agathos to change a live project's goal or end date</th><td><span class="c y">Yes</span></td><td><span class="c y">Yes</span></td><td><span class="c n">No</span></td></tr>
+          <tr><th>Things only an Owner can do<small>For example: transfer ownership, remove a Manager</small></th><td><span class="c q">Not defined</span><span class="note">Follows the live platform</span></td><td><span class="c q">Not defined</span><span class="note">Follows the live platform</span></td><td><span class="c n">No</span></td></tr>
+          <tr><th>Approve a request to join the organisation<small>Comes up when a new user's organisation is already verified</small></th><td><span class="c q">Not defined</span></td><td><span class="c q">Not defined</span></td><td><span class="c n">No</span></td></tr>
         </tbody>
       </table>
     </div>
-    <p style="font-size:13.5px;color:var(--muted)">Withdrawals don't follow organisation roles at all today. They go to the people typed under Contact &amp; authority, plus anyone invited to a project as Withdrawal-authorised.</p>
+    <p style="font-size:13.5px;color:var(--muted)">An individual fundraiser has every Owner right over their own projects and events, and can invite Managers and Viewers like anyone else.</p>
   </section>
 
   <section>
-    <h2>Project roles today</h2>
-    <p>The Team step describes each role in one line: editors can update the page, viewers can see the numbers, withdrawal-authorised members can request payouts. The Yes and No below come from those lines. The prototype doesn't enforce project roles yet.</p>
-    <div class="tbl">
-      <table>
-        <thead><tr><th>Action</th><th>Editor</th><th>Viewer</th><th>Withdrawal-authorised</th></tr></thead>
-        <tbody>
-          <tr><th>Edit the project page<small>Story, photos, needs</small></th><td><span class="c y">Yes</span></td><td><span class="c n">No</span></td><td><span class="c q">Not defined</span></td></tr>
-          <tr><th>See amounts raised</th><td><span class="c q">Not defined</span></td><td><span class="c y">Yes</span></td><td><span class="c q">Not defined</span></td></tr>
-          <tr><th>See donor names and emails</th><td><span class="c q">Not defined</span></td><td><span class="c q">Not defined</span></td><td><span class="c q">Not defined</span></td></tr>
-          <tr><th>Request a payout</th><td><span class="c n">No</span></td><td><span class="c n">No</span></td><td><span class="c y">Yes</span></td></tr>
-          <tr><th>Publish, schedule or unpublish</th><td><span class="c q">Not defined</span></td><td><span class="c q">Not defined</span></td><td><span class="c q">Not defined</span></td></tr>
-          <tr><th>Invite or remove other people</th><td><span class="c q">Not defined</span></td><td><span class="c q">Not defined</span></td><td><span class="c q">Not defined</span></td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <section>
-    <h2>Where the rules conflict</h2>
+    <h2>What changed from v1.1</h2>
     <div class="issues">
-      <div class="issue">
-        <h3>"Admin" means two different people</h3>
-        <p>An organisation Admin is a user on the charity's side. An Agathos admin is our staff member who approves change requests. On a screen that says "ask an admin", users can't tell which one.</p>
-      </div>
-      <div class="issue">
-        <h3>A collaborator can hand out payout rights</h3>
-        <p>The collaborator screen says payouts and team access belong to the owner. But in the Team step, a collaborator can invite anyone as Withdrawal-authorised.</p>
-        <span class="where">Collaborator screen · Team step</span>
-      </div>
-      <div class="issue">
-        <h3>Withdrawal rights are set in two places</h3>
-        <p>Contact &amp; authority asks for names in free text during verification. The Team step gives the Withdrawal-authorised role by email. A hint asks for them to match, but nothing checks it. Partnerships is already deciding whether the first field is needed at all.</p>
-        <span class="where">Contact &amp; authority · Team step · feedback item on withdrawal POC</span>
-      </div>
-      <div class="issue">
-        <h3>No one clearly approves access requests</h3>
-        <p>A member is told to "ask an owner or admin", but the prototype only notifies the organisation's primary contact. There's no rule for what happens if that person never answers.</p>
-        <span class="where">Request-access screen</span>
-      </div>
-      <div class="issue">
-        <h3>Owner and Admin behave the same</h3>
-        <p>Every check in the prototype treats them as equal. If they are equal, one of them isn't needed. If they differ, the difference isn't written down anywhere.</p>
-      </div>
-      <div class="issue">
-        <h3>Collaborators see an extra screen</h3>
-        <p>The handoff sends a collaborator straight to project creation. The prototype shows a screen with a notice and a Start button first. This is the screen in the feedback.</p>
-        <span class="where">Handoff, Diagram 1c · collaborator screen</span>
-      </div>
+      <div class="issue"><h3>Admin and Collaborator are now Manager</h3><p>The team suggested combining them (Q5). One role, with a name that isn't "Admin".</p></div>
+      <div class="issue"><h3>Member is gone</h3><p>So is the screen where a member asked an owner for permission. A request to join remains only for a new user whose organisation is already verified.</p></div>
+      <div class="issue"><h3>Project roles follow the same list</h3><p>Editor and Withdrawal-authorised are replaced by Manager, plus a payout permission switch. Viewer stays.</p></div>
     </div>
   </section>
 
   <section>
-    <h2>Questions for the team</h2>
+    <h2>Still open</h2>
+    <div class="issues">
+      <div class="issue"><h3>The name "Manager"</h3><p>Proposed in v1.2. Needs the team's OK.</p><span class="where">Q2</span></div>
+      <div class="issue"><h3>What only an Owner can do</h3><p>The team asked to follow the live platform. We need its rules to fill in that row.</p><span class="where">Q3</span></div>
+      <div class="issue"><h3>A separate payout role</h3><p>The team is still deciding. The prototype uses a per-person switch for now.</p><span class="where">Q4</span></div>
+      <div class="issue"><h3>Who approves a request to join</h3><p>The prototype notifies the organisation's primary contact. There's no rule for what happens if nobody answers.</p></div>
+      <div class="issue"><h3>Withdrawal rights are still asked in two places</h3><p>Individuals still name who can request withdrawals under Contact &amp; authority, while the Team step has payout permission. Organizations follow the live form, which doesn't ask this. Partnerships is deciding whether the question is needed.</p><span class="where">Contact &amp; authority (individuals) · Team step</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Team answers, 2 October 2026</h2>
     <ol class="qs">
-      <li><p>Keep two sets of roles (organisation and project), or merge them into one list?</p><span class="who">Product</span></li>
-      <li><p>Rename the organisation "Admin" role so it can't be confused with Agathos admins?</p><span class="who">Product</span></li>
-      <li><p>What can an Owner do that an Admin can't? For example: change the payout account, remove people, transfer ownership.</p><span class="who">Product</span></li>
-      <li><p>Who may give someone payout rights: the Owner only, Owner and Admin, or collaborators too?</p><span class="who">Partnerships</span></li>
-      <li><p>Who approves a member's access request, and what happens if no one responds?</p><span class="who">Product</span></li>
-      <li><p>Does "see the numbers" include donor names and emails, or totals only?</p><span class="who">Compliance</span></li>
-      <li><p>Which roles may ask Agathos to change a live project's goal or end date?</p><span class="who">Product</span></li>
-      <li><p>Should collaborators skip straight to project creation, as the handoff says?</p><span class="who">Product</span></li>
+      <li><p>Keep two sets of roles (organisation and project), or merge them into one list?<span class="ans"><b>Answer:</b> Merge them into one list where possible, for organisations and projects, combined with the roles already on Agathos.</span><span class="ans"><b>In v1.2:</b> One list: Owner, Manager, Viewer.</span></p><span class="who">Product</span></li>
+      <li><p>Rename the organisation "Admin" role so it can't be confused with Agathos admins?<span class="ans"><b>Answer:</b> Propose another name.</span><span class="ans"><b>In v1.2:</b> Proposed: Manager.</span></p><span class="who">Product</span></li>
+      <li><p>What can an Owner do that an Admin can't? For example: change the payout account, remove people, transfer ownership.<span class="ans"><b>Answer:</b> Follow what is currently on Agathos.</span><span class="ans"><b>In v1.2:</b> Still open. We need the live platform's rules.</span></p><span class="who">Product</span></li>
+      <li><p>Who may give someone payout rights: the Owner only, Owner and Admin, or collaborators too?<span class="ans"><b>Answer:</b> Owner and Admin. Still considering whether a separate payout right or role is needed.</span><span class="ans"><b>In v1.2:</b> Owner and Manager give payout permission, as a per-person switch.</span></p><span class="who">Partnerships</span></li>
+      <li><p>Who approves a member's access request, and what happens if no one responds?<span class="ans"><b>Answer:</b> No clear need for a Member role at this stage. Not sure the Collaborator role is needed either. Could it be combined with Admin?</span><span class="ans"><b>In v1.2:</b> Member removed. Collaborator merged into Manager.</span></p><span class="who">Product</span></li>
+      <li><p>Does "see the numbers" include donor names and emails, or totals only?<span class="ans"><b>Answer:</b> All of the above.</span><span class="ans"><b>In v1.2:</b> Viewers see totals, donor names and emails.</span></p><span class="who">Compliance</span></li>
+      <li><p>Which roles may ask Agathos to change a live project's goal or end date?<span class="ans"><b>Answer:</b> Owner, Admin and Collaborator.</span><span class="ans"><b>In v1.2:</b> Owner and Manager.</span></p><span class="who">Product</span></li>
+      <li><p>Should collaborators skip straight to project creation, as the handoff says?<span class="ans"><b>Answer:</b> The question wasn't clear. It asked whether a collaborator should go straight to building a project, without a confirmation screen first.</span><span class="ans"><b>In v1.2:</b> Falls away, since Collaborator is merged into Manager.</span></p><span class="who">Product</span></li>
     </ol>
   </section>
 
   <footer>
-    Once these are answered, the role checks in the prototype and the teammate invitation flow get built from this table.
+    Proposed in v1.2 from the team's answers. Once the name Manager and the Owner-only rights are confirmed, the prototype follows.
   </footer>
 </div>
 </body>

@@ -1,154 +1,200 @@
 # Onboarding — hướng dẫn nhanh
 
-Cập nhật: 25/09/2026 · Bản đang chạy: `/onboarding` · Ma trận quyền: `/onboarding-matrix`
+Cập nhật: 02/10/2026 · **Version v1.2** · Bản đang chạy: `/onboarding` · Ma trận quyền: `/onboarding-matrix`
 
-Nguồn gốc: flow spec và Figma handoff (Draft 1, 16/09/2026), cộng với feedback "Onboarding Flow Comments Draft 1".
+Version hiện ở viên thuốc Demo (chip "v1.2"). Bấm "What's new" trong panel Demo để xem thay đổi của từng version.
+
+Nguồn gốc: flow spec và Figma handoff (Draft 1, 16/09/2026), feedback "Onboarding Flow Comments Draft 1", và feedback 02/10/2026 (kèm ghi chú của Rachel). Plan và nhật ký: `docs/onboarding-feedback-0210-plan.md`.
 
 ---
 
 ## 1. Onboarding để làm gì?
 
-Muốn gây quỹ trên Agathos, người dùng phải **được xác minh trước**, sau đó mới tạo và launch Project. Onboarding là con đường từ lúc một người lạ vào trang đến lúc Project của họ lên live.
+Đưa một người từ lúc vào trang tới lúc có **Project**, **trang tổ chức** hoặc **Event** trên Agathos.
 
-Ý quan trọng nhất: **xác minh gắn với tổ chức (hoặc cá nhân), không gắn với Project.** Đã xác minh một lần thì các Project sau đi thẳng vào bước tạo Project, không phải nộp lại giấy tờ.
+Hai ý quan trọng nhất:
+- **Xác minh gắn với tổ chức (hoặc cá nhân), làm một lần.** Project, trang tổ chức và event đều dựa trên lần xác minh đó.
+- **Mỗi Project đều được Agathos duyệt và gọi điện trao đổi** trước khi dựng trang, đúng quy trình Rachel đang làm.
 
 ---
 
-## 2. Mô hình: 2 phiên và 1 luồng cho người quay lại
+## 2. Bức tranh chung
 
 ```
-NGƯỜI MỚI                              NGƯỜI QUAY LẠI (đã login)
-Phiên 1 – Xác minh (7 bước)            Có bao nhiêu org?
-   ↓ submit                              0 → chọn: thêm org / làm cá nhân
-Agathos duyệt tay (1–2 ngày)             1 trở lên → màn chọn org
-   ↓ duyệt xong                            (các org + thêm org + làm cá nhân)
-Phiên 2 – Tạo Project & launch (4 bước)      ↓ tuỳ role
-   ↓                                     Owner/Admin → xác nhận thông tin → Phiên 2
-Live / hẹn giờ / nháp                    Collaborator → Phiên 2
-                                         Member → xin quyền
+STEP 0 — "What would you like to do?"
+  ├─ Raise funds for a cause      → Project (cá nhân hoặc tổ chức)
+  ├─ Raise funds for your organisation → Trang tổ chức + quỹ chi phí vận hành
+  └─ Host an event                → Event (cá nhân hoặc tổ chức)
+        ↓
+XÁC MINH (một lần, chỉ cho Cause và Organisation), Agathos duyệt 1–2 ngày
+  Tổ chức: đúng câu hỏi của form Create Organization trên production, chia 5 bước ngắn
+  Cá nhân: các bước theo flow spec
+        ↓ duyệt xong, đi tiếp theo lối đã chọn
+  Cause  → Project proposal → Agathos duyệt + gọi → dựng trang → launch
+  Org    → Dựng trang tổ chức → Publish / hẹn ngày / nháp
+Event  → không cần xác minh (giống production): chọn người tổ chức → form Create Event có sẵn
 ```
 
----
+Dưới 3 lựa chọn ở Step 0 có khung **"How pages fit together"**: trang tổ chức chứa các Project, Event và quỹ chi phí vận hành; cá nhân thì có Project và Event.
 
-## 3. Phiên 1: Xác minh (người mới)
-
-Làm một lèo, khoảng 10 phút. Mọi thứ tự lưu, bỏ ngang thì quay lại bằng link trong email.
-
-1. **About your cause**: tên, loại hoạt động, quốc gia, gây quỹ cho việc gì. Bước này chưa cần tài khoản.
-2. **Your account**: nhập email, nhận link đăng nhập, không cần mật khẩu. Tài khoản được tạo sớm để người dùng bỏ ngang vẫn quay lại được. Nếu email đã có tài khoản thì hệ thống đăng nhập luôn và chuyển sang luồng người quay lại.
-3. **Who is raising**: tổ chức từ thiện đã đăng ký, hay cá nhân / nhóm tự phát. Lựa chọn này quyết định bước 4 hỏi giấy tờ gì.
-4. **Documents**: bước giấy tờ duy nhất.
-   - Tổ chức: tên pháp lý, số đăng ký, giấy chứng nhận, giấy miễn thuế, báo cáo tài chính (có thể nộp sau), website.
-   - Cá nhân ("Verify your identity"): họ tên, giấy tờ tùy thân, giấy tờ chứng minh địa chỉ, thư hỗ trợ (tùy chọn).
-   - Ở bước này hệ thống kiểm tra trùng tổ chức:
-     - Tổ chức **đã xác minh** trên Agathos → mời "Request access". Người liên hệ chính được báo; khi họ duyệt, người dùng thành Collaborator và không phải xác minh lại.
-     - Tổ chức **đang có đơn khác** → "Request to join". Bên kia có 5 ngày để trả lời, quá hạn thì team Agathos xử lý. Có lối thoát "It's a different organisation".
-5. **Contact & authority**: người liên hệ, và ai được quyền yêu cầu rút tiền.
-6. **Payout details**: tài khoản ngân hàng. Tên chủ tài khoản phải khớp tên pháp lý; không khớp thì hiện cảnh báo nhưng vẫn cho gửi. Số tài khoản bị che sau khi nhập.
-7. **Review & submit**: xem lại toàn bộ, sửa được từng phần, rồi gửi. Agathos duyệt trong 1–2 ngày làm việc.
-
-User đã login và đã chọn "Add an organisation" hoặc "Start an individual project" thì không phải qua lại bước 2 và bước 3.
+Người đã đăng nhập cũng bắt đầu ở Step 0. Sau đó họ thấy danh sách org của mình, kèm "Add an organisation" (và "cá nhân" với lối Cause và Event).
 
 ---
 
-## 4. Phiên 2: Tạo Project và launch
+## 3. Xác minh (người mới)
 
-Phiên này tách riêng có chủ đích: sau khi được duyệt, người dùng có thời gian chuẩn bị nội dung cho kỹ.
+Mọi thứ tự lưu, bỏ ngang thì quay lại bằng link trong email.
 
-1. **Project basics**: tên, câu chuyện, ảnh, loại Project (một lần / định kỳ / theo sự kiện). Chọn "theo sự kiện" thì hỏi thêm ngày.
-2. **Goal & needs**: tất cả đều tùy chọn.
-   - Mục tiêu: chọn khoảng, số chính xác, hoặc "Not sure yet" (không đặt mục tiêu).
-   - Cột mốc ("S$5,000 giữ trại mở 3 tháng") thay cho con số cứng.
-   - Xin tình nguyện viên, xin vật phẩm.
-   - Cho phép quyên góp hằng tháng.
-3. **Team**: mời người qua email với 3 role Editor / Viewer / Withdrawal-authorised. Lỡ gõ email mà chưa bấm Invite thì hệ thống nhắc trước khi Continue.
-4. **Launch**: 3 lựa chọn ngang nhau.
-   - **Go live now**: lên live ngay, có link để chia sẻ.
-   - **Schedule**: hẹn ngày giờ, nhắc trước 24 giờ.
-   - **Draft**: lưu nháp, nhắc vào ngày 3, 7 và 14 để Project không bị bỏ quên.
+1. **Your account**: nhập email, nhận link đăng nhập, không cần mật khẩu. Nếu email đã có tài khoản, hệ thống báo ngay "There is already an account on Agathos with this email address" và mời **Log in**. Đăng nhập xong, user thấy danh sách org theo đúng lối đã chọn. Lối Event chỉ có bước này.
+2. **Who is raising**: tổ chức hay cá nhân. Lối Organisation bỏ qua bước này.
 
----
+**Tổ chức**: giữ nguyên câu hỏi và câu chữ của form "Create Organization Page" trên production. Production có 3 bước, trong đó bước đầu dài 14 câu. Prototype chia lại thành 5 bước ngắn: câu dễ trước, phần viết và nộp file để sau. Rail ghi mỗi bước có bao nhiêu câu.
+- **Organization**:
+  - Đầu bước có khung "Before you start" liệt kê giấy tờ cần chuẩn bị.
+  - Các câu hỏi: tên; nước đăng ký; có phải charity/non-profit đã đăng ký không; số đăng ký; quy mô tổ chức.
+  - Câu khấu trừ thuế chỉ hiện khi chọn Singapore. Đổi sang nước khác thì câu trả lời bị xóa.
+  - Bấm Next là hệ thống kiểm tra trùng tổ chức ngay. Đã xác minh thì hiện "Request access"; đang có đơn khác thì hiện "Request to join" (5 ngày để trả lời). Nhờ vậy người dùng không phải điền hết form rồi mới biết.
+- **Contact**: email; số điện thoại; địa chỉ; website.
+- **Causes**:
+  - Cause: tối đa 3, theo danh sách thật trên agathos.be.
+  - Nước hoạt động: chọn được nhiều nước, mỗi nước hiện thành một tag.
+  - Giới thiệu về cause (2000): đoạn này cũng là phần mở đầu của trang tổ chức.
+  - Các nền tảng gây quỹ khác (500).
+- **Documents**: giấy chứng nhận đăng ký (tiếng Anh); báo cáo tài chính hoặc báo cáo năm gần nhất; sao kê ngân hàng. Tổ chức ở Singapore chọn "có cho khấu trừ thuế" (tức là IPC) thì **không phải nộp sao kê ngân hàng**, vì payout thiết lập trực tiếp với AXS.
+- **Risk declaration**: có lệnh trừng phạt hoặc tin tức tiêu cực không (Yes thì ghi chi tiết); có người có ảnh hưởng chính trị (PEP) không; "How did you come to know about Agathos?"; ô xác nhận; Submit.
+- **Update details**: mục "Organization details" mở lại 3 bước Organization, Contact và Causes. Mục Documents và mục Risk declaration mỗi mục mở 1 bước.
 
-## 5. Người quay lại: chia luồng theo số org và role
+**Cá nhân**: production chưa có flow riêng, nên vẫn theo flow spec: About your cause → Verify your identity → Contact & authority → Payout details → Review & submit.
 
-- **Owner/Admin bấm vào org của mình → modal xác nhận** (cũng hiện khi bấm "+ New project" ở Dashboard):
-  - Step indicator: Confirm details → Build → Launch.
-  - Huy hiệu "Verified since…" và các thông tin đã xác minh (số đăng ký, người liên hệ, tài khoản nhận tiền, ngày hết hạn).
-  - Câu hỏi **"Are these details still accurate?"**:
-    - **Yes, continue** → vào thẳng Phiên 2.
-    - **Something changed** → danh sách "What's changed".
-  - Spec cố tình giữ bước xác nhận này (một cú bấm) để donor tin nền tảng.
-- **Trang chi tiết org** ("Ready when you are") vẫn còn, mở từ Dashboard → Actions → Organization details. Nút "Start a new project" ở đó cũng mở modal trên.
-- **Có gì thay đổi** (ngân hàng, đăng ký, người liên hệ): người dùng tick vào danh sách "What's changed". Chỉ phần đã tick mở lại để duyệt nhanh, thường trong ngày, và họ vẫn tạo Project song song.
-- **Xác minh sắp hết hạn** (còn dưới 30 ngày): hiện banner nhắc làm mới trước khi hết hạn.
-- **Collaborator**: thấy một màn ngắn có nút "Start a new project", không cần xác nhận thông tin. Xác minh và payout là việc của owner.
-- **Member**: chưa có quyền, bấm "Request access" và chờ owner duyệt. Duyệt xong thì thành Collaborator.
-- **Cá nhân đã xác minh**: màn tương tự màn của org, có huy hiệu cảnh báo khi giấy tờ tùy thân sắp hết hạn.
+Màn "Thank you" ghi 3 bước tiếp theo, đúng theo lối đã chọn.
 
 ---
 
-## 6. Dashboard (Manage Pages)
+## 4. Project: Proposal trước, dựng trang sau
 
-Dựng theo tab **Manage Pages** của trang tài khoản trên Agathos hiện tại. Mở bằng cách bấm avatar trên thanh menu.
-
-- **Thanh tab con**: My Dashboard / Contributions / Tickets / Transactions Log / Manage Pages. Trong prototype chỉ Manage Pages hoạt động.
-- **Cột trái**: Personal và từng Organization của tài khoản. Đơn đang chờ duyệt hiện kèm pill **Submission Received**.
-- **Cột phải** (của mục đang chọn):
-  - Tên org, pill role (Owner, Admin, Collaborator, Member), nút **Actions ⋮** (Organization details, Update details, Refresh verification khi sắp hết hạn).
-  - Tab **Projects / Events** và nút **+ New project**. Member không có nút này, thay vào đó là link Request access.
-  - Card Project: badge trạng thái (Ongoing, Completed, Scheduled, Draft), link Manage Project, ô số liệu (ngày bắt đầu, Public/Private, số tiền, số lượt đóng góp, thanh tiến độ, % so với mục tiêu).
-  - Project đã hẹn giờ hoặc đang nháp có nút **Publish now** và các mốc nhắc ngày 3, 7, 14.
-- **New project** từ dashboard đi thẳng vào Phiên 2 (đúng spec: Project mới luôn bắt đầu từ bước tạo Project). Với Personal chưa xác minh, New project sẽ bắt đầu xác minh cá nhân trước.
+1. **Proposal**: project title, cause, country, tóm tắt (là gì, giúp ai), mục tiêu dự kiến (S$, tùy chọn). Bấm "Submit for review".
+   - Dashboard hiện card **"In review"**, kèm dòng "We'll contact you to schedule a call".
+   - Agathos duyệt xong, card thành **"Approved"**, có nút "Continue building".
+2. **Project page**: các trường một project trên production có:
+   - Title, type (Community / Emergency), cause, country, city.
+   - **Introduction**, **Background & Context**, **Scope & Activities**: đúng 3 mục trên project page của agathos.be.
+   - Ảnh, kèm gợi ý: mặt người, ánh sáng tự nhiên ấm, không ảnh stock, không chữ trên ảnh.
+3. **Goal & dates**: mục tiêu S$ (để trống là gây quỹ không đặt mục tiêu, production đang cho phép), ngày bắt đầu, ngày kết thúc. Mục tiêu dự kiến ở Proposal được điền sẵn.
+4. **Team**: mời qua email với role **Manager** hoặc **Viewer**. Manager có thể được bật thêm quyền **"Can request payouts"**.
+5. **Launch**: Go live now / Schedule / Save as draft. Bản nháp và bản hẹn ngày có nhắc vào ngày 3, 7, 14.
 
 ---
 
-## 7. Tự bấm thử khoảng 15 phút
+## 5. Trang tổ chức (Organisation page)
 
-Mở `/onboarding` và bấm nút **Demo** (viên thuốc ở góc dưới trái). Các scenario chia làm 3 nhóm:
+- Tách khỏi xác minh. Nội dung lấy từ Organization Details: cause, website, email, điện thoại, và "Who we are" (từ phần giới thiệu về cause). Không phải nhập lại.
+- Thêm Banner Photo và Logo, như org page trên production đang hiển thị.
+- **Donations for running costs**: bật lên thì trang có nút Donate cho chi phí vận hành, ghi rõ tiền dùng vào việc gì. Hiện partner phải tạo hẳn một project cho việc này, ví dụ "2026/2027 Operating Expenses" của The Treasure Box.
+- Chọn Publish now / Schedule a date / Save as draft. Trang đã live thì chỉ còn nút "Save changes".
+- Dashboard hiện thẻ **"Organization page"** (Not set up / Draft / Scheduled / Live), kèm số tiền chi phí vận hành đã nhận.
+
+---
+
+## 6. Người quay lại và role
+
+- **Role chỉ còn Owner / Manager** cho tổ chức (Manager = Admin cũ + Collaborator cũ), và **Manager / Viewer** cho project. Không còn Member.
+- **Lối Cause**: chọn org → **modal xác nhận thông tin** ("Are these details still accurate?").
+  - Yes, continue → Proposal.
+  - Something changed → chỉ mở lại phần đã tick để duyệt nhanh, thường trong ngày.
+- **Lối Organisation**: chọn org → trang tổ chức.
+- **Lối Event**: chọn org hoặc "Host as an individual" → màn chuyển sang form Create Event có sẵn (Build your event page → Add Tickets → Registration Form). Không cần xác minh. Event có bán vé thì cần đăng ký với cổng thanh toán, và chỉ tài khoản ngân hàng doanh nghiệp mới làm được. Prototype không dựng lại form này.
+- **Cá nhân đã xác minh**: "Continue as [tên]" cho Project, hoặc "Host as [tên]" cho Event.
+- **Xác minh sắp hết hạn** (dưới 30 ngày): banner nhắc làm mới, hiện cả ở Step 0.
+
+---
+
+## 7. Dashboard (Manage Pages)
+
+Dựng theo tab Manage Pages của trang tài khoản trên Agathos. Mở bằng cách bấm avatar trên thanh menu.
+
+- **Cột trái**: Personal và từng Organization.
+  - Đơn xác minh đang chờ có pill **Submission Received**.
+  - Yêu cầu join org đang chờ có pill **Request Sent**, kèm hạn trả lời.
+- **Cột phải** (của org đang chọn):
+  - Tên org, pill role, nút Actions ⋮ (Organization page, Organization details, Update details, Refresh verification).
+  - Thẻ **Organization page**.
+  - Tab **Projects / Events**, kèm "+ New project" / "+ New event".
+- **Card project** theo trạng thái: In review · Approved · Draft · Scheduled · Ongoing · Completed.
+
+---
+
+## 8. Tự bấm thử
+
+Mở `/onboarding`, bấm nút **Demo** (góc dưới trái):
 
 **Not logged in**
-1. **New visitor**: đi hết Phiên 1. Ngay dưới dòng này có khối "Try in the forms":
-   - `josias@antioch21.org` ở bước tạo tài khoản: email đã có tài khoản.
-   - `T08SS0123A` ở bước Documents: tổ chức đã xác minh.
-   - `T21SS0456B` ở bước Documents: tổ chức đang có đơn khác.
-   - Submit xong, bấm "Demo: approve now" để giả lập đã được duyệt.
+1. **New visitor**: chọn một lối ở Step 0 rồi đi hết phần xác minh. Khối "Try in the forms" có các mã thử:
+   - `josias@antioch21.org`: email đã có tài khoản.
+   - `T08SS0123A`: tổ chức đã xác minh. Nhập ở ô số đăng ký, bước Organization.
+   - `T21SS0456B`: tổ chức đang có đơn khác.
+   - Lối Organisation: chọn Singapore thì câu "Can you offer tax deductions to donors?" mới hiện. Chọn Yes thì ô sao kê ngân hàng biến mất ở bước Documents.
+   - Submit xong, bấm "Demo: approve now". Hệ thống đi tiếp theo lối đã chọn: Proposal, trang tổ chức, hoặc form Event.
 
-**Logged in · starting a project** (đăng nhập là Adam Le)
-2. **Owner of one organisation**: màn chọn org có Antioch21, Add an organisation và Start an individual project. Chọn Antioch21 → modal xác nhận → Yes, continue → đi hết Phiên 2.
-3. **In two organisations**: cùng màn chọn org, có thêm The Treasure Box (Collaborator).
-4. **Individual, already verified**: không có org, làm Project cá nhân mà không phải nộp lại giấy tờ.
-5. **Collaborator or member**: so sánh Collaborator (tạo Project được) với Member (phải xin quyền).
+**Logged in · starting something** (đăng nhập là Adam Le)
+2. **Not verified yet**: có tài khoản nhưng chưa xác minh gì.
+3. **Owner of one organisation**: thử cả 3 lối với Antioch21.
+4. **In two organisations**: Owner của Antioch21, Manager của The Treasure Box.
+5. **Individual, already verified**: Project hoặc Event với tư cách cá nhân, không nộp lại giấy tờ.
 
 **Logged in · other states**
-6. **Verification expiring**: xem banner nhắc làm mới.
-7. **Project awaiting publish**: xem dashboard có Project đã hẹn giờ và các mốc nhắc.
+6. **Verification expiring**: banner nhắc làm mới.
+7. **Project awaiting publish**: Dashboard có đủ trạng thái:
+   - Một project "In review": bấm "Demo: approve" rồi dựng trang.
+   - Một project đã hẹn ngày.
+   - Một project đang chạy.
+   - Trang tổ chức đang live, kèm quỹ chi phí vận hành.
 
-Trong panel Demo còn có:
-- **Flow diagram**: sơ đồ luồng của từng scenario.
-- **View matrix**: ai có quyền gì (`/onboarding-matrix`).
-- **Reset scenario**: làm lại scenario hiện tại từ đầu.
-
-Prototype lưu mọi thứ trong trình duyệt, nên đóng tab rồi mở lại vẫn ở đúng chỗ cũ.
-
----
-
-## 8. Đã sửa theo feedback Draft 1
-
-- User đã đăng nhập không còn bị hỏi lại "Your account" và "Who is raising".
-- User có 1 org thấy cùng màn chọn org như user có 2+ org, nên lúc nào cũng có Add an organisation và Start an individual project.
-- Xác nhận thông tin org chuyển thành modal khi bắt đầu Project (thay cho ô tick trên trang), có step indicator Confirm details → Build → Launch.
-- Trang chi tiết org bỏ danh sách Project (đã có ở Dashboard).
-- Bước Team nhắc khi có email đã gõ mà chưa mời; người đã mời hiện "Invite sent".
-- Bước "Verify your identity" bỏ câu hỏi cách dùng tiền, vì Step 1 đã hỏi.
+Trong panel Demo còn có: **What's new** (lịch sử version), **Flow diagram** (sơ đồ từng scenario), **View matrix** (ai làm được gì), **Reset scenario** (làm lại từ đầu). Prototype lưu mọi thứ trong trình duyệt, nên đóng tab rồi mở lại vẫn ở đúng chỗ cũ.
 
 ---
 
-## 9. Còn chờ team quyết
+## 9. Lịch sử version
 
-| Việc | Ai quyết |
+Bản tiếng Anh cho team nằm ở "What's new" trong panel Demo.
+
+**v1.2 — 02/10/2026** (theo feedback 02/10)
+- Step 0 với 3 lối vào, kèm khung "How pages fit together".
+- Xác minh tổ chức dùng đúng câu hỏi của form Create Organization trên production, chia thành 5 bước ngắn: Organization, Contact, Causes, Documents, Risk declaration. Danh sách cause lấy từ agathos.be.
+- Khung "Before you start" liệt kê giấy tờ cần chuẩn bị. Số đăng ký được hỏi ngay ở bước đầu, nên tổ chức đã có trên Agathos bị phát hiện trước khi người dùng điền tiếp.
+- Câu khấu trừ thuế chỉ hiện với tổ chức ở Singapore. Tổ chức cho khấu trừ thuế (IPC) không phải nộp sao kê ngân hàng.
+- Mỗi Project bắt đầu bằng Proposal; Agathos duyệt và gọi điện rồi mới dựng trang.
+- Project page dùng các trường production: title, type, cause, country, city, Introduction / Background & Context / Scope & Activities, mục tiêu và ngày. Có gợi ý ảnh.
+- Bỏ các trường production không có: tình nguyện viên, vật phẩm, cột mốc, ô cho donate hằng tháng.
+- Trang tổ chức tách khỏi xác minh, nội dung lấy từ Organization Details; thêm banner, logo, quỹ chi phí vận hành, ngày xuất bản.
+- Event: chọn người tổ chức rồi mở form Create Event có sẵn; không cần xác minh, giống production.
+- Role gộp thành Owner / Manager / Viewer, kèm quyền payout theo từng người; bỏ Member.
+- Email đã có tài khoản được báo ngay, kèm Log in (vẫn giữ lối đã chọn).
+- Scenario "Not verified yet"; nút "Demo: open the link"; chữ Step 1 đúng với người đã đăng nhập; Dashboard hiện yêu cầu join đang chờ.
+- Nhãn version và "What's new"; trang matrix viết lại theo câu trả lời của team.
+
+**v1.1 — 25/09/2026** (theo feedback Draft 1)
+- User đã đăng nhập không bị hỏi lại "Your account" và "Who is raising".
+- User 1 org thấy cùng màn chọn org như user 2+ org.
+- Xác nhận thông tin org bằng modal khi bắt đầu Project.
+- Bước Team nhắc khi email đã gõ mà chưa mời.
+- Bỏ câu hỏi trùng về cách dùng tiền ở "Verify your identity".
+- Dashboard dựng lại theo Manage Pages; scenario Demo chia nhóm; flow diagram; trang matrix.
+
+**v1.0 — 18/09/2026**
+- Bản prototype onboarding đầu tiên.
+
+---
+
+## 10. Còn chờ team hoặc production
+
+| Việc | Ai quyết / cần gì |
 |---|---|
 | Có cần field "ai được rút tiền" ở Contact & authority không | Partnerships |
 | Tên chủ tài khoản có bắt buộc khớp tên tổ chức không, có ngoại lệ nào | Regulation |
 | Có cho gây quỹ không đặt mục tiêu ("Not sure yet") không | Business |
-| Roles & permissions: 8 câu hỏi ở `/onboarding-matrix` | Product / Partnerships / Compliance |
-| Luồng mời thành viên (email mời → đăng ký → vào Project theo role) | Chờ chốt roles |
+| Tên "Manager"; Owner khác Manager chỗ nào; có cần role payout riêng | Product (xem `/onboarding-matrix`) |
+| "Can you offer tax deductions to donors?" = Yes (Singapore) có đúng là IPC, và IPC có bỏ sao kê ngân hàng không | Partnerships / Regulation |
+| Danh sách lựa chọn cho "What is the size of your organization?" và "How did you come to know about Agathos?" | Copy từ form production |
+| Các trường bắt buộc trên form production; danh sách đầy đủ của Project type (mới thấy Community, Emergency); kích thước ảnh | Cần xác nhận từ production |
+| Email kích hoạt và email welcome kèm link hướng dẫn (Rachel #6, #7) | Cần nội dung hiện tại; gửi thật là việc của backend |
+| Luồng mời thành viên (email mời → đăng ký → vào project theo role) | Làm sau khi chốt role |
