@@ -441,3 +441,219 @@ Kiểm tra ở cả 1440 và 390.
   - Phone 390 không bị cuộn ngang. Trang bước 1 trên phone dài 2.299px (trước đây 3.794px).
   - Console không có lỗi.
 - **Không đụng:** Create Event, `onboarding-matrix.html`, luồng cá nhân, luồng project.
+
+## 11. Đường vào Step 0: nút "+ Create" trên nav (v1.3, anh duyệt 02/10)
+
+> **Anh chốt 02/10:**
+> - **E1 = b:** nút theo ngữ cảnh bỏ qua Step 0, vì người dùng đã biết mình muốn tạo gì. Vì vậy 3 link ở footer cũng đi thẳng vào lối tương ứng, không qua Step 0 tô sẵn.
+> - **E3 = a:** giữ bước "Your account" ngay sau Step 0.
+> - **E4 = a:** không dựng mock.
+> - **E5 = a:** em tự viết nội dung 2 email. Link guide để trống, kèm ghi chú.
+
+### 11.1 Vì sao làm
+- **Giữ Step 0.** Đây là đề xuất của team partnership (Josias, Rachel), hai bạn làm việc gần với các owner. Nhưng hiện chưa có đường nào vào Step 0. Người chưa đăng nhập chỉ vào được bằng cách mở `/onboarding`, bấm Sign Up hoặc bấm link ở footer. Người đã đăng nhập thì không vào được, trừ qua panel Demo.
+- **Production hôm nay:**
+  - Create Event nằm trong card bên phải của trang Join an Event.
+  - "+ Create Organization" nằm ở tab Organizations.
+  - Người chưa đăng nhập bấm hai nút này thì bị chặn bằng modal Log In / Sign Up.
+  - Chưa có nút Start a Project.
+- **Hướng sau này (anh nói 02/10):** Create Org và Create Event cũng sẽ đi flow giống Project. Người dùng vào thẳng, được hỏi dần, tài khoản tạo ngay trong flow (email → link kích hoạt → tự đăng nhập).
+- **Anh chốt 02/10:** nút **"+ Create"** trên nav dẫn vào Step 0.
+
+### 11.2 Pain points: v1.2 giải quyết tới đâu, và sau plan này tới đâu
+Ký hiệu: ✅ giải quyết · 🟡 một phần · ❌ chưa làm. Đây là đánh giá trên prototype; production chưa đổi gì.
+
+| # | Pain point | v1.2 | Sau plan 11 | Vì sao |
+|---|---|---|---|---|
+| R1 | Partner không biết bắt đầu Project từ đâu | 🟡 | ✅ | "+ Create" có ở mọi trang, cả khi đã đăng nhập → Step 0 → Raise funds for a cause → Proposal |
+| R2 | Create Event chỉ nằm ở tab Join Event | 🟡 | ✅ | "+ Create" → Step 0 → Host an event |
+| R3 | Partner rành tự lập org và nộp hồ sơ thẩm định | ✅ | ✅ | Form org 5 bước ngắn, "Before you start", kiểm tra trùng sớm, IPC bỏ sao kê |
+| R4 | Lập org xong không biết làm gì tiếp, phải email Rachel; chị vẫn cần thẩm định và gặp | ✅ | ✅ | Duyệt xong vào thẳng Proposal → "We'll contact you to schedule a call" |
+| R5a | Phần Personal / Org Page trong Manage Pages gây rối | 🟡 | 🟡 | Sơ đồ "How pages fit together" ở Step 0 giờ có đường vào. Nhưng cấu trúc Manage Pages vẫn y như production |
+| R5b | Org page ít giá trị | ✅ giao diện | ✅ giao diện | Nhận donate cho chi phí vận hành. Team chưa chốt cách nhận tiền ở backend (D1) |
+| R5c | Nhập thông tin tổ chức hai lần | ✅ giao diện | ✅ giao diện | Org page lấy sẵn từ thông tin đã xác minh |
+| R6 | Guide phải gửi tay | ❌ | 🟡 | Bản xem trước email chào mừng kèm link guide (E5). Gửi tự động là việc của backend |
+| R7 | Email chào mừng và kích hoạt; không rõ tỉ lệ kích hoạt | 🟡 | 🟡 | Bản xem trước email kích hoạt (E5). Đo tỉ lệ là việc của analytics |
+| J1 | Gắn tên version | ✅ | ✅ | Chip version và What's new |
+| J2 | Tự đi thử các flow | ✅ | ✅ | `docs/walkthrough-v1.1.md` |
+| J3 | Cấu trúc project / org / event chưa rõ | 🟡 | ✅ | Ai cũng tới được Step 0 và sơ đồ cấu trúc |
+| J4 | Mời phản biện | ✅ | ✅ | General fund, IPC, gộp role |
+
+### 11.3 Nút "+ Create" trên nav
+- **Vị trí:**
+  - Chưa đăng nhập: `EN · + Create · Log In · Sign Up`.
+  - Đã đăng nhập: `EN · + Create · avatar`.
+  - Kiểu nút viền (outline), để Sign Up vẫn là nút chính dành cho donor.
+- **Phone:** nút nằm đầu menu ☰, kiểu nút, không phải link chữ.
+- **Bấm vào:** mở Step 0 (`#/begin`), không tô sẵn lựa chọn nào. Từ đây trở đi không đổi gì: người chưa đăng nhập vào "Your account", người đã đăng nhập vào danh sách org.
+- **Đang làm dở mà bấm "+ Create":** Step 0 hiện dòng "Continue where you left off" dẫn về bước đang làm, để không mất tiến độ. Hiện tại nếu chọn lại một lối thì phần xác minh đang làm dở bị xóa.
+- **Không đổi:**
+  - Sign Up vẫn là đăng ký tài khoản thường, dành cho donor.
+  - Nút New project / New event trong từng org ở Manage Pages vẫn đi thẳng vào form, vì đã biết cả loại lẫn org.
+
+### 11.4 Các đường vào phụ
+| Chỗ | Nút | Step 0 |
+|---|---|---|
+| Manage Pages | **+ Create** ở đầu trang (mới, cùng tên với nút trên nav) | Không tô sẵn |
+| Footer → Get Started | Start a Project / Register an Organization / Host an Event | Tô sẵn lựa chọn đúng link (`#/begin/cause`, `#/begin/org`, `#/begin/event`) |
+| Support a Cause → Projects | + Start a Project (mới) | Tô sẵn Cause. Chỉ ghi trong plan cho production, prototype không dựng |
+| Support a Cause → Organizations | + Create Organization (đã có) | Giai đoạn 2: đổi đích từ modal sang Step 0. Chỉ ghi trong plan |
+| Join an Event | Create Event (đã có) | Giai đoạn 2: đổi đích từ modal sang Step 0. Chỉ ghi trong plan |
+
+Step 0 khi được tô sẵn: card đúng lựa chọn có viền nổi. Bấm card nào cũng đi tiếp như bây giờ.
+
+### 11.5 Email xem trước (cho R6, R7)
+- **Email kích hoạt:**
+  - Mở từ màn "Check your inbox" qua link "Preview the email".
+  - Nội dung: tiêu đề, một câu nói vì sao nhận được email, nút "Continue where you left off", và hạn của link.
+  - Bấm link là kích hoạt tài khoản, tự đăng nhập và quay về đúng bước đang làm.
+- **Email chào mừng khi được duyệt:**
+  - Mở từ màn sau khi bấm "Demo: approve".
+  - Nội dung: chúc mừng, bước tiếp theo theo lối đã chọn (Proposal, trang tổ chức hoặc Event), và **các link guide**.
+- **Còn thiếu:** nội dung 2 email hiện tại của production và các link guide Rachel đang gửi. Chưa có thì hiện chỗ trống ghi "Guide links to copy from Rachel's current guides", không tự bịa link.
+
+### 11.6 Lộ trình gợi ý cho team (ghi trong What's new và guide)
+- **Giai đoạn 1:**
+  - Thêm "+ Create" trên nav và ở Manage Pages, cùng email chào mừng kèm guide.
+  - Create Org và Create Event giữ như hôm nay.
+- **Giai đoạn 2:**
+  - Create Organization và Create Event dẫn vào Step 0, tài khoản tạo trong flow, bỏ modal.
+  - Thêm "+ Start a Project" ở tab Projects.
+
+### 11.7 Quyết định cần anh chốt
+
+**E1: Production giai đoạn 2, bấm nút theo ngữ cảnh (Create Event, Create Organization, Start a Project)**
+- **a) Vào Step 0, card đúng lựa chọn được tô sẵn (em đề xuất).** Ai cũng thấy cấu trúc trang. Bấm thêm một lần.
+- **b) Bỏ qua Step 0, vào thẳng lối đó.**
+
+**E3: Vị trí bước "Your account"**
+- **a) Ngay sau Step 0 như v1.2 (em đề xuất).** Lưu được tiến độ ngay từ câu đầu. Email đã có tài khoản thì phát hiện sớm.
+- **b) Sau một bước câu hỏi nhanh.**
+
+**E4: Mock trang Support a Cause và Join an Event trong prototype**
+- **a) Không dựng (em đề xuất).** "+ Create" trên nav đã đủ để demo đường vào chính, và prototype bớt rối.
+- **b) Dựng 3 màn mock nhẹ** để team thấy nút theo ngữ cảnh ở giai đoạn 2.
+
+**E5: Email xem trước (11.5)**
+- **a) Làm cả 2 email, chỗ nào thiếu nội dung production thì để trống và ghi chú (em đề xuất).**
+- **b) Chưa làm, chờ có nội dung production.**
+
+### 11.8 Phạm vi theo file
+- **`assets/onboarding.js`:**
+  - Nút "+ Create" trong `renderNav` (desktop và menu phone).
+  - Route `#/begin/<lối>` có tô sẵn.
+  - Dòng "Continue where you left off" ở Step 0.
+  - Nút "+ Create" ở Manage Pages.
+  - Email xem trước (modal), nếu E5 = a.
+  - Flow diagram: thêm node "+ Create" trước Step 0.
+  - CHANGELOG v1.3.
+- **`assets/onboarding.css`:** nút "+ Create" trên nav (desktop và phone), card được tô sẵn, dòng "Continue where you left off", khung email.
+- **`onboarding.html`:** 3 link ở footer.
+- **`assets/onboarding-flows.js`:** node "+ Create" trong các flow new, fresh, ret1 và ret2.
+- **`onboarding-guide.md`:** mục "Vào Step 0 từ đâu", bảng pain points (11.2), lộ trình (11.6).
+- **Plan này:** ghi nhật ký.
+- **Không đụng:**
+  - Các luồng sau Step 0.
+  - `onboarding-matrix.html`.
+  - `home.html`.
+  - Form Create Event.
+- **Version:** v1.3.
+
+### 11.9 Kiểm tra nghiệm thu
+Kiểm tra ở cả 1440 và 390.
+- **"+ Create" trên nav:**
+  - Thấy được khi chưa đăng nhập và khi đã đăng nhập, ở mọi màn. Trên phone nằm đầu menu ☰.
+  - Bấm vào thì mở Step 0 không tô sẵn lựa chọn nào.
+  - Chưa đăng nhập: Step 0 → "Your account" → đúng lối. Đã đăng nhập: Step 0 → danh sách org.
+- **Đang làm dở rồi bấm "+ Create":** thấy dòng "Continue where you left off", bấm vào thì về đúng bước, dữ liệu còn nguyên.
+- **Manage Pages:** "+ Create" mở Step 0. New project / New event của từng org vẫn đi thẳng.
+- **Footer:** 3 link mở Step 0 với đúng card được tô sẵn. `#/begin` không tham số giữ nguyên như hiện nay.
+- **Email xem trước (nếu làm):** mở được từ "Check your inbox" và từ màn sau khi duyệt; chỗ trống có ghi chú rõ.
+- **Chung:** flow diagram có node "+ Create"; console không có lỗi.
+
+### 11.10 Nhật ký
+
+**02/10/2026: làm xong v1.3 trên local, chưa commit.**
+- **"+ Create" trên nav:** nút viền, nằm trước Log In hoặc avatar. Trên phone là dòng đầu của menu ☰. Bấm vào mở Step 0.
+- **Nav chật hơn khi thêm nút:** ở trạng thái chưa đăng nhập, độ rộng 1440 bị rớt dòng chữ ("Support a / Cause", "Log / In"). Em sửa bằng CSS riêng của trang onboarding, không đụng `home.css`:
+  - Thu khoảng cách giữa các link và cấm rớt dòng.
+  - Từ 900 đến 1439px: thu gọn hơn nữa, nút EN chỉ còn biểu tượng quả địa cầu.
+  - Từ 900 đến 1180px: "+ Create" chỉ còn dấu +.
+  - Kết quả: không còn tràn ở 1024–1440px. Riêng 920px vẫn tràn, nhưng bản v1.2 đang live cũng tràn ở 920 và 1024, nên đây là lỗi có từ trước.
+- **"+ Create" ở Manage Pages:** nằm đầu cột trái. Trên phone là phần tử đầu tiên của dải cuộn ngang.
+- **Footer:** 3 link `#/new/cause`, `#/new/org`, `#/new/event` vào thẳng lối tương ứng (E1 = b). Trang chuyển hướng bằng `location.replace`, nên nút Back không bị kẹt.
+- **"Continue where you left off":** hiện ở Step 0 khi đã bắt đầu xác minh mà chưa nộp. Chọn lại đúng lối cũ cũng đưa về bước đang làm. Trước đây chọn lại lối thì phần đang làm bị xóa.
+- **Email xem trước:**
+  - Email có link đăng nhập: mở bằng "Preview the email" ở màn "Check your inbox". Nút trong email chạy giống "Demo: open the link".
+  - Email chào mừng: tự hiện sau khi bấm "Demo: approve now", có 3 bản theo lối (Proposal, trang tổ chức, Event), cho cả tổ chức lẫn cá nhân.
+  - Có nhãn "Draft text for review". Ô link guide để trống, kèm ghi chú.
+- **Sign Up:** prototype trước đây dẫn vào Step 0. Giờ chỉ hiện ghi chú "Sign Up stays the usual account sign-up. To create a page, use + Create.", theo E2.
+- **Flow diagram:** thêm node "+ Create" trước Step 0 trong các flow new, fresh, ret1 và ret2. Flow new có thêm node "Footer link → straight to that path".
+- **Đã cập nhật:** What's new v1.3, guide (bảng pain points, mục "Vào Step 0 từ đâu", lộ trình).
+- **Đã kiểm tra:**
+  - Nav ở 1440, 1366, 1300, 1280, 1180, 1100 và 1024, cả khi chưa đăng nhập lẫn đã đăng nhập.
+  - Phone 390: menu, Manage Pages, Step 0 có banner, email. Không có cuộn ngang.
+  - Footer khi chưa đăng nhập (vào "Your account") và khi đã đăng nhập (vào danh sách org). Nút Back.
+  - Banner "Continue where you left off" và việc tiếp tục giữ nguyên dữ liệu.
+  - Email link (nút trong email đi tiếp). Email chào mừng cho tổ chức (trang tổ chức) và cá nhân (Proposal). Reload không hiện lại email.
+  - "New project" trong từng org vẫn mở modal xác nhận.
+  - 4 flow diagram.
+  - Console không có lỗi.
+
+**02/10/2026: chỉnh theo góp ý của anh sau khi xem v1.3.**
+- **Gộp nút:** Log In và Sign Up thành một nút "Log In / Sign Up". Nút tô màu như Sign Up cũ, bấm vào chạy demo đăng nhập. Trên phone chỉ còn một link chữ. Bỏ ghi chú "Sign Up stays the usual account sign-up".
+- **Email xem trước chuyển vào panel Demo:** dòng "Email previews" có 2 nút, "Sign-in link" và "Welcome".
+  - Bỏ nút "Preview the email" ở màn Check your inbox.
+  - Bỏ việc email chào mừng tự hiện sau khi duyệt.
+  - Email chào mừng có 3 nút để xem bước tiếp theo của từng lối (A project / An organization page / An event).
+  - Nút "Continue on Agathos" trong email đăng nhập chỉ đi tiếp khi đang ở màn Check your inbox. Ở màn khác, nút này chỉ đóng email.
+- **Nav khi đã đăng nhập:** tên hoặc email dài trên avatar làm nav tràn (ví dụ email `someone.long@organisation.org` ở 1280). Em cắt tên bằng dấu "…": tối đa 140px, và 96px ở độ rộng 900–1439px.
+- **Đã kiểm tra:**
+  - Nav ở 1440, 1366, 1280, 1180 và 1024 với 3 trạng thái: chưa đăng nhập, đăng nhập tên ngắn, đăng nhập email dài. Không tràn.
+  - Phone 390: nav có "Log In / Sign Up", không cuộn ngang.
+  - Panel Demo: 2 email, đổi lối trong email chào mừng, nút trong email đăng nhập.
+  - Sau khi duyệt không còn email tự hiện.
+  - Console không có lỗi.
+
+**02/10/2026: đưa nav v1.3 sang trang Home, và mockup section Impact (feedback của team về Home).**
+- **Nav của Home giống Onboarding:** "+ Create" dẫn tới `onboarding.html#/begin`, nút "Log In / Sign Up", và trên phone "+ Create" là dòng đầu menu ☰.
+- **CSS:** các rule nav dùng chung (nút Create, cấm rớt dòng, thu khoảng cách theo độ rộng, menu phone) chuyển từ `onboarding.css` sang `home.css`, để 2 trang dùng chung một bản. Khoảng cách gốc của link cũng đổi trong `home.css`: lề trái 101→64px, khoảng giữa các link 40→32px. `onboarding.css` chỉ giữ phần cắt tên người dùng trên avatar.
+- **Section Impact theo feedback:**
+  - Nền xanh đậm (`--hp-navy`), có đường kẻ mảnh ngăn với hero và một vệt sáng xanh nhạt ở góc.
+  - Kicker màu vàng, tiêu đề màu trắng.
+  - Thẻ S$1M+ nằm giữa và nổi nhất: nền trắng, cao hơn (236 so với 208px), số lớn hơn, có bóng đổ.
+  - Hai thẻ bên là nền trắng trong mờ, số trắng. Thanh màu của thẻ 2,500+ đổi sang xanh nhạt hơn, vì màu xanh cũ không thấy trên nền đậm.
+  - Phone: 3 thẻ xếp dọc, S$1M+ vẫn ở giữa.
+- **Đã kiểm tra:**
+  - Nav Home ở 1440, 1366, 1280, 1180 và 1024: không tràn. Phone: menu có "+ Create".
+  - "+ Create" từ Home mở Step 0.
+  - Nav Onboarding vẫn không tràn ở cả 2 trạng thái đăng nhập.
+  - Section Impact ở 1440 và 390, không cuộn ngang. Console không có lỗi.
+
+**02/10/2026: thay hero của Home bằng banner chiến dịch giống production.**
+- **Nguồn:** file code anh gửi (`agathos-hero-campaigns.html`) và hero đang chạy trên agathos.be. Em mở trang production bằng trình duyệt headless để lấy markup, class và đủ 6 slide.
+- **6 slide, đúng thứ tự production:**
+  1. Hidden Causes. Visible Impact. Nút: View Campaign.
+  2. We're proud of you, Daniel. Nút: Read the article (Salt&Light).
+  3. YWAM Beirut.
+  4. Mission Seed Fund. Nút: Support the Cause.
+  5. Lakeside Family Services.
+  6. Be part of something bigger. Nút: Browse Initiatives, dẫn tới `#causes`.
+
+  Kicker, tiêu đề, mô tả và link chép nguyên văn từ production.
+- **Ảnh:** lấy từ production (nhúng base64, 1920×1080), nén JPEG rồi lưu thành `assets/img/home/hero-1…6.jpg`, tổng khoảng 2,4 MB. Ảnh `hero.jpg` cũ giờ không còn trang nào dùng; em chưa xóa.
+- **Giống production:**
+  - Chiều cao `100dvh - 80px` (tối thiểu 520px, tối đa 860px), lớp phủ tối và khung nội dung rộng 1216px.
+  - Cỡ chữ tiêu đề có 3 mức theo độ dài (92 / 64 / 52px ở desktop), đổi ở các mốc 768 và 1024px.
+  - Nút trắng chữ navy, chỉ số "01 / 06", thanh tiến độ màu #B2E7F5 chạy trong 5 giây, 2 nút mũi tên tròn.
+  - Một thẻ "UP NEXT" duy nhất (code mẫu có 2 thẻ), chỉ hiện từ 768px trở lên.
+- **Theo code anh gửi:** slide mới quét vào từ phải, chữ mờ đi rồi hiện lại so le.
+- **Sửa so với code mẫu:** slide tự chuyển sau đúng 5 giây tính từ lúc thanh tiến độ bắt đầu chạy. Trong code mẫu, bộ đếm giờ lệch với thanh tiến độ, nên slide chuyển khi thanh chưa đầy.
+- **Khác production:**
+  - Tiêu đề production dùng font "sfufutura". Prototype dùng Be Vietnam Pro 700 như phần còn lại của trang, vì repo chưa có font đó.
+  - Bỏ số thứ tự lớn viền rỗng của code mẫu, vì production không có.
+- **Đã kiểm tra:**
+  - Độ rộng 1728 (so với ảnh production), 1440, 1024, 800 và 390. Không cuộn ngang. Thẻ UP NEXT ẩn trên phone.
+  - Nút trước/sau, bấm vào thẻ UP NEXT, tự chuyển slide.
+  - Slide không có nút thì ẩn nút. Link ngoài mở tab mới.
+  - Console không có lỗi.

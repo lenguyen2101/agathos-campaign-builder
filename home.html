@@ -30,12 +30,13 @@
     </nav>
     <div class="hp-nav-auth">
       <button class="lang" type="button" aria-label="Language: English"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M2.5 12h19M12 2.5c2.8 3 4.2 6.2 4.2 9.5S14.8 18.5 12 21.5c-2.8-3-4.2-6.2-4.2-9.5S9.2 5.5 12 2.5z"/></svg>EN</button>
-      <a class="login" href="#">Log In</a>
-      <a class="signup" href="#">Sign Up</a>
+      <a class="create" href="onboarding.html#/begin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Create</a>
+      <a class="signup" href="#">Log In / Sign Up</a>
       <button class="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nav-menu"><i></i><i></i><i></i></button>
     </div>
   </div>
   <nav class="hp-nav-menu" id="nav-menu">
+    <a class="create" href="onboarding.html#/begin">+ Create</a>
     <a href="#causes">Support a Cause</a>
     <a href="#ways">Join an Event</a>
     <div class="grp">About Us</div>
@@ -48,18 +49,24 @@
   </nav>
 </header>
 
-<!-- HERO -->
-<section class="hp-hero">
-  <img class="hp-hero-img" src="assets/img/home/hero.jpg" alt="">
-  <div class="hp-hero-shade"></div>
-  <div class="hp-hero-shade-2"></div>
-  <div class="hp-hero-glow"></div>
-  <div class="hp-hero-inner">
-    <div class="hp-hero-eyebrow"><i></i>Agathos crowdsourcing</div>
-    <h1>Give with <span class="gold">confidence.</span><br>Raise with <span class="sky">trust.</span></h1>
-    <p>Agathos champions Christian ground-up initiatives. Join our partners as they make a difference in their communities.</p>
-    <div class="hp-hero-cta">
-      <a class="hp-btn gold" href="#causes">Browse Initiatives <span class="arrow">→</span></a>
+<!-- HERO: the production campaign banner, six slides as on agathos.be (2 Oct 2026); slide 1 is in the markup, the script runs the rest -->
+<section class="hp-hero playing" id="hero" aria-roledescription="carousel" aria-label="Featured on Agathos">
+  <div class="hp-hero-slides" id="hero-slides"><div class="hp-hero-slide active"><img src="assets/img/home/hero-1.jpg" alt=""></div></div>
+  <div class="hp-hero-scrim"></div>
+  <div class="hp-hero-content">
+    <div class="hp-hero-eyebrow stag" id="hero-eyebrow">Impact giving for the hidden</div>
+    <h1 class="xl stag" id="hero-title">Hidden Causes. Visible Impact.</h1>
+    <p class="hp-hero-desc stag" id="hero-desc">Where faith finds the forgotten.
+A collective movement by a group of Christian Leaders who serve or support social &amp; community charities to reflect God’s heart.</p>
+    <a class="hp-hero-cta stag" id="hero-cta" href="https://agathos.be/campaigns/Hidden-Causes-Visible-Impact-1" target="_blank" rel="noopener">View Campaign</a>
+  </div>
+  <div class="hp-hero-bottom">
+    <button class="hp-hero-next" id="hero-next" type="button"></button>
+    <div class="hp-hero-row">
+      <p class="hp-hero-idx"><b id="hero-now">01</b><span> / 06</span></p>
+      <div class="hp-hero-track" id="hero-track"><i></i></div>
+      <button class="hp-hero-arrow" id="hero-prev-btn" type="button" aria-label="Previous slide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg></button>
+      <button class="hp-hero-arrow" id="hero-next-btn" type="button" aria-label="Next slide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></button>
     </div>
   </div>
 </section>
@@ -69,16 +76,16 @@
   <div class="hp-inner">
     <div class="hp-impact-grid" data-reveal id="impact">
       <div class="hp-impact-intro">
-        <div class="hp-kicker">Why people trust Agathos</div>
+        <div class="hp-kicker gold">Why people trust Agathos</div>
         <h2>The Agathos impact</h2>
-      </div>
-      <div class="hp-stat">
-        <span class="bar"></span>
-        <div><div class="num">S$1M+</div><div class="lbl">raised through Agathos</div></div>
       </div>
       <div class="hp-stat">
         <span class="bar sky"></span>
         <div><div class="num"><span data-count="91">91</span></div><div class="lbl">verified charities &amp; ministries supported</div></div>
+      </div>
+      <div class="hp-stat lead">
+        <span class="bar"></span>
+        <div><div class="num">S$1M+</div><div class="lbl">raised through Agathos</div></div>
       </div>
       <div class="hp-stat">
         <span class="bar blue"></span>
@@ -519,6 +526,76 @@
 </div>
 
 <script>
+/* hero banner: the six slides on agathos.be. Each one shows 5 s; the next one wipes in from the right */
+(function(){
+  var SLIDES=[
+    {k:'Impact giving for the hidden', t:'Hidden Causes. Visible Impact.', size:'xl', img:'hero-1.jpg',
+     d:'Where faith finds the forgotten.\nA collective movement by a group of Christian Leaders who serve or support social & community charities to reflect God’s heart.',
+     cta:['View Campaign','https://agathos.be/campaigns/Hidden-Causes-Visible-Impact-1']},
+    {k:'Agathos community', t:'We\'re proud of you, Daniel', size:'xl', img:'hero-2.jpg',
+     d:'Our co-founder, Daniel Long, is the 2026 Marketplace Impact Award winner at the Salt&Light Inspiration Awards',
+     cta:['Read the article','https://saltandlight.sg/business/if-you-are-in-the-marketplace-you-can-bring-gods-redemptive-heart-to-broken-places-marketplace-impact-award-winner-daniel-long/']},
+    {k:'Impact story: YWAM Beirut Impact', t:'Agathos champions Christian ground-up initiatives', size:'l', img:'hero-3.jpg',
+     d:'45,000 hot meals distributed in Lebanon to displaced families'},
+    {k:'Impact story: Mission Seed Fund', t:'Agathos stands behind Singapore\'s call to the Great Commission', size:'l', img:'hero-4.jpg',
+     d:'$199,000 raised in support of home-grown missionaries from Singapore',
+     cta:['Support the Cause','https://agathos.be/projects-template/Missions-Seed-Fund-49155']},
+    {k:'Impact story: Lakeside Family Services', t:'Agathos empowers everyday Christians who aspire to make a difference', size:'m', img:'hero-5.jpg',
+     d:'A youth-led initiative raised $18,000 for disadvantaged families through a walkathon'},
+    {k:'Agathos crowdsourcing', t:'Be part of something bigger', size:'xl', img:'hero-6.jpg',
+     d:'Agathos champions Christian ground-up initiatives. Join our partners as they make a difference in their communities.',
+     cta:['Browse Initiatives','#causes']}
+  ];
+  var DUR=5000, IMG='assets/img/home/';
+  var hero=document.getElementById('hero'), box=document.getElementById('hero-slides'), next=document.getElementById('hero-next');
+  var still=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var cur=0, busy=false, timer=null;
+  function el(id){ return document.getElementById(id); }
+  function pad(n){ return (n<9?'0':'')+(n+1); }
+
+  /* slide 1 is already in the markup; add the other five behind it */
+  SLIDES.forEach(function(s,i){
+    if(i===0) return;
+    var d=document.createElement('div'); d.className='hp-hero-slide';
+    d.innerHTML='<img src="'+IMG+s.img+'" alt="" loading="lazy">';
+    box.appendChild(d);
+  });
+  var slides=[].slice.call(box.children);
+
+  function text(i){
+    var s=SLIDES[i], a=el('hero-cta');
+    el('hero-eyebrow').textContent=s.k;
+    el('hero-title').textContent=s.t; el('hero-title').className=s.size+' stag';
+    el('hero-desc').textContent=s.d;
+    if(s.cta){ a.hidden=false; a.textContent=s.cta[0]; a.href=s.cta[1]; var ext=/^https?:/.test(s.cta[1]); a.target=ext?'_blank':''; a.rel=ext?'noopener':''; }
+    else a.hidden=true;
+    el('hero-now').textContent=pad(i);
+  }
+  /* only the next slide is previewed, as on production */
+  function card(){
+    var n=(cur+1)%SLIDES.length;
+    next.setAttribute('aria-label','Next slide: '+SLIDES[n].t);
+    next.innerHTML='<img src="'+IMG+SLIDES[n].img+'" alt=""><span class="shade"></span><span class="tag">UP NEXT</span><span class="t">'+SLIDES[n].t.replace(/</g,'&lt;')+'</span>';
+  }
+  function schedule(){ clearTimeout(timer); if(!still) timer=setTimeout(function(){ go((cur+1)%SLIDES.length); }, DUR); }
+  function go(i){
+    if(busy || i===cur) return;
+    busy=true; clearTimeout(timer);
+    var from=slides[cur], to=slides[i];
+    hero.classList.add('swapping'); hero.classList.remove('playing');
+    from.classList.add('leaving'); to.classList.add('active');
+    setTimeout(function(){ text(i); hero.classList.remove('swapping'); }, still?0:300);
+    setTimeout(function(){
+      from.classList.remove('active','leaving'); cur=i; card();
+      void el('hero-track').offsetWidth; hero.classList.add('playing'); busy=false; schedule();
+    }, still?0:950);
+  }
+  next.addEventListener('click', function(){ go((cur+1)%SLIDES.length); });
+  el('hero-next-btn').addEventListener('click', function(){ go((cur+1)%SLIDES.length); });
+  el('hero-prev-btn').addEventListener('click', function(){ go((cur-1+SLIDES.length)%SLIDES.length); });
+  card(); schedule();
+})();
+
 (function(){
   var nav = document.getElementById('nav');
   window.addEventListener('scroll', function(){

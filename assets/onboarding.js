@@ -238,14 +238,31 @@ var PATHS={
 };
 function pathKey(){ return PATHS[S.path] ? S.path : 'cause'; }
 function kicker(){ return PATHS[pathKey()].t; }
+/* the step to go back to when a verification was started and not submitted, else null */
+function unfinished(){
+  var s=S.s1; if(s.status!=='draft' || S.update) return null;
+  var started=Object.keys(s.done).some(function(k){ return s.done[k] && k!=='account'; }) || (s.org&&s.org.name) || (s.intent&&s.intent.name) || (s.docs&&s.docs.fullName);
+  if(!started) return null;
+  var st=s1Steps(), next=st.filter(function(x){ return !s.done[x.id]; })[0];
+  return next || st[st.length-1];
+}
+/* a path chosen on step 0, or from a button that already says what it creates */
+function startPath(path, replace){
+  var resume = S.path===path && unfinished();
+  S.path=path;
+  if(resume){ save(); go(resume.id, replace); return; }
+  if(!S.auth.loggedIn){ S.s1={mode:'visitor', intent:{}, account:{}, type:path==='org'?'charity':'', org:{}, docs:{}, contact:{}, payout:{}, done:{}, status:'draft'}; save(); go('account', replace); return; }
+  save(); go('entry', replace);
+}
 function viewBegin(){
-  var name=firstName(S.auth.name);
+  var name=firstName(S.auth.name), u=PATHS[S.path] && unfinished();
+  var resume = u ? '<div class="ob-banner info ob-resume"><div class="ic">'+I.clock+'</div><div><b>Continue where you left off</b><p>'+h(kicker())+' · next step: '+h(u.lbl)+'</p></div><button class="ob-btn primary sm" type="button" data-go="'+u.id+'">Continue →</button></div>' : '';
   var cards=[['cause',I.heart],['org',I.building],['event',I.calendar]].map(function(c){ var p=PATHS[c[0]]; return '<button class="ob-path" type="button" data-act="pickPath" data-path="'+c[0]+'"><span class="ic">'+c[1]+'</span><span class="t"><b>'+h(p.t)+'</b><span>'+h(p.d)+'</span></span><span class="chev">'+I.chev+'</span></button>'; }).join('');
   var tree='<div class="ob-structure"><b>How pages fit together</b><div class="ob-tree">'+
     '<div class="node"><span>Organisation page</span><div class="kids"><i>Projects</i><i>Events</i><i>Running costs</i></div></div>'+
     '<div class="node"><span>Individual</span><div class="kids"><i>Projects</i><i>Events</i></div></div></div>'+
     '<p>An organisation page holds all of its projects and events, and can take donations for running costs.</p></div>';
-  return center({kicker:'Get started', h1:S.auth.loggedIn&&name?'What would you like to do, '+h(name)+'?':'What would you like to do?', p:'Pick one to start. You can come back for the others any time.', body:expiryBanner()+'<div class="ob-paths">'+cards+'</div>'+tree});
+  return center({kicker:'Get started', h1:S.auth.loggedIn&&name?'What would you like to do, '+h(name)+'?':'What would you like to do?', p:'Pick one to start. You can come back for the others any time.', body:expiryBanner()+resume+'<div class="ob-paths">'+cards+'</div>'+tree});
 }
 
 /* ============================================================================
@@ -885,7 +902,7 @@ function viewDashboard(){
   if(!list.some(function(x){ return x.id===sel; })) sel=findOrg(S.selectedOrg) ? S.selectedOrg : (S.account.orgs[0] ? S.account.orgs[0].id : 'personal');
   var e=list.filter(function(x){ return x.id===sel; })[0], o=e.org, tab=S.dashTab==='events'?'events':'projects', panel;
   var nav='<nav class="dash-nav">'+DASH_TABS.map(function(t,i){ var on=i===DASH_TABS.length-1; return '<a href="'+(on?'#/dashboard':'#')+'"'+(on?' class="on"':'')+'><b>'+t[0]+'</b><span>'+t[1]+'</span></a>'; }).join('')+'</nav>';
-  var side='<aside class="dash-side">'+list.map(function(x){ return '<button type="button" class="dash-ent'+(x.id===sel?' on':'')+'" data-act="dashSel" data-id="'+x.id+'"><span class="av">'+initials(x.name)+'</span><span class="t"><span>'+x.label+'</span><b>'+h(x.name)+'</b></span>'+(x.pill?'<span class="dash-pill">'+x.pill+'</span>':'')+'</button>'; }).join('')+'</aside>';
+  var side='<aside class="dash-side"><div class="dash-create"><a class="ob-btn primary sm" href="#/begin">'+I.plus+' Create</a></div>'+list.map(function(x){ return '<button type="button" class="dash-ent'+(x.id===sel?' on':'')+'" data-act="dashSel" data-id="'+x.id+'"><span class="av">'+initials(x.name)+'</span><span class="t"><span>'+x.label+'</span><b>'+h(x.name)+'</b></span>'+(x.pill?'<span class="dash-pill">'+x.pill+'</span>':'')+'</button>'; }).join('')+'</aside>';
   if(e.id==='pending'){
     panel='<div class="dash-head"><div class="t"><h2>'+h(e.name)+'</h2></div></div>'+dashPending();
   } else if(e.id==='request'){
@@ -908,7 +925,7 @@ function viewDashboard(){
    ROUTER, EVENTS
    ============================================================================ */
 var main=document.getElementById('ob'), lastRoute=null;
-function go(p){ var target='#/'+p; if(location.hash===target) render(); else location.hash=target; }
+function go(p, replace){ var target='#/'+p; if(location.hash===target) render(); else if(replace) location.replace(target); else location.hash=target; }
 function parts(){ return location.hash.replace(/^#\/?/,'').split('/').filter(Boolean); }
 function render(){
   var p=parts(), r=p[0]||'', html='';
@@ -916,6 +933,8 @@ function render(){
   if(!S.auth.loggedIn && ['entry','org','orgpage','event','access','build','dashboard'].indexOf(r)>=0){ go('begin'); return; }
   if(r==='build' && ['page','goal','team','launch'].indexOf(p[1])>=0){ var bc=s2Project(); if(!bc || bc.status==='review'){ go('dashboard'); return; } }
   switch(r){
+    /* #/new/<path>: footer and in-context buttons skip step 0, the person already knows what they're creating */
+    case 'new': if(PATHS[p[1]]) startPath(p[1], true); else go('begin', true); return;
     case 'begin': html=viewBegin(); break;
     case 'start': html=viewStart(); break;
     case 'account': html=viewAccount(); break;
@@ -955,9 +974,11 @@ function renderNav(){
   var el=document.getElementById('nav-auth');
   var lang='<button class="lang" type="button" aria-label="Language: English"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M2.5 12h19M12 2.5c2.8 3 4.2 6.2 4.2 9.5S14.8 18.5 12 21.5c-2.8-3-4.2-6.2-4.2-9.5S9.2 5.5 12 2.5z"/></svg>EN</button>';
   var burger='<button class="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nav-menu"><i></i><i></i><i></i></button>';
+  /* the one way into step 0 from anywhere, logged in or not; on a phone it sits at the top of the menu */
+  var create='<a class="create" href="#/begin">'+I.plus+'Create</a>';
   el.innerHTML = S.auth.loggedIn
-    ? lang+'<a class="user" href="#/dashboard"><span class="av">'+initials(S.auth.name||S.auth.email)+'</span>'+h(S.auth.name||S.auth.email)+'</a>'+burger
-    : lang+'<a class="login" href="#" data-act="login">Log In</a><a class="signup" href="#/begin">Sign Up</a>'+burger;
+    ? lang+create+'<a class="user" href="#/dashboard"><span class="av">'+initials(S.auth.name||S.auth.email)+'</span><span class="nm">'+h(S.auth.name||S.auth.email)+'</span></a>'+burger
+    : lang+create+'<a class="signup" href="#" data-act="login">Log In / Sign Up</a>'+burger;
 }
 
 /* one delegated handler for the whole page */
@@ -1106,8 +1127,8 @@ var ACT={
     if(ind){ S.account.individual={name:s.docs.fullName||S.auth.name||'You', verifiedSince:addDays(0), idMasked:'S••••••'+(s.docs.fullName||'A').slice(-1).toUpperCase(), idExpires:addDays(1400), address:s.intent.country||'Singapore'}; }
     else { var og=s.org||{}; S.account.orgs.push({id:newId, name:og.name||'Your organisation', type:'charity', country:og.country||'Singapore', role:'Owner', verifiedSince:addDays(0), expiresOn:addDays(365), lastActive:addDays(0), regMasked:(og.regNo||'T00SS0000A').slice(0,5)+'••••'+(og.regNo||'A').slice(-1), ipc:isIpc(), payoutMasked:isIpc()?'Via AXS (IPC)':'Bank statement on file', details:clone(og), page:{status:'none'}}); }
     if(!S.auth.name) S.auth.name=s.contact.name||(s.auth&&s.auth.name)||'';
-    S.s1.status='approved'; save(); toast('Approved. Your verification is on file.');
     var path=pathKey();
+    S.s1.status='approved'; save(); toast('Approved. Your verification is on file.');
     if(path==='org' && !ind){ go('orgpage/'+newId); return; }
     if(path==='event'){ go('event/'+(ind?'personal':newId)); return; }
     S.selectedOrg=ind?'':newId; S.s2=newS2(); save(); go('build/proposal');
@@ -1118,11 +1139,7 @@ var ACT={
   orgChanged:function(t){ closeModal(); go('org/'+t.getAttribute('data-org')+'/changes'); },
   startOrgProject:function(t){ var id=t.getAttribute('data-org'); if(id) S.selectedOrg=id; S.path='cause'; S.s2=newS2(); save(); closeModal(); go('build/proposal'); },
   startProject:function(){ S.selectedOrg=''; S.path='cause'; S.s2=newS2(); save(); go('build/proposal'); },
-  pickPath:function(t){
-    S.path=t.getAttribute('data-path');
-    if(!S.auth.loggedIn){ S.s1={mode:'visitor', intent:{}, account:{}, type:S.path==='org'?'charity':'', org:{}, docs:{}, contact:{}, payout:{}, done:{}, status:'draft'}; save(); go('account'); return; }
-    save(); go('entry');
-  },
+  pickPath:function(t){ startPath(t.getAttribute('data-path')); },
   submitProposal:function(t){
     var card=t.closest('.ob-card'); if(!validate(card)) return;
     var o=currentOrg(), p=S.s2.proposal, c={id:'c'+Date.now(), name:p.name, org:o?o.id:'', status:'review', submittedOn:addDays(0), cause:p.cause, country:p.country, summary:p.summary, goalEst:+p.goal||0};
@@ -1187,6 +1204,8 @@ var ACT={
   },
   publishNow:function(t){ var c=S.account.projects.filter(function(x){ return x.id===t.getAttribute('data-id'); })[0]; c.status='live'; c.raised=0; c.started=addDays(0); save(); toast('Published — '+c.name+' is live'); render(); },
   copyLink:function(t){ toast('Link copied'); },
+  demoMail:function(t){ document.getElementById('ob-demo').classList.remove('open'); demoMail(t.getAttribute('data-k')); },
+  mailPath:function(t){ lastMail.path=t.getAttribute('data-p'); mailModal(lastMail); },
   demoPick:function(t){ reset(t.getAttribute('data-s')); document.getElementById('ob-demo').classList.remove('open'); go(SCENARIOS[S.scenario].start); },
   demoReset:function(){ reset(S.scenario); document.getElementById('ob-demo').classList.remove('open'); go(SCENARIOS[S.scenario].start); },
   demoToggle:function(){ document.getElementById('ob-demo').classList.toggle('open'); },
@@ -1206,9 +1225,56 @@ modalEl.addEventListener('click', function(ev){ if(ev.target.classList.contains(
 var toastEl=document.getElementById('ob-toast'), toastT;
 function toast(msg){ toastEl.textContent=msg; toastEl.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(function(){ toastEl.classList.remove('show'); }, 2800); }
 
+/* email previews: drafted text for the team to review; the prototype sends nothing */
+var MAIL_NEXT={
+  cause:['Send us a short proposal for your project. We\'ll call you to talk it through, then you build the page.','Start your proposal'],
+  org:['Set up your organization page: a banner, your logo, and donations for running costs if you want them.','Set up your page'],
+  event:['Create your event: the page, tickets and an optional registration form.','Create your event']
+};
+var lastMail=null;
+/* opened from the demo panel; the welcome email is the one sent on approval, so no one sends guides by hand */
+function demoMail(kind){
+  var to=S.auth.email||S.s1.account.email||'you@organisation.org';
+  if(kind==='link') mailModal({kind:'link', to:S.s1.account.email||to});
+  else mailModal({kind:'welcome', path:pathKey(), ind:S.s1.type==='individual', org:(S.s1.org&&S.s1.org.name)||(S.account.orgs[0]&&S.account.orgs[0].name)||'Your organisation', first:firstName(S.auth.name), to:to});
+}
+function mailModal(m){
+  var subject, body, tabs='';
+  lastMail=m;
+  if(m.kind==='link'){
+    var inbox=parts()[0]==='account' && S.s1.account.sent && !S.auth.loggedIn;
+    subject='Your link to continue on Agathos';
+    body='<p>Hi,</p><p>Tap the button to confirm your email and pick up where you left off.</p>'+
+      '<p><button class="ob-btn primary" type="button" data-act="'+(inbox?'openLink':'modalClose')+'">Continue on Agathos</button></p>'+
+      '<p class="mail-small">The link works for 24 hours. If it has expired, ask for a new one when you log in. Didn\'t ask for this? You can ignore this email.</p>';
+  } else {
+    var next=MAIL_NEXT[m.path];
+    tabs='<div class="mail-tabs"><span>Next step for</span>'+[['cause','A project'],['org','An organization page'],['event','An event']].map(function(x){ return '<button type="button" class="'+(x[0]===m.path?'on':'')+'" data-act="mailPath" data-p="'+x[0]+'">'+x[1]+'</button>'; }).join('')+'</div>';
+    subject = m.ind ? 'You\'re verified on Agathos' : m.org+' is verified on Agathos';
+    body='<p>Hi '+h(m.first||'there')+',</p>'+
+      '<p>'+(m.ind ? 'You\'re now verified on Agathos. You only do this once: your projects and events all build on it.' : 'Good news: <b>'+h(m.org)+'</b> is now verified on Agathos. You only do this once: its page, projects and events all build on it.')+'</p>'+
+      '<h4>What\'s next</h4><p>'+next[0]+'</p><p><button class="ob-btn primary" type="button" data-act="modalClose">'+next[1]+'</button></p>'+
+      '<h4>Guides to get you started</h4><div class="mail-gap">Guide links to add from Rachel\'s current guides.</div>'+
+      '<p>You\'ll find everything in Manage Pages on your dashboard. Questions? Reply to this email or write to hello@agathos.be.</p>';
+  }
+  modal('<button class="ob-x" type="button" data-act="modalClose" aria-label="Close">×</button>'+
+    '<div class="mail-tag"><b>'+(m.kind==='link'?'Sign-in link email':'Welcome email, sent on approval')+'</b><span>Draft text for review</span></div>'+tabs+
+    '<div class="mail-meta"><div><span>From</span>Agathos &lt;hello@agathos.be&gt;</div><div><span>To</span>'+h(m.to||'')+'</div><div><span>Subject</span><b>'+h(subject)+'</b></div></div>'+
+    '<div class="mail-body"><img class="logo" src="assets/img/home/agathos-logo.png" alt="agathos">'+body+'<p class="mail-sign">The Agathos team</p></div>');
+  modalEl.querySelector('.box').classList.add('mail-box');
+}
+
 /* the build reviewers are looking at, and what changed in each one */
-var VERSION='v1.2', VERSION_DATE='2 Oct 2026';
+var VERSION='v1.3', VERSION_DATE='2 Oct 2026';
 var CHANGELOG=[
+  {v:'v1.3', date:'2 Oct 2026', items:[
+    '"+ Create" on the nav, on every page, logged in or not, opens step 0. The same button sits at the top of Manage Pages.',
+    'Links that already say what they create skip step 0: Start a Project, Register an Organization and Host an Event in the footer go straight to that path.',
+    'Step 0 shows "Continue where you left off" when a verification was started and not submitted. Picking the same path again also resumes it.',
+    'Email previews in the demo panel, with draft text for review: the sign-in link email, and the welcome email sent on approval with the next step and the guides. Guide links are still to add.',
+    'Log In and Sign Up merged into one "Log In / Sign Up" button, which makes room for + Create.',
+    'Suggested rollout. Phase 1: "+ Create" on the nav and in Manage Pages, plus the welcome email. Phase 2: Create Organization and Create Event go straight to their path without the log-in pop-up, and Support a Cause → Projects gets "+ Start a Project".'
+  ]},
   {v:'v1.2', date:'2 Oct 2026', items:[
     'Step 0: choose between raising funds for a cause, for your organization, or hosting an event, with a short "How pages fit together".',
     'Organizations answer the same questions as the live Create Organization form, in five short steps: Organization, Contact, Causes, Documents, Risk declaration. Each step shows how many questions it has.',
@@ -1255,6 +1321,7 @@ function renderDemo(){
   var tryIt='<div class="try"><b>Try in the forms</b><code>josias@antioch21.org</code> → existing account<br><code>T08SS0123A</code> → org already verified<br><code>T21SS0456B</code> → application in progress<br>Singapore + tax deductions <code>Yes</code> → no bank statement</div>';
   el.innerHTML='<button type="button" data-act="demoToggle"><i></i><span class="ver">'+VERSION+'</span>Demo · '+h(SCENARIOS[S.scenario].label)+'</button><div class="panel">'+
     '<div class="ver-row"><span>Prototype <b>'+VERSION+'</b> · '+VERSION_DATE+'</span><button type="button" data-act="whatsNew">What\'s new</button></div>'+
+    '<div class="ver-row"><span>Email previews</span><span class="mail-btns"><button type="button" data-act="demoMail" data-k="link">Sign-in link</button><button type="button" data-act="demoMail" data-k="welcome">Welcome</button></span></div>'+
     DEMO_GROUPS.map(function(g){ return '<h4>'+h(g.h)+'</h4>'+g.keys.map(function(k){ var s=SCENARIOS[k]; return '<label><input type="radio" name="demo" data-act="demoPick" data-s="'+k+'"'+(k===S.scenario?' checked':'')+'><div>'+h(s.label)+'<span>'+h(s.sub)+'</span></div></label>'+(k==='new'?tryIt:''); }).join(''); }).join('')+
     '<div class="acts"><button class="ob-btn ghost sm" type="button" data-act="demoReset">Reset scenario</button><button class="ob-btn primary sm" type="button" data-act="demoFlow">Flow diagram</button></div>'+
     '<div class="acts"><a class="ob-btn ghost sm" href="onboarding-matrix.html">View matrix</a></div></div>';

@@ -1,8 +1,8 @@
 # Onboarding — hướng dẫn nhanh
 
-Cập nhật: 02/10/2026 · **Version v1.2** · Bản đang chạy: `/onboarding` · Ma trận quyền: `/onboarding-matrix`
+Cập nhật: 02/10/2026 · **Version v1.3** · Bản đang chạy: `/onboarding` · Ma trận quyền: `/onboarding-matrix`
 
-Version hiện ở viên thuốc Demo (chip "v1.2"). Bấm "What's new" trong panel Demo để xem thay đổi của từng version.
+Version hiện ở viên thuốc Demo (chip "v1.3"). Bấm "What's new" trong panel Demo để xem thay đổi của từng version.
 
 Nguồn gốc: flow spec và Figma handoff (Draft 1, 16/09/2026), feedback "Onboarding Flow Comments Draft 1", và feedback 02/10/2026 (kèm ghi chú của Rachel). Plan và nhật ký: `docs/onboarding-feedback-0210-plan.md`.
 
@@ -16,11 +16,33 @@ Hai ý quan trọng nhất:
 - **Xác minh gắn với tổ chức (hoặc cá nhân), làm một lần.** Project, trang tổ chức và event đều dựa trên lần xác minh đó.
 - **Mỗi Project đều được Agathos duyệt và gọi điện trao đổi** trước khi dựng trang, đúng quy trình Rachel đang làm.
 
+### Pain points của team partnership: giải quyết tới đâu
+
+Ký hiệu: ✅ giải quyết · 🟡 một phần. Đây là đánh giá trên prototype v1.3; production chưa đổi gì.
+
+| # | Pain point (Rachel, Josias) | | Cách xử lý |
+|---|---|---|---|
+| R1 | Partner không biết bắt đầu Project từ đâu | ✅ | Nút "+ Create" trên nav → Step 0 → Raise funds for a cause → Proposal |
+| R2 | Create Event chỉ nằm trong tab Join Event | ✅ | "+ Create" → Step 0 → Host an event |
+| R3 | Partner rành tự lập org và nộp hồ sơ thẩm định | ✅ | Form org 5 bước ngắn, khung "Before you start", kiểm tra trùng sớm |
+| R4 | Lập org xong không biết làm gì tiếp, phải email Rachel; chị vẫn cần thẩm định và gặp | ✅ | Duyệt xong vào thẳng Proposal → "We'll contact you to schedule a call" |
+| R5a | Phần Personal / Org Page trong Manage Pages gây rối | 🟡 | Có sơ đồ "How pages fit together" ở Step 0, nhưng cấu trúc Manage Pages vẫn giống production |
+| R5b | Org page ít giá trị | ✅ giao diện | Nhận donate cho chi phí vận hành. Team chưa chốt cách nhận tiền ở backend |
+| R5c | Nhập thông tin tổ chức hai lần | ✅ giao diện | Org page lấy sẵn từ thông tin đã xác minh |
+| R6 | Guide phải gửi tay | 🟡 | Email chào mừng tự gửi khi được duyệt, kèm guide (mới là bản xem trước; link guide chưa có) |
+| R7 | Email kích hoạt; không rõ tỉ lệ kích hoạt | 🟡 | Bản xem trước email kích hoạt. Đo tỉ lệ là việc của analytics |
+| J1 | Gắn tên version | ✅ | Chip version và What's new |
+| J2 | Tự đi thử các flow | ✅ | `docs/walkthrough-v1.1.md` |
+| J3 | Cấu trúc project / org / event chưa rõ | ✅ | Ai cũng tới được Step 0 và sơ đồ cấu trúc |
+| J4 | Mời phản biện | ✅ | General fund, IPC, gộp role |
+
 ---
 
 ## 2. Bức tranh chung
 
 ```
+"+ Create" trên nav (mọi trang) hoặc ở Manage Pages
+        ↓
 STEP 0 — "What would you like to do?"
   ├─ Raise funds for a cause      → Project (cá nhân hoặc tổ chức)
   ├─ Raise funds for your organisation → Trang tổ chức + quỹ chi phí vận hành
@@ -38,6 +60,23 @@ Event  → không cần xác minh (giống production): chọn người tổ ch�
 Dưới 3 lựa chọn ở Step 0 có khung **"How pages fit together"**: trang tổ chức chứa các Project, Event và quỹ chi phí vận hành; cá nhân thì có Project và Event.
 
 Người đã đăng nhập cũng bắt đầu ở Step 0. Sau đó họ thấy danh sách org của mình, kèm "Add an organisation" (và "cá nhân" với lối Cause và Event).
+
+### Vào Step 0 từ đâu (v1.3)
+
+| Chỗ | Nút | Đi đâu |
+|---|---|---|
+| Nav, ở mọi trang, đăng nhập hay chưa | **+ Create** (trên phone: dòng đầu menu ☰) | Step 0 |
+| Manage Pages | **+ Create** ở đầu cột trái | Step 0 |
+| Footer → Get Started | Start a Project / Register an Organization / Host an Event | **Bỏ qua Step 0**, vào thẳng lối tương ứng, vì người dùng đã biết mình muốn tạo gì |
+| Manage Pages, trong từng org | New project / New event | Vào thẳng form, như trước |
+
+- **Log In / Sign Up:** gộp thành một nút để nav có chỗ cho "+ Create". Đăng ký ở đây vẫn là đăng ký tài khoản thường, dành cho donor.
+- **Đang làm dở:** người đã bắt đầu xác minh mà chưa nộp, khi quay lại Step 0 sẽ thấy dòng "Continue where you left off". Chọn lại đúng lối cũ cũng được đưa về bước đang làm, không mất dữ liệu.
+- **Không còn modal bắt đăng nhập:** người chưa đăng nhập tạo tài khoản ở bước "Your account" ngay sau Step 0 (email → link → tự đăng nhập).
+
+**Lộ trình gợi ý cho production:**
+- **Giai đoạn 1:** thêm "+ Create" trên nav và ở Manage Pages, cùng email chào mừng kèm guide.
+- **Giai đoạn 2:** Create Organization (tab Organizations) và Create Event (trang Join an Event) vào thẳng lối của chúng, bỏ modal Log In / Sign Up. Tab Projects có thêm "+ Start a Project".
 
 ---
 
@@ -127,6 +166,10 @@ Dựng theo tab Manage Pages của trang tài khoản trên Agathos. Mở bằng
 
 Mở `/onboarding`, bấm nút **Demo** (góc dưới trái):
 
+**Đường vào:** bấm "+ Create" trên nav (hoặc ở Manage Pages) để mở Step 0. Ba link ở footer đi thẳng vào từng lối.
+
+**Email xem trước:** trong panel Demo, dòng "Email previews" có 2 nút. "Sign-in link" mở email có link đăng nhập. "Welcome" mở email chào mừng gửi khi được duyệt; đổi được bước tiếp theo giữa 3 lối (project, trang tổ chức, event).
+
 **Not logged in**
 1. **New visitor**: chọn một lối ở Step 0 rồi đi hết phần xác minh. Khối "Try in the forms" có các mã thử:
    - `josias@antioch21.org`: email đã có tài khoản.
@@ -156,6 +199,13 @@ Trong panel Demo còn có: **What's new** (lịch sử version), **Flow diagram*
 ## 9. Lịch sử version
 
 Bản tiếng Anh cho team nằm ở "What's new" trong panel Demo.
+
+**v1.3 — 02/10/2026** (đường vào Step 0)
+- Nút "+ Create" trên nav ở mọi trang, đăng nhập hay chưa, mở Step 0. Có thêm nút cùng tên ở Manage Pages.
+- Link ở footer (Start a Project, Register an Organization, Host an Event) bỏ qua Step 0, vào thẳng lối tương ứng.
+- Step 0 có dòng "Continue where you left off" khi đang xác minh dở.
+- Bản xem trước 2 email trong panel Demo: email có link đăng nhập, và email chào mừng khi được duyệt (kèm bước tiếp theo và guide). Nội dung là bản nháp chờ team duyệt.
+- Gộp Log In và Sign Up thành một nút "Log In / Sign Up".
 
 **v1.2 — 02/10/2026** (theo feedback 02/10)
 - Step 0 với 3 lối vào, kèm khung "How pages fit together".
@@ -196,5 +246,6 @@ Bản tiếng Anh cho team nằm ở "What's new" trong panel Demo.
 | "Can you offer tax deductions to donors?" = Yes (Singapore) có đúng là IPC, và IPC có bỏ sao kê ngân hàng không | Partnerships / Regulation |
 | Danh sách lựa chọn cho "What is the size of your organization?" và "How did you come to know about Agathos?" | Copy từ form production |
 | Các trường bắt buộc trên form production; danh sách đầy đủ của Project type (mới thấy Community, Emergency); kích thước ảnh | Cần xác nhận từ production |
-| Email kích hoạt và email welcome kèm link hướng dẫn (Rachel #6, #7) | Cần nội dung hiện tại; gửi thật là việc của backend |
+| Nội dung 2 email (kích hoạt, chào mừng) là bản nháp của prototype; link guide chưa có (Rachel #6, #7) | Team duyệt nội dung; Rachel gửi link guide; gửi thật là việc của backend |
+| Thêm "+ Create" vào nav production (giai đoạn 1); Create Org / Create Event bỏ modal đăng nhập (giai đoạn 2) | Product / Engineering |
 | Luồng mời thành viên (email mời → đăng ký → vào project theo role) | Làm sau khi chốt role |
