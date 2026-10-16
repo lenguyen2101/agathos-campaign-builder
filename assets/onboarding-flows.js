@@ -7,14 +7,14 @@ window.OB_FLOWS = (function(){
    r/c = grid row / column. dim = drawn muted (a branch this scenario does not take). */
 var FLOWS = {
   'new': {
-    title:'New visitor', src:'+ Create → Step 0 → account → Create Organization questions (5 short steps) or Create Event form',
-    note:'Organisations answer the same questions as the live Create Organization form, in five short steps. The registration number is asked first, so an organisation already on Agathos is spotted before the rest is filled in. The organisation path skips "Who is raising". Singapore organisations that can offer tax deductions (IPCs) skip the bank statement. Events need no verification: the host goes straight to the Create Event form.',
+    title:'New visitor', src:'+ Create → Step 0 (cause or event) → account → Create Organization questions (5 short steps) or Create Event form',
+    note:'Step 0 offers a cause or an event. An organisation is added inside the cause path, under "Who is raising". Register an Organization in the footer still opens the organisation path directly. Organisations answer the same questions as the live Create Organization form, in five short steps. An organisation already on Agathos is spotted twice: by registration number or name on the first step, and by email domain, website or phone on the Contact step, which also catches an organisation without a registration number. Singapore organisations that can offer tax deductions (IPCs) skip the bank statement. Events need no verification: the host goes straight to the Create Event form.',
     cols:3,
     nodes:[
       {id:'a', t:'start', r:0, c:1, l:'Visitor lands, not logged in'},
       {id:'nv', t:'step', r:1, c:1, l:'+ Create', s:'On the nav, any page'},
       {id:'nf', t:'ext', r:1, c:2, l:'Footer link', s:'Start a Project · Register an Organization · Host an Event → straight to that path'},
-      {id:'b', t:'step', r:2, c:1, l:'Step 0 · What would you like to do?', s:'Cause · Organization · Event'},
+      {id:'b', t:'step', r:2, c:1, l:'Step 0 · What would you like to do?', s:'Cause · Event'},
       {id:'c', t:'step', r:3, c:1, l:'Your account', s:'Email link, no password'},
       {id:'d', t:'dec', r:4, c:1, l:'Email already has an account?'},
       {id:'d1', t:'ext', r:4, c:2, l:'"Already an account"', s:'Log in → organisation list'},
@@ -23,16 +23,19 @@ var FLOWS = {
       {id:'f', t:'dec', r:6, c:1, l:'Who is raising?'},
       {id:'f2', t:'ext', r:6, c:2, l:'Individual', s:'About your cause → identity → contact → payout → review'},
       {id:'g', t:'step', r:7, c:1, l:'Organization', s:'Name · country · registration number · size'},
-      {id:'i', t:'dec', r:8, c:1, l:'Matches an existing organisation?'},
-      {id:'i1', t:'step', r:8, c:2, l:'Request access or join', s:'Verified org · application in progress (2b)'},
-      {id:'g2', t:'step', r:9, c:1, l:'Contact → Causes', s:'Email, phone, address, website · causes, countries, about'},
-      {id:'h', t:'step', r:10, c:1, l:'Documents', s:'Certificate · financials · bank statement (not for IPCs)'},
-      {id:'j', t:'step', r:11, c:1, l:'Risk declaration → Submit', s:'Reviewed in 1–2 business days'},
-      {id:'k', t:'dec', r:12, c:1, l:'Path chosen at step 0?'},
-      {id:'l0', t:'next', r:13, c:0, l:'Cause', s:'Proposal → review and call → build'},
-      {id:'l1', t:'next', r:13, c:2, l:'Organization', s:'Organization page'}
+      {id:'i', t:'dec', r:8, c:1, l:'Same registration number or name?'},
+      {id:'i1', t:'step', r:8, c:2, l:'Request access or join', s:'Verified org · application in progress (2b) · shows what matched'},
+      {id:'g2', t:'step', r:9, c:1, l:'Contact', s:'Email, phone, address, website'},
+      {id:'i2', t:'dec', r:10, c:1, l:'Same email domain, website or phone?'},
+      {id:'i3', t:'step', r:10, c:2, l:'Request access or join', s:'Also finds an org with no registration number'},
+      {id:'g3', t:'step', r:11, c:1, l:'Causes', s:'Causes, countries, about'},
+      {id:'h', t:'step', r:12, c:1, l:'Documents', s:'Certificate · financials · bank statement (not for IPCs)'},
+      {id:'j', t:'step', r:13, c:1, l:'Risk declaration → Submit', s:'Reviewed in 1–2 business days'},
+      {id:'k', t:'dec', r:14, c:1, l:'Which path?'},
+      {id:'l0', t:'next', r:15, c:1, l:'Cause', s:'Proposal → review and call → build'},
+      {id:'l1', t:'ext', r:15, c:2, l:'Register an Organization (footer)', s:'Organization page: banner, logo, who you are'}
     ],
-    edges:[['a','nv'],['nv','b'],['a','nf','',1],['b','c'],['c','d'],['d','d1','Yes',1],['d','e','No'],['e','e2','Event'],['e','f','Cause or org'],['f','f2','Individual',1],['f','g','Organization'],['g','i'],['i','i1','Match'],['i','g2','No match'],['g2','h'],['h','j'],['j','k'],['k','l0','Cause'],['k','l1','Org']]
+    edges:[['a','nv'],['nv','b'],['a','nf','',1],['b','c'],['c','d'],['d','d1','Yes',1],['d','e','No'],['e','e2','Event'],['e','f','Cause'],['f','f2','Individual',1],['f','g','Organization'],['g','i'],['i','i1','Match'],['i','g2','No match'],['g2','i2'],['i2','i3','Match'],['i2','g3','No match'],['g3','h'],['h','j'],['j','k'],['k','l0','Cause'],['k','l1','Org',1]]
   },
   'fresh': {
     title:'Not verified yet', src:'+ Create → Step 0 → Diagram 1c (no organisations) → 2 or 2c',
@@ -41,28 +44,27 @@ var FLOWS = {
     nodes:[
       {id:'a', t:'start', r:0, c:1, l:'Logged in', s:'No organisation, not verified'},
       {id:'nv', t:'step', r:1, c:1, l:'+ Create', s:'On the nav or in Manage Pages'},
-      {id:'b', t:'step', r:2, c:1, l:'Step 0 · What would you like to do?'},
+      {id:'b', t:'step', r:2, c:1, l:'Step 0 · What would you like to do?', s:'Cause · Event'},
       {id:'c', t:'step', r:3, c:1, l:'Who is raising?', s:'+ Add an organisation · + Individual'},
       {id:'c0', t:'step', r:4, c:0, l:'Add an organisation', s:'Organization → Contact → Causes → Documents → Risk declaration'},
       {id:'c2', t:'step', r:4, c:2, l:'Individual', s:'About your cause → Verify your identity → Contact → Payout → Review'},
       {id:'d', t:'step', r:5, c:1, l:'Manual review', s:'1–2 business days'},
-      {id:'e', t:'next', r:6, c:1, l:'Approved → where the path leads', s:'Proposal · organisation page · event form'}
+      {id:'e', t:'next', r:6, c:1, l:'Approved → where the path leads', s:'Proposal · event form'}
     ],
     edges:[['a','nv'],['nv','b'],['b','c'],['c','c0'],['c','c2'],['c0','d'],['c2','d'],['d','e']]
   },
   'ret1': {
-    title:'Owner of one organisation', src:'+ Create → Step 0 → Diagram 1c → proposal, organisation page or event',
+    title:'Owner of one organisation', src:'+ Create → Step 0 → Diagram 1c → proposal or event',
     note:'Verification is tied to the organisation, not the project. The confirm pop-up keeps mild friction on purpose. Every project is reviewed and talked through before its page is built.',
     cols:3,
     nodes:[
       {id:'a', t:'start', r:0, c:1, l:'Logged in', s:'Owner of Antioch21'},
       {id:'nv', t:'step', r:1, c:1, l:'+ Create', s:'On the nav or in Manage Pages'},
-      {id:'b', t:'step', r:2, c:1, l:'Step 0 · What would you like to do?'},
+      {id:'o0', t:'ext', r:1, c:0, l:'Manage Pages → Organization page', s:'Banner · logo · who you are · publish'},
+      {id:'b', t:'step', r:2, c:1, l:'Step 0 · What would you like to do?', s:'Cause · Event'},
       {id:'c', t:'dec', r:3, c:1, l:'Which path?'},
-      {id:'o0', t:'step', r:4, c:0, l:'Which organisation?', s:'Antioch21 · + Add an organisation'},
       {id:'o1', t:'step', r:4, c:1, l:'Who is this project for?', s:'Antioch21 · + Add org · + Individual'},
       {id:'o2', t:'step', r:4, c:2, l:'Who is hosting?', s:'Antioch21 · + Add org · + Individual'},
-      {id:'p0', t:'next', r:5, c:0, l:'Organization page', s:'Who we are · images · running costs · publish'},
       {id:'p1', t:'step', r:5, c:1, l:'Confirm pop-up', s:'Verified details · still accurate?'},
       {id:'p2', t:'next', r:5, c:2, l:'Event form', s:'Create Event, host filled in'},
       {id:'q', t:'dec', r:6, c:1, l:'Details still accurate?'},
@@ -71,7 +73,7 @@ var FLOWS = {
       {id:'s', t:'step', r:8, c:1, l:'Agathos reviews and calls', s:'Dashboard shows "In review"'},
       {id:'t', t:'next', r:9, c:1, l:'Approved → build & launch', s:'Diagram 3'}
     ],
-    edges:[['a','nv'],['nv','b'],['b','c'],['c','o0','Org'],['c','o1','Cause'],['c','o2','Event'],['o0','p0'],['o1','p1'],['o2','p2'],['p1','q'],['q','q2','Changed'],['q','r','Yes'],['r','s'],['s','t']]
+    edges:[['a','nv'],['a','o0','',1],['nv','b'],['b','c'],['c','o1','Cause'],['c','o2','Event'],['o1','p1'],['o2','p2'],['p1','q'],['q','q2','Changed'],['q','r','Yes'],['r','s'],['s','t']]
   },
   'ret2': {
     title:'In two organisations', src:'+ Create → Step 0 → Diagram 1c (v4) · Spec "Is this for the same organization as before?"',

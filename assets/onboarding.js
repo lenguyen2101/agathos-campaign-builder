@@ -4,7 +4,7 @@
    and come back exactly where they were — which is also the product promise.
 
    Routes
-     #/begin (step 0: cause, organisation or event)
+     #/begin (step 0: cause or event) #/new/<cause|org|event>
      #/start #/account #/type #/docs #/contact #/payout #/review #/submitted
      #/orgdetails #/orgcontact #/orgcause #/orgdocs #/risk (organisation verification)
      #/entry #/org/<id> #/org/<id>/changes #/orgpage/<id> #/event/<host>
@@ -27,17 +27,18 @@ var COUNTRIES = 'Afghanistan|Albania|Algeria|Andorra|Angola|Antigua and Barbuda|
 var PROJECT_TYPES = [['COMMUNITY','Community'],['EMERGENCY','Emergency']];
 var ROLES = [['manager','Manager'],['viewer','Viewer']];
 
-/* organisations already on Agathos — what the org-match check looks up */
+/* organisations already on Agathos — what the org-match check looks up: registration number and name,
+   then email domain, website and phone, which also catch an organisation without a registration number */
 var DIRECTORY = [
-  {id:'antioch21', name:'Antioch21', keys:['t08ss0123a','antioch21','antioch 21'], status:'verified', since:'2025-03-14', contact:'j•••@antioch21.org'},
-  {id:'livingwaters', name:'Living Waters Village', keys:['t21ss0456b','living waters'], status:'pending', submitted:'2026-09-10', contact:'r•••@livingwaters.sg'}
+  {id:'antioch21', name:'Antioch21', keys:['t08ss0123a','antioch21','antioch 21'], web:['antioch21.org'], phones:['6561234567'], status:'verified', since:'2025-03-14', contact:'j•••@antioch21.org'},
+  {id:'livingwaters', name:'Living Waters Village', keys:['t21ss0456b','living waters'], web:['livingwaters.sg'], phones:[], status:'pending', submitted:'2026-09-10', contact:'r•••@livingwaters.sg'}
 ];
 /* emails that already have an account — the magic link logs them in instead */
 var KNOWN_ACCOUNTS = {'adam@agathos.be':'Adam Le', 'josias@antioch21.org':'Josias Ding'};
 
 var ORG_ANTIOCH = {id:'antioch21', name:'Antioch21', type:'charity', country:'Singapore', role:'Owner', verifiedSince:'2025-03-14', expiresOn:'2027-03-14', lastActive:'2026-09-02', regMasked:'T08SS••••A', contact:'Josias Ding', payoutMasked:'DBS ••••4821',
   details:{name:'Antioch21', country:'Singapore', registered:'yes', regNo:'T08SS0123A', operate:['Singapore','Iraq'], email:'hello@antioch21.org', phone:'+65 6123 4567', address:'10 Anson Road, Singapore 079903', causes:['Humanitarian','Children & Youth'], about:'A Singapore ministry serving refugee and displaced families in the Kurdistan Region of Iraq.', website:'https://antioch21.org'},
-  page:{status:'live', fund:{on:true, purpose:'Staff, rent and the day-to-day running of our programmes.', raised:8450, contributions:64}}};
+  page:{status:'live', banner:{name:'antioch21-banner.jpg', size:1843200}, logo:{name:'antioch21-logo.png', size:96256}}};
 var ORG_TTB = {id:'treasurebox', name:'The Treasure Box Singapore', type:'charity', country:'Singapore', role:'Manager', verifiedSince:'2024-11-20', expiresOn:'2026-11-20', lastActive:'2026-08-15', regMasked:'T19SS••••C', contact:'Rachel Tan', payoutMasked:'OCBC ••••2210',
   details:{name:'The Treasure Box Singapore', country:'Singapore', registered:'yes', regNo:'T19SS0789C', operate:['Singapore'], email:'hello@thetreasureboxsg.com', phone:'+65 8891 0669', address:'51 Bukit Batok Crescent, #08-35, Singapore 658077', causes:['Children & Youth','Marriage & Family','Discipleship'], about:'Helping families grow closer to one another, and closer to God, together.', website:'https://www.thetreasurebox.sg'}, page:{status:'none'}};
 var PROJ_A = {id:'c1', name:'Special Needs Centre in Kurdistan Region of Iraq', org:'antioch21', status:'live', raised:20000, goal:60000, contributions:186, started:'2025-08-08', cause:'Children & Youth', country:'Iraq', type:'COMMUNITY',
@@ -230,12 +231,15 @@ function center(o){
 /* ============================================================================
    STEP 0 — what the person wants to set up. It decides the wording, which rows
    the organisation list shows, and where approval leads.
+   Step 0 offers a cause or an event; an organisation is added inside either. The
+   org path stays for links that already say what they create (Register an Organization).
    ============================================================================ */
 var PATHS={
   cause:{t:'Raise funds for a cause', d:'A project with a clear purpose, like a build, a relief response or a mission. As an individual or for an organisation.'},
-  org:{t:'Raise funds for your organisation', d:'An organisation page that shows all your projects and events, and takes donations for running costs.'},
+  org:{t:'Register an organisation', d:'Verify your organisation and set up its page.'},
   event:{t:'Host an event', d:'A run, a dinner, a concert. As an individual or for an organisation.'}
 };
+var STEP0=[['cause',I.heart],['event',I.calendar]];
 function pathKey(){ return PATHS[S.path] ? S.path : 'cause'; }
 function kicker(){ return PATHS[pathKey()].t; }
 /* the step to go back to when a verification was started and not submitted, else null */
@@ -257,11 +261,11 @@ function startPath(path, replace){
 function viewBegin(){
   var name=firstName(S.auth.name), u=PATHS[S.path] && unfinished();
   var resume = u ? '<div class="ob-banner info ob-resume"><div class="ic">'+I.clock+'</div><div><b>Continue where you left off</b><p>'+h(kicker())+' · next step: '+h(u.lbl)+'</p></div><button class="ob-btn primary sm" type="button" data-go="'+u.id+'">Continue →</button></div>' : '';
-  var cards=[['cause',I.heart],['org',I.building],['event',I.calendar]].map(function(c){ var p=PATHS[c[0]]; return '<button class="ob-path" type="button" data-act="pickPath" data-path="'+c[0]+'"><span class="ic">'+c[1]+'</span><span class="t"><b>'+h(p.t)+'</b><span>'+h(p.d)+'</span></span><span class="chev">'+I.chev+'</span></button>'; }).join('');
+  var cards=STEP0.map(function(c){ var p=PATHS[c[0]]; return '<button class="ob-path" type="button" data-act="pickPath" data-path="'+c[0]+'"><span class="ic">'+c[1]+'</span><span class="t"><b>'+h(p.t)+'</b><span>'+h(p.d)+'</span></span><span class="chev">'+I.chev+'</span></button>'; }).join('');
   var tree='<div class="ob-structure"><b>How pages fit together</b><div class="ob-tree">'+
-    '<div class="node"><span>Organisation page</span><div class="kids"><i>Projects</i><i>Events</i><i>Running costs</i></div></div>'+
+    '<div class="node"><span>Organisation page</span><div class="kids"><i>Projects</i><i>Events</i></div></div>'+
     '<div class="node"><span>Individual</span><div class="kids"><i>Projects</i><i>Events</i></div></div></div>'+
-    '<p>An organisation page holds all of its projects and events, and can take donations for running costs.</p></div>';
+    '<p>An organisation page shows all of its projects and events. To raise funds for running costs, start a project.</p></div>';
   return center({kicker:'Get started', h1:S.auth.loggedIn&&name?'What would you like to do, '+h(name)+'?':'What would you like to do?', p:'Pick one to start. You can come back for the others any time.', body:expiryBanner()+resume+'<div class="ob-paths">'+cards+'</div>'+tree});
 }
 
@@ -337,7 +341,7 @@ function s1Advance(cur){
 }
 function s1Back(cur){
   var st=s1Steps(), i=-1; st.forEach(function(s,k){ if(s.id===cur) i=k; });
-  if(S.update && i===0) return S.update.kind==='individual' ? 'individual' : 'org/'+S.update.id;
+  if(S.update && i===0) return S.update.kind==='individual' ? 'individual' : (S.update.from==='page'?'orgpage/':'org/')+S.update.id;
   return i>0 ? st[i-1].id : (S.s1.mode!=='visitor' ? 'entry' : 'begin');
 }
 function finishUpdate(){
@@ -346,7 +350,7 @@ function finishUpdate(){
   else {
     var o=findOrg(u.id); o.pending=u.sections; if(u.refresh){ o.refreshPending=true; }
     if(u.sections.indexOf('orgdetails')>=0) o.details=clone(S.s1.org);
-    save(); toast('Sent for expedited review — usually same day'); go('org/'+u.id);
+    save(); toast('Sent for expedited review — usually same day'); go((u.from==='page'?'orgpage/':'org/')+u.id);
   }
 }
 
@@ -465,18 +469,38 @@ function viewRisk(){
     actions({back:s1Back('risk'), next:upd?'Send for review':'Submit', act:upd?'next':'submit', noArrow:1})+'</div>';
   return s1Shell('risk', card);
 }
-function matchOrg(){
+/* first step: registration number and name. Contact step: email domain, website and phone too,
+   so an organisation without a registration number is still found */
+var FREE_MAIL=['gmail.com','googlemail.com','yahoo.com','hotmail.com','outlook.com','live.com','icloud.com'];
+function webHost(u){ return (u||'').toLowerCase().trim().replace(/^[a-z]+:\/\//,'').replace(/^www\./,'').split(/[\/?#:]/)[0]; }
+function matchOrg(step){
   var d=S.s1.org||{}, reg=(d.regNo||'').toLowerCase().replace(/\s+/g,''), name=(d.name||'').toLowerCase();
-  return DIRECTORY.filter(function(e){ return e.keys.some(function(k){ return (reg && reg===k.replace(/\s+/g,'')) || (name && name.indexOf(k)>=0 && k.length>4); }); })[0];
+  var contact=step==='orgcontact', mail=(d.email||'').toLowerCase().trim().split('@')[1]||'', site=webHost(d.website), phone=(d.phone||'').replace(/\D/g,'');
+  if(FREE_MAIL.indexOf(mail)>=0) mail='';
+  for(var i=0;i<DIRECTORY.length;i++){
+    var e=DIRECTORY[i];
+    if(dismissed().indexOf(e.id)>=0) continue;
+    if(reg && e.keys.some(function(k){ return reg===k.replace(/\s+/g,''); })) return {org:e, why:'Same registration number'};
+    if(name && e.keys.some(function(k){ return name.indexOf(k)>=0 && k.length>4; })) return {org:e, why:'Similar name'};
+    if(!contact) continue;
+    if(mail && e.web.indexOf(mail)>=0) return {org:e, why:'Same email domain'};
+    if(site && e.web.indexOf(site)>=0) return {org:e, why:'Same website'};
+    if(phone.length>=8 && e.phones.some(function(p){ return p.slice(-8)===phone.slice(-8); })) return {org:e, why:'Same phone number'};
+  }
+  return null;
 }
-function orgMatchModal(e){
-  var body;
+/* organisations the person said are not theirs ("It's a different organisation") */
+function dismissed(){ return [].concat(S.s1.docs.matchDismissed||[]); }
+function dismissMatch(at){ var m=matchOrg(at); if(m) set('s1.docs.matchDismissed', dismissed().concat(m.org.id)); }
+function orgMatchModal(m){
+  var e=m.org, why='<span class="why">'+h(m.why)+'</span>', body;
+  S.s1.docs.matchAt=parts()[0]; save();
   if(e.status==='verified'){
-    body='<div class="ic">'+I.shield+'</div><h2>This organisation is already on Agathos</h2><div class="ob-matchcard"><div class="av">'+initials(e.name)+'</div><div><b>'+h(e.name)+'</b><span>'+badge('verified','Verified since '+fmtDate(e.since))+'</span></div></div>'+
+    body='<div class="ic">'+I.shield+'</div><h2>This organisation is already on Agathos</h2><div class="ob-matchcard"><div class="av">'+initials(e.name)+'</div><div><b>'+h(e.name)+'</b><span>'+badge('verified','Verified since '+fmtDate(e.since))+'</span>'+why+'</div></div>'+
       '<p class="lead">If you\'re part of the team, ask to be added — you won\'t need to verify again. We\'ll notify the primary contact ('+h(e.contact)+').</p>'+
       '<div class="acts"><button class="ob-btn ghost" type="button" data-act="matchDismiss">It\'s a different organisation</button><button class="ob-btn primary" type="button" data-act="requestAccess" data-org="'+e.id+'">Request access →</button></div>';
   } else {
-    body='<div class="ic warn">'+I.clock+'</div><h2>An application for this organisation is already in progress</h2><div class="ob-matchcard"><div class="av">'+initials(e.name)+'</div><div><b>'+h(e.name)+'</b><span>Submitted by '+h(e.contact)+' on '+fmtDate(e.submitted)+' · '+badge('pending','Pending review')+'</span></div></div>'+
+    body='<div class="ic warn">'+I.clock+'</div><h2>An application for this organisation is already in progress</h2><div class="ob-matchcard"><div class="av">'+initials(e.name)+'</div><div><b>'+h(e.name)+'</b><span>Submitted by '+h(e.contact)+' on '+fmtDate(e.submitted)+' · '+badge('pending','Pending review')+'</span>'+why+'</div></div>'+
       '<p class="lead">We\'ll let them know you\'d like to join. They have 5 days to respond — if they don\'t, our team steps in and reviews your request directly.</p>'+
       '<div class="acts"><button class="ob-btn ghost" type="button" data-act="matchDismiss">It\'s a different organisation</button><button class="ob-btn primary" type="button" data-act="requestJoin" data-org="'+e.id+'">Request to join →</button></div>';
   }
@@ -543,7 +567,7 @@ function viewSubmitted(){
   var body='<div class="ob-card ob-result"><div class="ic">'+I.clock+'</div><h2>Submitted — we\'re on it</h2><p class="lead">A member of our team will verify your submission and get back to you within <b>1–2 business days</b> at '+h(email)+'.</p>'+
     '<div class="ob-next">'+({
       cause:[['We verify','1–2 business days. We\'ll only write if something is unclear.'],['You propose a project','A short form. We\'ll call to talk it through.'],['You build and launch','Once the project is approved, build the page and choose when it goes live.']],
-      org:[['We verify','1–2 business days. We\'ll only write if something is unclear.'],['You set up your page','An introduction, your logo, and donations for running costs.'],['You publish it','Now, on a date you pick, or keep it as a draft.']],
+      org:[['We verify','1–2 business days. We\'ll only write if something is unclear.'],['You set up your page','A banner, your logo, and who you are.'],['You publish it','Now, on a date you pick, or keep it as a draft.']],
       event:[['We verify','1–2 business days. We\'ll only write if something is unclear.'],['You create your event','In the event form, with you as the host.'],['You publish it','When you\'re ready.']]
     })[pathKey()].map(function(x,i){ return '<div><span class="n">'+(i+1)+'</span><b>'+x[0]+'</b><p>'+x[1]+'</p></div>'; }).join('')+'</div>'+
     '<div class="acts"><a class="ob-btn ghost" href="#/dashboard">Go to my dashboard</a><button class="ob-btn gold" type="button" data-act="demoApprove">Demo: approve now →</button></div></div>';
@@ -628,13 +652,15 @@ function viewOrg(id){
   return center({kicker:'Your organisation', h1:'Organisation details', p:'', body:back+expiryBanner()+body});
 }
 
-function viewChanges(id){
+/* from='page': opened from the organisation page, so Back and the finished update return there */
+function viewChanges(id, from){
   var o=findOrg(id); if(!o){ go('entry'); return ''; }
+  var back=from==='page'?'orgpage/'+id:'org/'+id;
   var body='<div class="ob-card"><h2>What\'s changed?</h2><p class="lead">Tick what\'s different. Only those sections reopen, and only they get re-reviewed — usually the same day.</p>'+formErr()+'<div class="ob-checklist">'+
     checkbox({k:'chg.orgdetails', t:'Organization details', d:'Name, registration number, contact details, causes or website.'})+
     checkbox({k:'chg.orgdocs', t:'Documents', d:o.ipc?'Registration certificate or financial statements.':'Registration certificate, financial statements or bank statement.'})+
     checkbox({k:'chg.risk', t:'Risk declaration', d:'Sanctions, negative media, or politically exposed persons.'})+
-    '</div><div class="ob-actions"><button class="ob-btn ghost" type="button" data-go="org/'+id+'">← Back</button><div class="r"><button class="ob-btn primary" type="button" data-act="startUpdate" data-org="'+id+'">Update these →</button></div></div></div>';
+    '</div><div class="ob-actions"><button class="ob-btn ghost" type="button" data-go="'+back+'">← Back</button><div class="r"><button class="ob-btn primary" type="button" data-act="startUpdate" data-org="'+id+'" data-from="'+(from==='page'?'page':'')+'">Update these →</button></div></div></div>';
   return center({kicker:'Update details', h1:h(o.name), p:'', body:body});
 }
 
@@ -647,10 +673,11 @@ function viewIndividual(){
   }
   var d=daysUntil(ind.idExpires), warnB=d<=30 && !ind.pending;
   var pend = ind.pending ? '<div class="ob-banner info" style="margin-top:22px"><div class="ic">'+I.clock+'</div><div><b>Identity update under expedited review</b><p>Usually same day. You can build and launch meanwhile.</p></div></div>' : '';
-  var confirmed=!!S.confirmed.individual;
+  /* an update under review already says what changed, so it doesn't also ask to confirm */
+  var confirmed=!!S.confirmed.individual || !!ind.pending;
   var body='<div class="ob-card"><div class="ob-recog"><div class="av">'+initials(ind.name)+'</div><div class="t">'+(warnB?badge('warn','ID expires in '+d+' days'):badge('verified','Verified since '+fmtDate(ind.verifiedSince)))+'<h2>'+h(ind.name)+'</h2><p>Individual fundraiser · Singapore</p></div></div>'+
     '<div class="ob-facts"><div><span>Government ID</span>'+h(ind.idMasked)+'</div><div><span>ID valid until</span>'+fmtDate(ind.idExpires)+'</div><div><span>Address on file</span>'+h(ind.address)+'</div><div><span>Payout account</span>DBS ••••9031</div></div>'+pend+
-    '<div class="ob-confirm">'+checkbox({k:'confirmed.individual', t:'These details are still accurate', d:'If your ID, address or legal name changed, update it below — only that part gets re-checked.'})+'</div>'+
+    (ind.pending?'':'<div class="ob-confirm">'+checkbox({k:'confirmed.individual', t:'These details are still accurate', d:'If your ID, address or legal name changed, update it below — only that part gets re-checked.'})+'</div>')+
     '<div class="ob-actions"><button class="ob-btn text" type="button" data-go="individual/changes">Something changed? Update details</button><div class="r"><button class="ob-btn primary" type="button" data-act="startProject"'+(confirmed?'':' disabled')+'>Start a new project →</button></div></div></div>';
   return center({kicker:kicker(), h1:'Welcome back, '+h(firstName(ind.name)), p:'', body:(S.account.orgs.length?'<a class="ob-btn text" href="#/entry" style="margin:-16px 0 8px -4px">← Back</a>':'')+expiryBanner()+body});
 }
@@ -722,6 +749,13 @@ function viewProposal(){
   return s2Shell('build/proposal', card);
 }
 
+/* one sample project told through the three story fields; draft text for the team to review */
+var EXAMPLES={
+  intro:'Thirty children with special needs in Erbil have no school that will take them. This centre gives them therapy, lessons and a safe place to play, five days a week. Your gift pays for two therapists, a teacher and the rent for the first year.',
+  background:'We have visited families in the camps around Erbil since 2017. Parents kept asking where their children could go: state schools turn them away, and private therapy costs more than a month\'s wages. In 2024 we ran a pilot with eight children in a rented room.',
+  scope:'January to March: rent and fit out the centre. From April: daily sessions for 30 children with two therapists and a teacher, and a home visit to each family every month. Donors get an update every three months.'
+};
+function example(text){ return '<details class="ob-eg"><summary>See an example</summary><p>'+h(text)+'</p></details>'; }
 function viewPage(){
   var b=S.s2.basics, imgs=b.images||[], c=s2Project();
   if(c){ if(!b.name) b.name=c.name; if(!b.cause && c.cause) b.cause=c.cause; if(!b.country && c.country) b.country=c.country; }
@@ -733,9 +767,9 @@ function viewPage(){
     field({k:'s2.basics.name', label:'Project title', req:1, maxlen:80, placeholder:'What you\'re raising for, in a few words'})+
     '<div class="ob-row">'+field({k:'s2.basics.type', label:'Project type', req:1, type:'select', options:PROJECT_TYPES})+field({k:'s2.basics.cause', label:'Cause', req:1, type:'select', options:CAUSES})+'</div>'+
     '<div class="ob-row">'+field({k:'s2.basics.country', label:'Country', req:1, type:'select', options:COUNTRIES})+field({k:'s2.basics.city', label:'City', opt:1})+'</div>'+
-    field({k:'s2.basics.intro', label:'Introduction', req:1, type:'textarea', toolbar:1, rows:5, maxlen:3000, placeholder:'Who is this for, and what will change?'})+
-    field({k:'s2.basics.background', label:'Background & Context', opt:1, type:'textarea', rows:4, maxlen:3000, placeholder:'How the need came about, and your history with it.'})+
-    field({k:'s2.basics.scope', label:'Scope & Activities', opt:1, type:'textarea', rows:4, maxlen:3000, placeholder:'What you\'ll do, and roughly when.'})+
+    field({k:'s2.basics.intro', label:'Introduction', req:1, type:'textarea', toolbar:1, rows:5, maxlen:3000, placeholder:'Who is this for, and what will change?', after:example(EXAMPLES.intro)})+
+    field({k:'s2.basics.background', label:'Background & Context', opt:1, type:'textarea', rows:4, maxlen:3000, placeholder:'How the need came about, and your history with it.', after:example(EXAMPLES.background)})+
+    field({k:'s2.basics.scope', label:'Scope & Activities', opt:1, type:'textarea', rows:4, maxlen:3000, placeholder:'What you\'ll do, and roughly when.', after:example(EXAMPLES.scope)})+
     gallery+
     '</div>'+actions({back:'build/proposal', next:'Continue'})+'</div>';
   return s2Shell('build/page', card);
@@ -791,24 +825,24 @@ function viewDone(){
 }
 
 /* ============================================================================
-   ORGANISATION PAGE — separate from verification: built from the verified record,
-   with an optional general fund for running costs and its own publish date
+   ORGANISATION PAGE — separate from verification and built from the verified record.
+   It is there so donors can trust the organisation; each project page tells its own story.
+   No running-costs fund here: running costs are raised as a project, as on the live site.
    ============================================================================ */
 function viewOrgPage(id){
   var o=findOrg(id); if(!o){ go('dashboard'); return ''; }
   var pg=o.page||{status:'none'}, live=pg.status==='live', dt=o.details||{};
-  if(!S.op || S.op.id!==id){ var f=pg.fund||{}; S.op={id:id, banner:pg.banner||null, logo:pg.logo||null, about:dt.about||'', fundOn:pg.fund?!!f.on:true, purpose:f.purpose||'', mode:'', at:''}; save(); }
+  if(!S.op || S.op.id!==id){ S.op={id:id, banner:pg.banner||null, logo:pg.logo||null, about:dt.about||'', mode:'', at:''}; save(); }
   var op=S.op, labels={now:'Publish page', schedule:'Schedule page', draft:'Save as draft'};
   var facts='<div class="ob-facts" style="margin:0 0 8px"><div><span>Causes</span>'+h((dt.causes||[]).join(', ')||'—')+'</div><div><span>Website</span>'+h(dt.website||'—')+'</div><div><span>Organization email</span>'+h(dt.email||'—')+'</div><div><span>Organization phone</span>'+h(dt.phone||'—')+'</div></div>'+
-    '<p class="ob-facts-note">From your organization details. To change them, use Update details.</p>';
-  var card='<div class="ob-card"><h2>'+(pg.status==='none'?'Set up your organization page':'Your organization page')+'</h2><p class="lead">The public page for '+h(o.name)+'. Its projects and events appear on it automatically.</p>'+formErr()+facts+
+    '<p class="ob-facts-note">From your organization details. <a href="#/org/'+id+'/changes/page">Update details</a></p>';
+  var split='<div class="ob-split"><div><b>This page: who you are</b><ul><li>Your story and mission</li><li>Where you serve, and since when</li><li>Who leads you</li><li>What you have done so far</li></ul></div>'+
+    '<div><b>Each project page: one need</b><ul><li>What the money is for</li><li>The goal and the dates</li><li>What will change</li></ul></div></div>';
+  var card='<div class="ob-card"><h2>'+(pg.status==='none'?'Set up your organization page':'Your organization page')+'</h2><p class="lead">Donors look at this page to decide whether to trust '+h(o.name)+'. Its projects and events appear on it automatically.</p>'+formErr()+facts+split+
     '<div class="ob-form" style="margin-top:22px">'+
-    upload({k:'op.banner', label:'Banner Photo', opt:1, cta:'Click to upload file', types:'JPG or PNG'})+
-    upload({k:'op.logo', label:'Logo', opt:1, cta:'Click to upload file', types:'JPG or PNG'})+
+    upload({k:'op.banner', label:'Banner Photo', req:1, cta:'Click to upload file', types:'JPG or PNG'})+
+    upload({k:'op.logo', label:'Logo', req:1, cta:'Click to upload file', types:'JPG or PNG'})+
     field({k:'op.about', label:'Who we are', req:1, type:'textarea', rows:5, maxlen:2000, hint:'Starts from what you told us in your organization details.'})+
-    '</div><div class="ob-sec"><div class="ob-sec-head"><h3>Donations for running costs</h3></div>'+
-    checkbox({k:'op.fundOn', t:'Take donations for running costs', d:'Adds a Donate button to your page for general support, separate from your projects.'})+
-    (op.fundOn?'<div class="ob-form" style="margin-top:18px">'+field({k:'op.purpose', label:'What do these donations pay for?', req:1, type:'textarea', rows:3, maxlen:400, placeholder:'For example: staff, rent and the day-to-day running of our programmes.'})+'</div>':'')+
     '</div>'+
     (live?'':'<div class="ob-sec"><div class="ob-sec-head"><h3>When should the page go live?</h3></div>'+
       choice({k:'op.mode', req:1, cols:3, options:[
@@ -818,7 +852,7 @@ function viewOrgPage(id){
       ]})+
       (op.mode==='schedule'?'<div class="ob-reveal">'+field({k:'op.at', label:'Go live on', req:1, type:'datetime-local', hint:'Singapore time.'})+'</div>':'')+'</div>')+
     actions({back:'dashboard', next:live?'Save changes':(labels[op.mode]||'Save'), act:'savePage', noArrow:1})+'</div>';
-  return center({kicker:'Raise funds for your organization', h1:o.name, p:'', body:card});
+  return center({kicker:'Organization page', h1:o.name, p:'', body:card});
 }
 
 /* events keep the Create Event form the platform already has; this only settles who hosts */
@@ -872,11 +906,10 @@ function dashCard(c){
   return '<div class="dc"><div class="dc-img"><span class="dc-st '+st[1]+'">'+st[0]+'</span></div><div class="dc-main"><h3>'+h(c.name)+'</h3><div class="dc-acts">'+left+'</div></div><div class="dc-stats">'+box+'</div></div>';
 }
 function dashOrgPage(o){
-  var pg=o.page||{status:'none'}, f=pg.fund||{};
+  var pg=o.page||{status:'none'};
   var st={none:['Not set up','off'], draft:['Draft','wait'], scheduled:['Scheduled','wait'], live:['Live','on']}[pg.status];
-  var fund = f.on ? '<div class="op-fund"><span>Running costs</span><b>'+(f.raised?money(f.raised):'0')+'</b>'+(f.contributions?'<em>'+f.contributions+' contributions</em>':'')+'</div>' : '';
   return '<div class="op-card"><div class="t"><div class="op-h"><b>Organization page</b><span class="op-st '+st[1]+'">'+st[0]+'</span>'+(pg.status==='scheduled'?'<span class="op-when">Goes live '+fmtDateTime(pg.publishAt)+'</span>':'')+'</div>'+
-    '<p>'+(pg.status==='none'?'One page for this organization: its projects and events in one place, and donations for running costs.':h((o.details&&o.details.about)||''))+'</p></div>'+fund+
+    '<p>'+(pg.status==='none'?'One page for this organization, with all its projects and events. Donors look at it before they give.':h((o.details&&o.details.about)||''))+'</p></div>'+
     '<a class="ob-btn '+(pg.status==='none'?'primary':'ghost')+' sm" href="#/orgpage/'+o.id+'">'+(pg.status==='none'?'Set up page':'Edit page')+'</a></div>';
 }
 function dashActions(o){
@@ -950,7 +983,7 @@ function render(){
     case 'review': html=viewReview(); break;
     case 'submitted': html=viewSubmitted(); break;
     case 'entry': html=viewEntry(); break;
-    case 'org': html = p[2]==='changes' ? viewChanges(p[1]) : viewOrg(p[1]); break;
+    case 'org': html = p[2]==='changes' ? viewChanges(p[1], p[3]) : viewOrg(p[1]); break;
     case 'orgpage': html=viewOrgPage(p[1]); break;
     case 'event': html=viewEvent(p[1]); break;
     case 'individual': html = p[1]==='changes' ? viewIndividualChanges() : viewIndividual(); break;
@@ -1006,7 +1039,7 @@ document.addEventListener('input', function(ev){
 });
 document.addEventListener('change', function(ev){
   var el=ev.target;
-  if(el.hasAttribute('data-bool')){ set(el.getAttribute('data-k'), el.checked); var box=el.closest('.ob-check-box'); if(box) box.classList.toggle('on', el.checked); var f=el.closest('.ob-field'); if(f) f.classList.remove('err'); if(/^(confirmed\.|op\.fundOn)/.test(el.getAttribute('data-k'))) render(); return; }
+  if(el.hasAttribute('data-bool')){ set(el.getAttribute('data-k'), el.checked); var box=el.closest('.ob-check-box'); if(box) box.classList.toggle('on', el.checked); var f=el.closest('.ob-field'); if(f) f.classList.remove('err'); if(/^confirmed\./.test(el.getAttribute('data-k'))) render(); return; }
   if(el.hasAttribute('data-msel')){ var sk=el.getAttribute('data-msel'), cur=[].concat(get(sk)||[]); if(el.value && cur.indexOf(el.value)<0) cur.push(el.value); set(sk, cur); render(); return; }
   if(el.hasAttribute('data-k') && el.tagName==='SELECT'){
     var sel=el.getAttribute('data-k'); set(sel, el.value); var ff=el.closest('.ob-field'); if(ff) ff.classList.remove('err');
@@ -1070,9 +1103,9 @@ var ACT={
   next:function(t){
     var card=t.closest('.ob-card'); if(!validate(card)) return;
     var r=parts()[0];
-    if(r==='orgdetails' && !S.update){
-      var e=matchOrg();
-      if(e && S.s1.docs.matchDismissed!==e.id){ orgMatchModal(e); return; }
+    if((r==='orgdetails' || r==='orgcontact') && !S.update){
+      var m=matchOrg(r);
+      if(m){ orgMatchModal(m); return; }
     }
     if(r==='build' && parts()[1]==='team'){
       var inv=document.getElementById('inv-email'), un=document.getElementById('inv-unsent');
@@ -1106,8 +1139,8 @@ var ACT={
     var email=(S.s1.account.email||'').toLowerCase().trim();
     S.auth={loggedIn:true, name:'', email:email}; save(); s1Advance('account');
   },
-  matchDismiss:function(){ var e=matchOrg(); set('s1.docs.matchDismissed', e?e.id:''); closeModal(); s1Advance('orgdetails'); },
-  matchDismissGo:function(){ S.requests.access=null; var e=matchOrg(); set('s1.docs.matchDismissed', e?e.id:''); s1Advance('orgdetails'); },
+  matchDismiss:function(){ var at=S.s1.docs.matchAt||'orgdetails'; dismissMatch(at); closeModal(); s1Advance(at); },
+  matchDismissGo:function(){ S.requests.access=null; var at=S.s1.docs.matchAt||'orgdetails'; dismissMatch(at); s1Advance(at); },
   mselRm:function(t){ var k=t.getAttribute('data-ms'), v=t.getAttribute('data-v'); set(k, [].concat(get(k)||[]).filter(function(x){ return x!==v; })); render(); },
   requestAccess:function(t){ S.requests.access={org:t.getAttribute('data-org'), kind:'access', sent:addDays(0)}; S.dashSel='request'; save(); closeModal(); go('access'); },
   requestJoin:function(t){ S.requests.access={org:t.getAttribute('data-org'), kind:'join', sent:addDays(0)}; S.dashSel='request'; save(); closeModal(); go('access'); },
@@ -1162,9 +1195,9 @@ var ACT={
   openEventForm:function(){ toast('In the live product this opens Create Event'); },
   savePage:function(t){
     var card=t.closest('.ob-card'); if(!validate(card)) return;
-    var o=findOrg(S.op.id), pg=o.page||{status:'none'}, op=S.op, f=pg.fund||{};
+    var o=findOrg(S.op.id), pg=o.page||{status:'none'}, op=S.op;
     var status = pg.status==='live' ? 'live' : ({now:'live', schedule:'scheduled', draft:'draft'})[op.mode];
-    o.page={status:status, publishAt:op.mode==='schedule'?op.at:pg.publishAt, banner:op.banner, logo:op.logo, fund:{on:!!op.fundOn, purpose:op.purpose, raised:f.raised||0, contributions:f.contributions||0}};
+    o.page={status:status, publishAt:op.mode==='schedule'?op.at:pg.publishAt, banner:op.banner, logo:op.logo};
     o.details=o.details||{name:o.name}; o.details.about=op.about;
     S.op=null; S.dashSel=o.id; S.dashTab='projects'; save();
     toast(status==='live'?(pg.status==='live'?'Page saved':'Page published'):status==='scheduled'?'Page scheduled for '+fmtDateTime(o.page.publishAt):'Page saved as a draft'); go('dashboard');
@@ -1173,7 +1206,7 @@ var ACT={
   startUpdate:function(t){
     var id=t.getAttribute('data-org'), o=findOrg(id), secs=['orgdetails','orgdocs','risk'].filter(function(s){ return S.chg && S.chg[s]; });
     if(!secs.length){ toast('Tick at least one section'); return; }
-    S.update={kind:'org', id:id, sections:secs}; S.chg={}; S.s1.org=clone(o.details||{name:o.name, country:o.country}); S.s1.done={}; S.s1.type='charity'; save(); go(secs[0]);
+    S.update={kind:'org', id:id, sections:secs, from:t.getAttribute('data-from')}; S.chg={}; S.s1.org=clone(o.details||{name:o.name, country:o.country}); S.s1.done={}; S.s1.type='charity'; save(); go(secs[0]);
   },
   indUpdate:function(t){
     if(parts()[1]==='changes' && !(S.chg && (S.chg.id||S.chg.address||S.chg.name))){ toast('Tick at least one section'); return; }
@@ -1228,7 +1261,7 @@ function toast(msg){ toastEl.textContent=msg; toastEl.classList.add('show'); cle
 /* email previews: drafted text for the team to review; the prototype sends nothing */
 var MAIL_NEXT={
   cause:['Send us a short proposal for your project. We\'ll call you to talk it through, then you build the page.','Start your proposal'],
-  org:['Set up your organization page: a banner, your logo, and donations for running costs if you want them.','Set up your page'],
+  org:['Set up your organization page: a banner, your logo, and who you are. Donors look at it before they give.','Set up your page'],
   event:['Create your event: the page, tickets and an optional registration form.','Create your event']
 };
 var lastMail=null;
@@ -1265,8 +1298,17 @@ function mailModal(m){
 }
 
 /* the build reviewers are looking at, and what changed in each one */
-var VERSION='v1.3', VERSION_DATE='2 Oct 2026';
+var VERSION='v1.4', VERSION_DATE='16 Oct 2026';
 var CHANGELOG=[
+  {v:'v1.4', date:'16 Oct 2026', items:[
+    'Step 0 has two choices: raise funds for a cause, or host an event. An organisation is added inside either one, as before.',
+    'The organisation page no longer takes donations for running costs. Running costs are raised as a project, as on the live site. "How pages fit together" says so.',
+    'Register an Organization in the footer still opens the organisation path directly.',
+    'Organisation page: banner photo and logo are required. A short guide shows what goes on this page (who you are) and what goes on a project page (one need). An "Update details" link sits under the details box.',
+    'Project page: Introduction, Background & Context and Scope & Activities each have "See an example". The example text is a draft for review.',
+    'An individual whose identity update is under review can start a project straight away. The "still accurate" tick box is hidden while the review runs.',
+    'Finding an organisation already on Agathos: the Contact step also checks the email domain, website and phone, so an organisation without a registration number can still be found. The pop-up says what matched.'
+  ]},
   {v:'v1.3', date:'2 Oct 2026', items:[
     '"+ Create" on the nav, on every page, logged in or not, opens step 0. The same button sits at the top of Manage Pages.',
     'Links that already say what they create skip step 0: Start a Project, Register an Organization and Host an Event in the footer go straight to that path.',
@@ -1318,7 +1360,7 @@ var DEMO_GROUPS=[
 var DEMO_ORDER=DEMO_GROUPS.reduce(function(a,g){ return a.concat(g.keys); }, []);
 function renderDemo(){
   var el=document.getElementById('ob-demo');
-  var tryIt='<div class="try"><b>Try in the forms</b><code>josias@antioch21.org</code> → existing account<br><code>T08SS0123A</code> → org already verified<br><code>T21SS0456B</code> → application in progress<br>Singapore + tax deductions <code>Yes</code> → no bank statement</div>';
+  var tryIt='<div class="try"><b>Try in the forms</b><code>josias@antioch21.org</code> → existing account<br><code>T08SS0123A</code> → org already verified<br><code>T21SS0456B</code> → application in progress<br>Email <code>@antioch21.org</code> on Contact → org found by email domain<br>Singapore + tax deductions <code>Yes</code> → no bank statement</div>';
   el.innerHTML='<button type="button" data-act="demoToggle"><i></i><span class="ver">'+VERSION+'</span>Demo · '+h(SCENARIOS[S.scenario].label)+'</button><div class="panel">'+
     '<div class="ver-row"><span>Prototype <b>'+VERSION+'</b> · '+VERSION_DATE+'</span><button type="button" data-act="whatsNew">What\'s new</button></div>'+
     '<div class="ver-row"><span>Email previews</span><span class="mail-btns"><button type="button" data-act="demoMail" data-k="link">Sign-in link</button><button type="button" data-act="demoMail" data-k="welcome">Welcome</button></span></div>'+
