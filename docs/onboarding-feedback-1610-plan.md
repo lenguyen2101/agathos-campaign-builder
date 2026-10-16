@@ -74,7 +74,7 @@ Version: **v1.4**, ngày 16/10/2026. Chip "v1.4" và What's new trong panel Demo
 
 ## 6. Nhật ký
 
-**16/10/2026: làm xong v1.4 trên local, chưa commit.**
+**16/10/2026: làm xong v1.4.** Đã commit `301ad6d` và push; Vercel đang chạy v1.4.
 - Làm đủ F2–F8 như mục 1. F1 và F9 không đổi, chờ team.
 - **Lỗi em tự gây ra rồi sửa trong lúc làm:** bản đầu của kiểm tra trùng chỉ nhớ một tổ chức đã bỏ qua. Ví dụ: bỏ qua Antioch21 ở bước 1, rồi email `@livingwaters.sg` ở bước Contact, thì pop-up Living Waters không hiện. Lý do: số đăng ký vẫn khớp Antioch21 trước. Giờ hệ thống nhớ danh sách mọi tổ chức đã bỏ qua. Dữ liệu cũ đã lưu trong trình duyệt (chỉ có một tổ chức) vẫn đọc được.
 - **Không đổi:**
