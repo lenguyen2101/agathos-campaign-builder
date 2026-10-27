@@ -192,7 +192,7 @@ h1,h2,h3,h4,p,blockquote,ul{margin:0;}
 .hp-stat .bar.sky{background:#fff;}
 .hp-stat .bar.blue{background:#fff;}
 .hp-stat .num{font-size:clamp(40px,4.2vw,58px);font-weight:900;color:var(--hp-navy);letter-spacing:-.045em;line-height:1;}
-.hp-stat .lbl{font-size:15px;color:rgba(18,39,94,.8);margin-top:10px;line-height:1.4;}
+.hp-stat .lbl{font-size:16px;font-weight:600;color:rgba(18,39,94,.8);margin-top:10px;line-height:1.4;}
 .hp-stat:nth-child(2){background:#5CC7FF;border-color:var(--hp-sky);}
 .hp-stat:nth-child(2):hover{background:#5CC7FF;}
 /* the S$1M card leads the group: solid white, taller, a bigger number */
@@ -420,7 +420,7 @@ h1,h2,h3,h4,p,blockquote,ul{margin:0;}
   .hp-stat{align-items:center;text-align:center;min-height:0;padding:18px 20px 20px;gap:10px;}
   .hp-stat .bar{width:32px;height:4px;}
   .hp-stat .num{font-size:34px;}
-  .hp-stat .lbl{font-size:14px;margin-top:4px;min-height:0;}
+  .hp-stat .lbl{font-size:15px;margin-top:4px;min-height:0;}
   .hp-stat.lead{min-height:0;}
   .hp-stat.lead .num{font-size:40px;}
   .hp-sec-head{justify-content:center;text-align:center;}
