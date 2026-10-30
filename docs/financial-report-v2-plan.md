@@ -581,3 +581,23 @@ Chỉ đổi bố cục, không đổi nội dung hay chữ của comment.
 - Script node: 50/50 kiểm tra qua. Hai kiểm tra cũ về câu tài khoản ở màn All đã đổi thành kiểm tra khi chọn một đợt. Thêm 10 kiểm tra cho phương án A.
 - Curl trả về 200, file đang phục vụ đã có thay đổi.
 - Chưa xem giao diện bằng mắt.
+
+### Vòng 8 (30/10/2026): ghi rõ phần chênh của "Total Funding Amount" giữa hai tab. Chưa commit.
+
+**Lý do:** "Total Funding Amount" ra hai số khác nhau ở hai tab. Ví dụ Erbil: tab Transactions ghi 32,840, tab Payouts ghi 32,590. Spec cố ý tách hai phạm vi:
+- POEO A5: *"Real time transaction report … existing data from agathos"*. Tab Transactions tính mọi giao dịch, kể cả Processing.
+- POEO A22: *"Summary Payout Report … after reconcilation process"*. Tab Payouts chỉ tính giao dịch đã có trong file PSP upload.
+
+Comment F22 (*"New txn default → 'Processing'"*) và Intro A7 (*"All data existed when payment made"*) xác nhận giao dịch Processing đã được lưu, chỉ chưa thuộc đợt payout nào. Hai nhãn giống nhau là do team đặt (F6 và F29).
+
+**Đã làm:** dưới dòng số tiền đầu tiên của phần tóm tắt Payouts, thêm một dòng nhỏ, cùng kiểu với dòng "153 transactions" bên tab Transactions.
+- Khi xem All payouts: *"151 transactions · 2 not in a payout yet (S$250.00)"*. Cụm "not in a payout yet" lấy theo lựa chọn có sẵn của F4.
+- Khi chọn một đợt, hoặc khi không có giao dịch Processing: chỉ hiện số giao dịch.
+- Áp dụng cho Manage Project (transactions), Manage Event (orders) và Manage Pages. Ví dụ Antioch 21: *"205 transactions, 52 orders · 6 not in a payout yet (S$990.00)"*.
+- Không đổi số nào.
+
+**Đã kiểm tra:**
+- `node --check` qua.
+- Script node: 61/61 kiểm tra qua. Thêm 11 kiểm tra, trong đó có đối chiếu: số tiền tab Payouts cộng phần "not in a payout yet" bằng số tiền tab Transactions, với cả 4 project/event (32,590 + 250 = 32,840; 14,970 + 0; 6,035 + 740 = 6,775; 7,100 + 280 = 7,380).
+- Curl xác nhận file đang phục vụ đã có thay đổi.
+- Chưa xem giao diện bằng mắt.

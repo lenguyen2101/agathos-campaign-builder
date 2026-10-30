@@ -481,6 +481,14 @@ function payoutFilters(pers, allPers){
   if(S.pper!=='all' && pers.indexOf(S.pper)<0) S.pper='all';
   return '<div class="fr-filters">'+sel('Year','pyear',yearOpts(allPers),S.pyear)+sel('Payout period','pper',[['all','All payouts']].concat(pers.map(function(m){ return [m, monthRange(m)]; })),S.pper)+'</div>';
 }
+/* count under the amount row; on All payouts it also names the new transactions the Transactions tab counts but no payout holds yet */
+function payoutCnt(ids, tx, ev){
+  var proc=[];
+  if(S.pper==='all') ids.forEach(function(id){ proc=proc.concat(rowsOf(id).filter(function(r){ return r.st==='proc' && yearOk(r.per, S.pyear); })); });
+  var txt=[tx?plural(tx,'transaction'):'', ev?plural(ev,'order'):''].filter(Boolean).join(', ');
+  if(proc.length) txt+=' · '+proc.length+' not in a payout yet ('+money(proc.reduce(function(s,r){ return s+cents(r.recv); }, 0)/100)+')';
+  return '<small class="cnt">'+txt+'</small>';
+}
 
 /* 2a. Manage Project / Manage Event: this project's or event's share of each payout */
 function viewPayouts(p){
@@ -490,10 +498,10 @@ function viewPayouts(p){
     var t=totals(rowsOf(p.id).filter(function(r){ return r.per===per && inPeriod(r); })), date=payoutDate(per);
     return {per:per, t:t, date:date, paid:date<=TODAY, po:payout(per, p.ent)};
   });
-  var sum={recv:0, ben:0, fee:0, net:0, unpaid:0};
-  lines.forEach(function(x){ sum.recv+=cents(x.t.recv); sum.ben+=cents(x.t.ben); sum.fee+=cents(x.t.fee); sum.net+=cents(x.t.net); if(!x.paid) sum.unpaid+=cents(x.t.net); });
+  var sum={n:0, recv:0, ben:0, fee:0, net:0, unpaid:0};
+  lines.forEach(function(x){ sum.n+=x.t.n; sum.recv+=cents(x.t.recv); sum.ben+=cents(x.t.ben); sum.fee+=cents(x.t.fee); sum.net+=cents(x.t.net); if(!x.paid) sum.unpaid+=cents(x.t.net); });
   var unpaid=lines.filter(function(x){ return !x.paid; }), agathos=isEv(p)?'Agathos platform fee':'Beneficiary love gift to Agathos';
-  var rows=[['Total '+amountLabel(p), money(sum.recv/100)], [agathos, money(-sum.ben/100)], ['Processing fees', money(-sum.fee/100)], ['Net payout', money(sum.net/100), 'total']];
+  var rows=[['Total '+amountLabel(p)+payoutCnt([p.id], isEv(p)?0:sum.n, isEv(p)?sum.n:0), money(sum.recv/100)], [agathos, money(-sum.ben/100)], ['Processing fees', money(-sum.fee/100)], ['Net payout', money(sum.net/100), 'total']];
   var status='';
   if(S.pper==='all'){
     if(unpaid.length) rows.push([two('Not paid yet','Agathos pays on '+fmtDate(unpaid[0].date)), money(sum.unpaid/100), 'after']);
@@ -525,9 +533,9 @@ function viewEntityPayouts(e){
   if(!allPers.length) return '<div class="dp-empty">No payouts yet.</div>';
   var filters=payoutFilters(pers, allPers), shown=S.pper==='all' ? pers : [S.pper];
   var pos=shown.map(function(per){ return payout(per, e.id); }), unpaid=pos.filter(function(x){ return !x.paid; });
-  var sum={recv:0, ben:0, fee:0, net:0, unpaid:0};
-  pos.forEach(function(x){ sum.recv+=cents(x.t.recv); sum.ben+=cents(x.t.ben); sum.fee+=cents(x.t.fee); sum.net+=cents(x.t.net); if(!x.paid) sum.unpaid+=cents(x.t.net); });
-  var rows=[[split(COL_AMOUNT), money(sum.recv/100)], [split(COL_AGATHOS), money(-sum.ben/100)], ['Processing fees', money(-sum.fee/100)], ['Net payout', money(sum.net/100), 'total']];
+  var sum={tx:0, ev:0, recv:0, ben:0, fee:0, net:0, unpaid:0};
+  pos.forEach(function(x){ x.parts.forEach(function(q){ sum[isEv(PROJECTS[q.id])?'ev':'tx']+=q.t.n; }); sum.recv+=cents(x.t.recv); sum.ben+=cents(x.t.ben); sum.fee+=cents(x.t.fee); sum.net+=cents(x.t.net); if(!x.paid) sum.unpaid+=cents(x.t.net); });
+  var rows=[[split(COL_AMOUNT)+payoutCnt(ids, sum.tx, sum.ev), money(sum.recv/100)], [split(COL_AGATHOS), money(-sum.ben/100)], ['Processing fees', money(-sum.fee/100)], ['Net payout', money(sum.net/100), 'total']];
   var status='';
   if(S.pper==='all'){
     if(unpaid.length) rows.push([two('Not paid yet','Agathos pays on '+fmtDate(unpaid[0].date)), money(sum.unpaid/100), 'after']);
