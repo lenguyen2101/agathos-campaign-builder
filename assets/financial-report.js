@@ -445,11 +445,88 @@ function viewPayoutsIpc(p){
       '<div class="fr-tw"><table class="fr-t ph"><thead><tr><th>Invoice</th><th>Month</th><th class="n">Beneficiary love gift</th><th class="n">Donor love gifts</th><th class="n">Amount</th><th>Due date</th><th>Status</th><th>Action</th></tr></thead><tbody>'+invRows+'</tbody></table></div></section>';
 }
 
+/* ---------- review notes: where this version differs from the comments on v1 ---------- */
+var NOTES=[
+  {t:'"Processing fees" without "(to Payment Service Provider)"',
+   fb:['Change to: Processing fees (to Payment Service Provider)'],
+   now:'The label is "Processing fees", with nothing after it.',
+   why:'This amount is the fixed rate Agathos charges the owner, for example 3.9% + S$0.50 on a card. The payment provider\'s real fee is lower (3.4% + S$0.50 on a domestic card). The difference is the margin, which Agathos keeps for now. Saying the whole amount goes to the payment provider would not be accurate.',
+   pros:['The label stays true whatever we decide about the margin.','Shorter, so it fits the table header and the summary.'],
+   cons:['Owners don\'t see who the fee goes to.'],
+   ask:'Does Agathos keep the margin (sheet Intro, item 1)? If the margin goes back to owners, "(to Payment Service Provider)" becomes accurate and can be added.'},
+  {t:'"Net payout" in the summary too',
+   fb:['Summary: "Total Net to you"','Table column: "Change to: Net payout"'],
+   now:'"Net payout" in the summary, the transactions table, the payout history and the CSV.',
+   why:'Both names point to the same number. One name means owners can match the summary to the table column.',
+   pros:['No one wonders whether "Net to you" and "Net payout" are different amounts.','One term for support and finance to use.'],
+   cons:['"Net to you" sounds warmer and more personal.']},
+  {t:'The paid out / awaiting bar runs across the card',
+   fb:['On the left side using a bar, show: Total paid out; Total awaiting pay out'],
+   now:'The bar spans the card, under "Net payout". Paid out and Awaiting payout sit below it, each with a colour square that matches the bar. This follows the Overview layout from the Figma idea.',
+   why:'The card reads top to bottom: total collected, then net payout split into paid and awaiting, then the three parts that add up (Deducted + Paid out + Awaiting payout = Total Funding Amount). A wide bar shows the split more clearly than a short one on one side.',
+   pros:['One reading order, top to bottom.','Same layout on a phone, no rearranging.','The numbers under the bar show how the total adds up.'],
+   cons:['Not the layout the comment describes.','The two amounts sit under the bar, not beside it.']},
+  {t:'"Awaiting payout" includes payments still processing',
+   fb:['Total awaiting pay out','Status column: New txn default --> \'Processing\'; After upload of data file (if included) --> \'Awaiting next payout\''],
+   now:'Awaiting payout = everything not paid yet: "Awaiting next payout" plus "Processing". The line under it splits the two, for example "S$1,841.01 in the 20 Nov payout · S$226.75 processing".',
+   why:'Paid out + Awaiting payout then equals Net payout, so the bar and the numbers add up. If processing payments were left out, that money would appear nowhere in the summary.',
+   pros:['The numbers always add up.','Owners see all the money still to come.'],
+   cons:['The big Awaiting number includes money not yet in a payout. The line under it is needed to explain this.'],
+   ask:'Other option: three parts (Paid out, Awaiting next payout, Processing). That adds one number and one bar colour.'},
+  {t:'Charts by month when all payouts are shown',
+   fb:['Include a section that shows giving statistics within a period in a line graph: Amount collect per day; No. of donations per day'],
+   now:'Per day when one payout period is chosen. Per month when "All payouts" or a whole year is shown.',
+   why:'"All payouts" covers 12 months, about 365 points per line. At this size that is too dense to read, and many days have no donations.',
+   pros:['Readable with every filter.','Shows the trend over the year at a glance.'],
+   cons:['Daily figures only show after choosing a period.']},
+  {t:'Reference shown under the date',
+   fb:['No comment on this. Version 1 had a separate Reference column.'],
+   now:'The reference sits under the date and time, shortened with "…". The full reference shows on hover and in the CSV.',
+   why:'Adding Currency and Payout status made the table 9 columns. The Manage Project card is about 730px wide inside, so the table needed sideways scrolling.',
+   pros:['The whole table fits without scrolling.'],
+   cons:['Not requested.','Harder to read or copy a reference on screen; the full value only shows on hover or in the CSV.'],
+   ask:'Other option: the reference back in its own column, with sideways scrolling.'},
+  {t:'No separate "Payout summary" card',
+   fb:['Add: text to indicate that this part of a larger payout. (when no. of projects + events = >1) Remove: mention of PSP'],
+   now:'The "Payout summary" card is gone from Transactions. When one payout period is chosen, the summary ends with "Part of a S$X payout to DBS ••••4821, with 2 other projects and events" and a "See payouts" link. Payout History shows the same line for every payout. No payment provider is named anywhere.',
+   why:'Payouts now sit in the same tab, one click away (the Payouts button next to Transactions), so a card linking to them repeats it. The timeline beside the card was removed as asked, which left the card alone in its row.',
+   pros:['Less repetition.','The "part of a larger payout" text shows where it applies: on a single payout.'],
+   cons:['Not requested.','With "All payouts" shown, the only way to payouts is the Payouts button.']}
+];
+function notesHtml(){
+  var x=svg('<path d="M6 6l12 12M18 6L6 18"/>');
+  return '<div class="fr-md" role="dialog" aria-modal="true" aria-labelledby="fr-md-t">'+
+    '<div class="fr-md-head"><div><h2 id="fr-md-t">'+NOTES.length+' changes from the feedback</h2><p>Where this version differs from the comments on version 1, and why. Tell us which ones to switch back.</p></div>'+
+    '<button class="fr-md-x" type="button" data-act="notesClose" aria-label="Close">'+x+'</button></div>'+
+    '<ol class="fr-md-list">'+NOTES.map(function(n, i){
+      return '<li class="fr-nt"><div class="fr-nt-h"><span class="no">'+(i+1)+'</span><h3>'+h(n.t)+'</h3></div>'+
+        '<dl class="fr-nt-rows"><div><dt>Feedback</dt><dd>'+n.fb.map(function(q){ return '<q>'+h(q)+'</q>'; }).join('')+'</dd></div>'+
+        '<div><dt>This version</dt><dd>'+h(n.now)+'</dd></div><div><dt>Why</dt><dd>'+h(n.why)+'</dd></div></dl>'+
+        '<div class="fr-nt-pc"><div class="pro"><b>Pros</b><ul>'+n.pros.map(function(p){ return '<li>'+h(p)+'</li>'; }).join('')+'</ul></div>'+
+        '<div class="con"><b>Cons</b><ul>'+n.cons.map(function(p){ return '<li>'+h(p)+'</li>'; }).join('')+'</ul></div></div>'+
+        (n.ask?'<p class="fr-nt-ask">'+h(n.ask)+'</p>':'')+'</li>';
+    }).join('')+'</ol></div>';
+}
+function notesOpen(){
+  var m=document.getElementById('fr-modal');
+  m.innerHTML=notesHtml(); m.hidden=false;
+  document.documentElement.classList.add('fr-lock');
+  m.querySelector('.fr-md-x').focus();
+}
+function notesClose(){
+  var m=document.getElementById('fr-modal');
+  if(m.hidden) return;
+  m.hidden=true; m.innerHTML='';
+  document.documentElement.classList.remove('fr-lock');
+  var b=document.querySelector('.fr-notes'); if(b) b.focus();
+}
+
 /* ---------- page ---------- */
 function renderReview(){
   document.getElementById('fr-review').innerHTML='<span class="t">Financial report</span><span class="ver">Version 2</span>'+
     '<nav class="fr-rtabs" aria-label="Scenarios">'+Object.keys(SCN).map(function(k){ return '<a href="#/'+k+'"'+(S.scn===k?' class="on"':'')+'>'+SCN[k].label+'</a>'; }).join('')+'</nav>'+
-    '<span class="note">Sample data · today is '+fmtDate(TODAY)+'</span>';
+    '<span class="note">Sample data · today is '+fmtDate(TODAY)+'</span>'+
+    '<button class="fr-notes" type="button" data-act="notes" aria-haspopup="dialog"><span class="c">'+NOTES.length+'</span>Changes from the feedback</button>';
 }
 function render(){
   route(); renderReview(); hideTip();
@@ -520,9 +597,12 @@ var ACT={
   offline:function(){ toast('Opens the Add Offline Transaction form, as today'); },
   tax:function(){ toast('Opens the Tax Deduction Report menu, as today'); },
   invoice:function(){ toast('Sample: no invoice file yet'); },
-  other:function(){ toast('Not part of this prototype'); }
+  other:function(){ toast('Not part of this prototype'); },
+  notes:notesOpen,
+  notesClose:notesClose
 };
 document.addEventListener('click', function(ev){
+  if(ev.target.id==='fr-modal'){ notesClose(); return; }
   var t=ev.target.closest('[data-act]');
   if(t && ACT[t.getAttribute('data-act')]){ ev.preventDefault(); ACT[t.getAttribute('data-act')](t); return; }
   var a=ev.target.closest('.mp-crumb a'); if(a) ev.preventDefault();
@@ -531,6 +611,7 @@ document.addEventListener('change', function(ev){
   var el=ev.target;
   if(el.hasAttribute('data-f')){ S[el.getAttribute('data-f')]=el.value; S.page=1; render(); }
 });
+document.addEventListener('keydown', function(ev){ if(ev.key==='Escape') notesClose(); });
 window.addEventListener('hashchange', function(){ S.page=1; render(); window.scrollTo(0,0); });
 
 /* nav (same behaviour as the homepage) */

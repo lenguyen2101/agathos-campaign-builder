@@ -307,3 +307,17 @@ Anh gửi thêm 2 ý tưởng trên Figma (Orders & Payouts của Manage Event, 
   - CSV có khối tóm tắt, rồi một dòng trống, rồi mỗi giao dịch một dòng.
 - Curl: trang và các file đi kèm đều trả về 200.
 - Chưa xem giao diện bằng mắt. Không chạy Chromium headless.
+
+**30/10/2026: thêm nút "Changes from the feedback" ở góc phải thanh review.**
+- Bấm vào mở modal tiếng Anh, viết cho team, giải thích 7 chỗ v2 làm khác comment.
+- Mỗi chỗ có 5 phần: Feedback (trích nguyên câu comment), This version, Why, Pros, Cons. Vài chỗ có thêm phương án khác hoặc câu cần team quyết.
+- 7 chỗ:
+  1. "Processing fees" không kèm "(to Payment Service Provider)".
+  2. "Net payout" thay cho "Total Net to you".
+  3. Thanh Paid out / Awaiting chạy ngang card.
+  4. Awaiting payout có tính cả tiền còn Processing.
+  5. Biểu đồ theo tháng khi xem All payouts.
+  6. Reference nằm dưới cột Date & time.
+  7. Bỏ thẻ Payout summary.
+- Modal đóng bằng nút ×, phím Esc hoặc bấm ra ngoài.
+- Kiểm tra bằng node: 67/67 qua.
