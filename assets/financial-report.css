@@ -232,15 +232,116 @@ html.fr-lock{overflow:hidden;}
 .fr-empty{margin-top:12px;padding:28px;border:1px solid #E6E8EB;border-radius:12px;text-align:center;font-size:14.5px;color:var(--mp-grey);}
 .fr-cards{display:none;}
 
+/* ============ MANAGE PAGES (production; one Payouts tab added) ============ */
+.dp-wrap{padding:0 0 96px;color:var(--mp-ink);}
+/* account tabs: full-width rule, tabs inside the 1216px column */
+.dn{display:flex;max-width:1216px;margin:8px auto 0;padding-left:18.5px;}
+.dn-rule{padding:0 var(--hp-gutter);border-bottom:1px solid #E6E6E6;}
+.dn a{flex:none;display:block;padding:24px 8px 18px;border-bottom:3px solid transparent;text-align:center;}
+.dn a:nth-child(1){width:196px;} .dn a:nth-child(2){width:194px;} .dn a:nth-child(3){width:197px;} .dn a:nth-child(4){width:220px;} .dn a:nth-child(5){width:237px;}
+.dn a b{display:block;font-size:20px;font-weight:500;line-height:26px;color:#484848;}
+.dn a span{display:block;max-width:200px;margin:4px auto 0;font-size:13px;line-height:1.35;color:#8D8D8D;}
+.dn a:hover b{color:#000;}
+.dn a.on{border-bottom-color:#1F1F1F;}
+.dn a.on b{font-weight:700;color:#000;}
+.dp-inner{margin-top:32px;padding:0 var(--hp-gutter);}
+.dp{display:grid;grid-template-columns:258px minmax(0,1fr);max-width:1216px;height:780px;margin:0 auto;border:1px solid #E4E7EC;border-radius:4px;overflow:hidden;background:#fff;}
+/* left: Personal and each organisation */
+.dp-side{display:flex;flex-direction:column;min-height:0;background:#F5F5F5;}
+.dp-ents{flex:1;min-height:0;overflow-y:auto;padding-top:16px;}
+.dp-ent{display:grid;grid-template-columns:38px minmax(0,1fr);align-items:center;gap:0 12px;padding:20px 14px 20px 16px;border-left:4px solid transparent;color:inherit;}
+.dp-ent:hover{background:#EEEEEF;color:inherit;}
+.dp-ent.on{background:#fff;border-left-color:var(--mp-blue);}
+.dp-ent .av{display:flex;align-items:center;justify-content:center;width:38px;height:38px;border:1px solid #E0E2E6;border-radius:50%;background:#fff;object-fit:cover;font-size:12.5px;font-weight:700;color:var(--hp-navy);}
+.dp-ent .t{min-width:0;}
+.dp-ent .t span{display:block;font-size:13px;line-height:1.35;color:#6C727F;}
+.dp-ent .t b{display:block;overflow:hidden;font-size:16px;font-weight:500;line-height:1.4;color:#4D5562;white-space:nowrap;text-overflow:ellipsis;}
+.dp-ent.on .t b{color:#222529;}
+.dp-create{display:flex;align-items:center;justify-content:center;gap:10px;height:46px;margin:12px 18px 18px;border:1.5px dashed var(--mp-blue);border-radius:6px;background:#fff;font:inherit;font-size:16px;font-weight:500;color:var(--mp-blue);cursor:pointer;}
+.dp-create svg{width:18px;height:18px;}
+.dp-create:hover{background:#F2F8FE;}
+/* right: the selected page's projects, events or payouts */
+.dp-main{display:flex;flex-direction:column;min-width:0;min-height:0;padding:24px 0 0 24px;}
+.dp-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin:0 28px 24px 0;}
+.dp-head h2{font-size:28px;font-weight:600;line-height:1.25;letter-spacing:-.01em;color:#222529;}
+.dp-role{display:inline-block;margin-top:10px;padding:5px 14px;border-radius:4px;background:#F1E8FD;font-size:15px;font-weight:500;color:#764AE5;}
+.dp-act{display:inline-flex;align-items:center;gap:14px;height:42px;padding:0 14px 0 18px;border:0;border-radius:8px;background:#F3F4F6;font:inherit;font-size:16px;font-weight:500;color:#222529;cursor:pointer;}
+.dp-act svg{width:20px;height:20px;}
+.dp-act:hover{background:#E9EBEF;}
+.mp-pop hr{margin:6px 4px;border:0;border-top:1px solid #ECEDEF;}
+.mp-pop button.danger{color:#E5484D;}
+.mp-pop button.danger svg{color:#E5484D;}
+.dp-tabs{display:flex;align-items:center;gap:13px;margin-right:28px;}
+.dp-pills{display:flex;gap:13px;}
+.dp-pills a{display:inline-flex;align-items:center;height:49px;padding:0 28px;border:1px solid #CBD0D6;border-radius:999px;font-size:17px;font-weight:600;color:#000;}
+.dp-pills a:hover{border-color:#9AA0A8;color:#000;}
+.dp-pills a.on{border-color:var(--mp-blue);background:var(--mp-blue);color:#fff;}
+.dp-new{display:inline-flex;align-items:center;gap:10px;height:44px;margin-left:auto;padding:0 18px;border:1px solid var(--mp-blue);border-radius:4px;background:#fff;font:inherit;font-size:16px;font-weight:500;color:var(--mp-blue);cursor:pointer;}
+.dp-new svg{width:18px;height:18px;}
+.dp-new:hover{background:#F2F8FE;}
+.dp-list{flex:1;min-height:0;margin-top:24px;padding:0 28px 28px 0;overflow-y:auto;}
+.dp-list.cards{display:flex;flex-direction:column;gap:20px;}
+.dp-list > .fr-filters:first-child,.dp-list > .nx:first-child{margin-top:0;}
+.dp-empty{padding:40px 0;text-align:center;font-size:15px;color:#6C727F;}
+/* project and event cards */
+.pc{display:grid;grid-template-columns:120px minmax(0,1fr) 429px;gap:0 16px;padding:20px;border:1px solid #DADDE2;border-radius:12px;background:#fff;}
+.pc.ev{grid-template-columns:120px minmax(0,1fr);}
+.pc-img{position:relative;width:120px;height:120px;border-radius:6px;overflow:hidden;background:#EEF0F3;}
+.pc-img img{display:block;width:100%;height:100%;object-fit:cover;}
+.pc-st{position:absolute;top:6px;left:10px;padding:2px 9px;border:1px solid #fff;border-radius:999px;background:#E3EFFD;font-size:13px;font-weight:500;color:var(--mp-blue);}
+.pc-main{display:flex;flex-direction:column;align-items:flex-start;min-width:0;padding-top:4px;}
+.pc-main h3{font-size:21px;font-weight:500;line-height:1.3;color:#222529;}
+.pc-manage{display:inline-flex;align-items:center;gap:8px;margin-top:auto;font-size:16px;font-weight:500;color:#764AE5;text-decoration:underline;text-underline-offset:3px;}
+.pc-manage svg{width:20px;height:20px;}
+.pc-manage:hover{color:#5B32CC;}
+.pc-stats{display:flex;flex-direction:column;justify-content:center;gap:10px;padding:18px 20px;border-radius:12px;background:#E7F3FE;font-size:16px;color:#222529;}
+.pc-stats .r1,.pc-stats .r2{display:flex;justify-content:space-between;align-items:baseline;gap:12px;}
+.pc-stats .r2 b{font-size:24px;font-weight:600;}
+.vis{font-size:16px;color:var(--mp-blue);}
+.vis::before{content:"•";margin-right:6px;}
+.pc-stats .bar{height:8px;border:1px solid #C9CDD4;border-radius:999px;background:#fff;overflow:hidden;}
+.pc-stats .bar i{display:block;height:100%;border-radius:999px;background:var(--mp-blue);}
+.ev-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;width:100%;}
+.ev-when{margin-top:14px;font-size:15px;color:#6C727F;}
+/* Paid out and Balance under a payouts table */
+.fr-tot{display:flex;justify-content:flex-end;gap:32px;margin-top:10px;padding:12px 16px;border:1px solid #E6E8EB;border-radius:12px;background:#F7F8FA;font-size:14px;}
+.fr-tot div{display:flex;align-items:baseline;gap:10px;}
+.fr-tot span{color:var(--mp-sub);}
+.fr-tot b{font-weight:600;color:var(--mp-ink);font-variant-numeric:tabular-nums;}
+.fr-t tr.sub td.c2 a{color:inherit;}
+.fr-t tr.sub td.c2 a:hover b{color:var(--mp-blue);}
+
 .fr-toast{position:fixed;left:50%;bottom:28px;z-index:70;padding:11px 18px;border-radius:8px;background:#1F1F1F;font-size:14px;font-weight:500;color:#fff;opacity:0;transform:translateX(-50%) translateY(10px);transition:opacity .2s,transform .2s;pointer-events:none;}
 .fr-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
 @media (max-width:1180px) and (min-width:900px){
+  .pc{grid-template-columns:120px minmax(0,1fr);gap:16px;}
+  .pc-stats{grid-column:1 / -1;}
   .mp-inner{grid-template-columns:300px minmax(0,1fr);column-gap:28px;}
   .mp-card{padding:34px 28px 40px;}
   .ov{grid-template-columns:1fr;}
 }
 @media (max-width:899px){
+  .dn{overflow-x:auto;padding-left:0;}
+  .dn a{padding:16px 6px 12px;}
+  .dn a b{font-size:16px;line-height:22px;}
+  .dn a span{display:none;}
+  .dp-inner{margin-top:16px;}
+  .dp{grid-template-columns:1fr;height:auto;}
+  .dp-side{flex-direction:row;align-items:center;overflow-x:auto;}
+  .dp-ents{display:flex;flex:none;overflow:visible;padding-top:0;}
+  .dp-ent{flex:none;width:220px;border-left:0;border-bottom:3px solid transparent;}
+  .dp-ent.on{border-bottom-color:var(--mp-blue);}
+  .dp-create{flex:none;margin:0 12px;padding:0 14px;}
+  .dp-main{padding:18px 0 0 16px;}
+  .dp-head,.dp-tabs,.dp-list{margin-right:16px;padding-right:0;}
+  .dp-tabs{flex-wrap:wrap;}
+  .dp-pills a{height:42px;padding:0 18px;font-size:15px;}
+  .dp-list{overflow:visible;}
+  .pc{grid-template-columns:96px minmax(0,1fr);gap:12px;padding:14px;}
+  .pc-img{width:96px;height:96px;}
+  .pc-stats{grid-column:1 / -1;}
+  .fr-tot{flex-wrap:wrap;justify-content:space-between;gap:8px 20px;}
   .fr-review .note{margin-left:0;}
   .fr-modal{padding:16px;}
   .fr-md-head{padding:20px 18px 14px;}

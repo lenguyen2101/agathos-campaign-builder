@@ -1,13 +1,15 @@
 /* ============================================================================
    Agathos — financial report, version 2 (/financial-report).
    v1 (commit 62edf78) reworked to follow the team's comments of 29/10/2026 one by
-   one (mapping in docs/financial-report-v2-plan.md, section 13), inside the
-   structure decided on 29/10:
-     #/project/transactions  #/project/payouts   Manage Project › Transactions & Payouts
-     #/event/orders          #/event/payouts     Manage Event › Orders & Payouts (new tab)
-     #/ipc/transactions      #/ipc/invoices      an IPC charity on AXS: the charity receives
-                                                 the money, Agathos invoices its love gifts
-   Nav, breadcrumb, left menu, card, buttons and pills are rebuilt from production
+   one (mapping in docs/financial-report-v2-plan.md, sections 13–14):
+     #/pages/<entity>/projects|events|payouts   Manage Pages: Personal or one organisation;
+                                                Payouts sit here, above the project level (F1)
+     #/manage/<id>/transactions|payouts         Manage Project › Transactions & Payouts
+     #/manage/<id>/orders|payouts               Manage Event › Orders & Payouts
+     #/manage/<id>/transactions|invoices        an IPC charity on AXS: the charity receives the
+                                                money, Agathos invoices its love gifts
+   Manage Project / Manage Event show the data of that one project or event only.
+   Production screens (nav, Manage Pages, Manage Project / Event) are rebuilt from
    screenshots (1728px screen, 1216px content).
    Sample data: one payout a month, on the 20th of the next month. Today is 29 Oct 2026.
    ============================================================================ */
@@ -16,22 +18,23 @@
 
 var TODAY='2026-10-29';
 var UPLOADED='2026-10-25';   /* last day covered by the payment data uploaded so far */
-var BANK='DBS ••••4821';
+var IMG='assets/img/home/';
 
 var PROJECTS={
-  erbil:   {id:'erbil',    name:'Special Needs Centre in Erbil',  kind:'project', psp:'stripe', ben:.05, tip:.6, n:12, from:'2025-11'},
-  outreach:{id:'outreach', name:'Outreach @ displaced families',  kind:'project', psp:'stripe', ben:.05, tip:.5, n:7,  from:'2026-03'},
-  concert: {id:'concert',  name:'Benefit concert for the unseen', kind:'event',   psp:'2c2p',   ben:.03, tip:0,  n:18, from:'2026-08'},
-  sunny:   {id:'sunny',    name:'Sunny Days for Seniors',         kind:'project', psp:'axs', ipc:true, ben:.05, tip:.4, n:10, from:'2026-01'}
+  erbil:   {id:'erbil',    ent:'antioch',  name:'Special Needs Centre in Erbil',    kind:'project', psp:'stripe', ben:.05, tip:.6, n:12, from:'2025-11', goal:60000, img:'project-storybook.jpg'},
+  outreach:{id:'outreach', ent:'antioch',  name:'Outreach @ displaced families',    kind:'project', psp:'stripe', ben:.05, tip:.5, n:7,  from:'2026-03', goal:20000, img:'project-nepal.jpg'},
+  concert: {id:'concert',  ent:'antioch',  name:'Benefit concert for the unseen',   kind:'event',   psp:'2c2p',   ben:.03, tip:0,  n:18, from:'2026-08', img:'project-carnival.jpg', when:['2026-11-15T19:00','2026-11-15T22:00']},
+  care:    {id:'care',     ent:'personal', name:'Care packages for migrant workers', kind:'project', psp:'stripe', ben:.05, tip:.5, n:6,  from:'2026-05', goal:8000,  img:'hero-3.jpg'},
+  sunny:   {id:'sunny',    ent:'sunshine', name:'Sunny Days for Seniors',           kind:'project', psp:'axs', ipc:true, ben:.05, tip:.4, n:10, from:'2026-01', goal:40000, img:'hero-2.jpg'}
 };
-/* Antioch21 gets one payout per payout date for all three; the IPC project belongs to another charity */
-var ORG_IDS=['erbil','outreach','concert'];
-
-var SCN={
-  project:{pid:'erbil',   label:'Manage Project',    tabs:[['transactions','Transactions'],['payouts','Payouts']]},
-  event:  {pid:'concert', label:'Manage Event',      tabs:[['orders','Orders'],['payouts','Payouts']]},
-  ipc:    {pid:'sunny',   label:'IPC charity (AXS)', tabs:[['transactions','Transactions'],['invoices','Invoices']]}
+/* Manage Pages: the account's own pages and the organisations it belongs to.
+   Agathos pays each one with one transfer per payout date, to that one's bank account. */
+var ENTITIES={
+  personal:{id:'personal', label:'Personal',     name:'lenguyen2101',          avatar:'assets/img/task220/avatar-user.png', bank:'POSB ••••1093'},
+  antioch: {id:'antioch',  label:'Organization', name:'Antioch 21',            role:'Owner', bank:'DBS ••••4821'},
+  sunshine:{id:'sunshine', label:'Organization', name:'Sunshine Care Society', role:'Owner', ipc:true}
 };
+var ENT_ORDER=['personal','antioch','sunshine'];
 
 var MONTHS=(function(){ var out=[], y=2025, m=11; while(y*100+m<=202610){ out.push(y+'-'+String(m).padStart(2,'0')); if(++m>12){ m=1; y++; } } return out; })();
 
@@ -45,6 +48,7 @@ function num(x){ return (x<0?'−':'')+fmt2(x); }
 var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function d(iso){ var p=iso.slice(0,10).split('-'); return {y:+p[0], m:+p[1], d:+p[2]}; }
 function fmtDate(iso){ var x=d(iso); return x.d+' '+MON[x.m-1]+' '+x.y; }
+function fmtDMY(iso){ var x=d(iso); return String(x.d).padStart(2,'0')+'/'+String(x.m).padStart(2,'0')+'/'+x.y; }
 function addDays(iso, n){ var x=d(iso), t=new Date(Date.UTC(x.y, x.m-1, x.d+n)); return t.toISOString().slice(0,10); }
 function weekday(iso){ var x=d(iso); return new Date(Date.UTC(x.y, x.m-1, x.d)).getUTCDay(); }
 function monthLabel(per){ var p=per.split('-'); return MON[+p[1]-1]+' '+p[0]; }
@@ -53,6 +57,7 @@ function nextMonth(per){ var p=per.split('-'), y=+p[0], m=+p[1]+1; if(m>12){ m=1
 function monthRange(per){ return '1–'+monthDays(per)+' '+monthLabel(per); }
 /* the 20th of the next month; a Saturday or Sunday moves to the Monday */
 function payoutDate(per){ var iso=nextMonth(per)+'-20', w=weekday(iso); return w===6 ? addDays(iso,2) : w===0 ? addDays(iso,1) : iso; }
+function initials(s){ return s.split(/\s+/).filter(Boolean).slice(0,2).map(function(w){ return w[0]; }).join('').toUpperCase(); }
 
 function rng(seed){ return function(){ seed=seed+0x6D2B79F5|0; var t=Math.imul(seed^seed>>>15, 1|seed); t=t+Math.imul(t^t>>>7, 61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
 function hash(s){ var x=2166136261; for(var i=0;i<s.length;i++){ x^=s.charCodeAt(i); x=Math.imul(x,16777619); } return x>>>0; }
@@ -125,14 +130,25 @@ function totals(list){
 }
 
 /* ---------- state ---------- */
-var S={scn:'project', tab:'transactions', year:'all', per:'all', pyear:'all', pper:'all', page:1, open:{}};
+var S={view:'manage', key:'erbil', tab:'transactions', ctx:'', year:'all', per:'all', pyear:'all', pper:'all', page:1, open:{}, carry:null};
+function pidsOf(eid){ return Object.keys(PROJECTS).filter(function(id){ return PROJECTS[id].ent===eid; }); }
+function manageTabs(p){ return p.ipc ? [['transactions','Transactions'],['invoices','Invoices']] : isEv(p) ? [['orders','Orders'],['payouts','Payouts']] : [['transactions','Transactions'],['payouts','Payouts']]; }
+function pageTabs(e){ return [['projects','Projects'],['events','Events'], e.ipc ? ['invoices','Invoices'] : ['payouts','Payouts']]; }
+var ALIAS={project:'erbil', event:'concert', ipc:'sunny'};
 function route(){
-  var p=location.hash.replace(/^#\/?/,'').split('/'), scn=SCN[p[0]] ? p[0] : 'project';
-  var tabs=SCN[scn].tabs.map(function(t){ return t[0]; });
-  if(scn!==S.scn){ S.year='all'; S.per='all'; S.pyear='all'; S.pper='all'; S.page=1; S.open={}; }
-  S.scn=scn; S.tab=tabs.indexOf(p[1])>=0 ? p[1] : tabs[0];
+  var p=location.hash.replace(/^#\/?/,'').split('/'), view, key, tab, tabs;
+  if(p[0]==='pages'){
+    view='pages'; key=ENTITIES[p[1]] ? p[1] : 'antioch'; tabs=pageTabs(ENTITIES[key]); tab=p[2];
+  } else {
+    view='manage'; key=p[0]==='manage' ? (PROJECTS[p[1]] ? p[1] : 'erbil') : (ALIAS[p[0]] || 'erbil'); tabs=manageTabs(PROJECTS[key]); tab=p[0]==='manage' ? p[2] : p[1];
+  }
+  if(!tabs.some(function(t){ return t[0]===tab; })) tab=tabs[0][0];
+  var ctx=view+':'+key;
+  if(ctx!==S.ctx){ S.year='all'; S.per='all'; S.pyear='all'; S.pper='all'; S.page=1; S.open={}; }
+  if(S.carry){ S.pper=S.carry; S.carry=null; }
+  S.view=view; S.key=key; S.tab=tab; S.ctx=ctx;
 }
-function cur(){ return PROJECTS[SCN[S.scn].pid]; }
+function cur(){ return PROJECTS[S.key]; }
 function yearOk(per, y){ return y==='all' || per.slice(0,4)===y; }
 function filtered(p){
   return rowsOf(p.id).filter(function(r){
@@ -161,9 +177,9 @@ function others(ids, self){
   if(!n) return '';
   return n+' other '+(o.indexOf('project')>=0 && o.indexOf('event')>=0 ? 'projects and events' : o[0]+(n>1?'s':''));
 }
-/* one payout = one payout date for the organisation, summed across its projects and events */
-function payout(per){
-  var ids=ORG_IDS.filter(function(id){ return rowsOf(id).some(function(r){ return r.per===per && inPeriod(r); }); });
+/* one payout = one payout date for one organisation (or Personal), summed across its projects and events */
+function payout(per, eid){
+  var ids=pidsOf(eid).filter(function(id){ return !PROJECTS[id].ipc && rowsOf(id).some(function(r){ return r.per===per && inPeriod(r); }); });
   var parts=ids.map(function(id){ return {id:id, t:totals(rowsOf(id).filter(function(r){ return r.per===per && inPeriod(r); }))}; });
   var all=[]; ids.forEach(function(id){ all=all.concat(rowsOf(id).filter(function(r){ return r.per===per && inPeriod(r); })); });
   var date=payoutDate(per);
@@ -188,20 +204,65 @@ var I={
   card:svg('<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19M6.5 15h3M12 15h2"/>'),
   down:svg('<path d="M12 4v11M7.5 11l4.5 4.5 4.5-4.5M5 20h14"/>'),
   plusC:svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 8v8M8 12h8"/>'),
+  plus:svg('<path d="M12 5v14M5 12h14"/>'),
   doc:svg('<rect x="3.5" y="4" width="17" height="12.5" rx="1.5"/><path d="M12 16.5V20M8.5 20h7M7.5 8.5h5M7.5 12h8"/>'),
   caret:svg('<path d="M6.5 9.5l5.5 5.5 5.5-5.5"/>'),
   cal:svg('<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/>'),
   check:svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
   clock:svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>'),
-  arrow:svg('<path d="M4.5 12h15M14 6.5l5.5 5.5-5.5 5.5"/>')
+  arrow:svg('<path d="M4.5 12h15M14 6.5l5.5 5.5-5.5 5.5"/>'),
+  edit:svg('<path d="M12 4.5H6A1.5 1.5 0 0 0 4.5 6v12A1.5 1.5 0 0 0 6 19.5h12a1.5 1.5 0 0 0 1.5-1.5v-6"/><path d="M17.5 3.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z"/>'),
+  pen:svg('<path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4z"/>'),
+  eye:svg('<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>'),
+  leave:svg('<path d="M14 4.5h4A1.5 1.5 0 0 1 19.5 6v12a1.5 1.5 0 0 1-1.5 1.5h-4"/><path d="M10 16.5L5.5 12 10 7.5M5.5 12h10"/>'),
+  dots:svg('<circle cx="12" cy="5.5" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="18.5" r="1.4" fill="currentColor"/>')
 };
 
-/* ---------- production chrome ---------- */
+/* ============ MANAGE PAGES (production, plus a Payouts tab) ============ */
+var DASH_TABS=[['My Dashboard','Overview of your impact'],['Contributions','Track your donations & support'],['Tickets','View purchased tickets'],['Transactions Log','A detailed view of your donations & ticket purchases'],['Manage Pages','For Project, Event & Organization Owners']];
+function entAvatar(e){ return e.avatar ? '<img class="av" src="'+e.avatar+'" alt="">' : '<span class="av">'+initials(e.name)+'</span>'; }
+function projectCard(p){
+  var t=totals(rowsOf(p.id)), pct=p.goal ? t.recv/p.goal*100 : 0, started=p.from+'-01';
+  return '<article class="pc"><div class="pc-img"><img src="'+IMG+p.img+'" alt=""><span class="pc-st">Ongoing</span></div>'+
+    '<div class="pc-main"><h3>'+h(p.name)+'</h3><a class="pc-manage" href="#/manage/'+p.id+'/'+manageTabs(p)[0][0]+'">'+I.edit+'Manage Project</a></div>'+
+    '<div class="pc-stats"><div class="r1"><span>Started: '+fmtDMY(started)+'</span><span class="vis">Public</span></div>'+
+      '<div class="r2"><b>S$'+Math.round(t.recv).toLocaleString('en-SG')+'</b><span>'+plural(t.n,'contribution')+'</span></div>'+
+      '<div class="bar"><i style="width:'+Math.min(100,pct).toFixed(2)+'%"></i></div>'+
+      '<div class="r3">'+parseFloat(pct.toFixed(2))+'% of S$'+p.goal.toLocaleString('en-SG')+'</div></div></article>';
+}
+function eventCard(p){
+  var a=p.when[0], b=p.when[1];
+  return '<article class="pc ev"><div class="pc-img"><img src="'+IMG+p.img+'" alt=""></div>'+
+    '<div class="pc-main"><div class="ev-top"><h3>'+h(p.name)+'</h3><span class="vis">Public</span></div>'+
+      '<p class="ev-when">'+a.slice(11,16)+'-'+fmtDMY(a)+' • '+b.slice(11,16)+'-'+fmtDMY(b)+'</p>'+
+      '<a class="pc-manage" href="#/manage/'+p.id+'/'+manageTabs(p)[0][0]+'">'+I.edit+'Manage Event</a></div></article>';
+}
+function pagesView(e){
+  var nav='<nav class="dn" aria-label="Account">'+DASH_TABS.map(function(t,i){ var on=i===DASH_TABS.length-1; return '<a href="#"'+(on?' class="on" aria-current="page"':' data-act="other"')+'><b>'+t[0]+'</b><span>'+t[1]+'</span></a>'; }).join('')+'</nav>';
+  var side='<aside class="dp-side"><div class="dp-ents">'+ENT_ORDER.map(function(id){ var x=ENTITIES[id];
+    return '<a class="dp-ent'+(id===e.id?' on':'')+'" href="#/pages/'+id+'/'+(S.tab==='events'?'events':'projects')+'">'+entAvatar(x)+'<span class="t"><span>'+x.label+'</span><b>'+h(x.name)+'</b></span></a>';
+  }).join('')+'</div><button class="dp-create" type="button" data-act="other">'+I.plus+'Create Organization</button></aside>';
+  var head=e.role ? '<div class="dp-head"><div><h2>'+h(e.name)+'</h2><span class="dp-role">'+e.role+'</span></div>'+
+    '<div class="mp-dd dp-actions"><button class="dp-act" type="button" data-act="menu" aria-haspopup="menu" aria-expanded="false">Actions'+I.dots+'</button>'+
+      '<div class="mp-pop" role="menu"><button type="button" role="menuitem" data-act="other">'+I.pen+'Manage</button><button type="button" role="menuitem" data-act="other">'+I.eye+'View Page</button><hr><button type="button" role="menuitem" class="danger" data-act="other">'+I.leave+'Leave Organization</button></div></div></div>' : '';
+  var tabs='<div class="dp-tabs"><nav class="dp-pills" aria-label="'+h(e.name)+'">'+pageTabs(e).map(function(t){
+    return '<a href="#/pages/'+e.id+'/'+t[0]+'"'+(S.tab===t[0]?' class="on" aria-current="page"':'')+'>'+t[1]+'</a>';
+  }).join('')+'</nav>'+(S.tab==='events'?'<button class="dp-new" type="button" data-act="other">'+I.plus+'Create Event</button>':'')+'</div>';
+  var ids=pidsOf(e.id), body;
+  if(S.tab==='projects'){ var pr=ids.filter(function(id){ return !isEv(PROJECTS[id]); }); body=pr.length ? pr.map(function(id){ return projectCard(PROJECTS[id]); }).join('') : '<div class="dp-empty">No projects yet.</div>'; }
+  else if(S.tab==='events'){ var ev=ids.filter(function(id){ return isEv(PROJECTS[id]); }); body=ev.length ? ev.map(function(id){ return eventCard(PROJECTS[id]); }).join('') : '<div class="dp-empty">No events yet.</div>'; }
+  else if(S.tab==='invoices') body=viewInvoices(ids);
+  else body=viewEntityPayouts(e);
+  return '<div class="dp-wrap"><div class="dn-rule">'+nav+'</div><div class="dp-inner"><div class="dp">'+side+
+    '<section class="dp-main">'+head+tabs+'<div class="dp-list'+(S.tab==='projects'||S.tab==='events'?' cards':'')+'">'+body+'</div></section></div></div></div>';
+}
+
+/* ============ MANAGE PROJECT / MANAGE EVENT (production chrome) ============ */
 var MENU={
   project:[['info','Project Information'],['giving','Giving Settings'],['updates','Updates'],['impact','Impact Report'],['people','Human Resource'],['items','Items'],['dollar','Transactions & Payouts',1]],
   event:[['info','Event Information'],['tag','Tickets & Forms'],['people','Attendees Information'],['scan','Scan Ticket'],['card','Orders & Payouts',1]]
 };
-function page(p){
+function managePage(p){
   var ev=isEv(p);
   var crumb=ev ? ['Events', p.name, 'Manage Event'] : ['Support a Cause', p.name, 'Manage Project'];
   var side='<aside class="mp-side"><h1>'+(ev?'Manage Event':'Manage Project')+'</h1><ul class="mp-menu">'+MENU[ev?'event':'project'].map(function(m){
@@ -213,11 +274,11 @@ function page(p){
     : '<button class="mp-act" type="button" data-act="offline">'+I.plusC+'Add Offline Transaction</button>'+
       '<div class="mp-dd"><button class="mp-act" type="button" data-act="menu" aria-haspopup="menu" aria-expanded="false">'+I.down+'Export'+I.caret+'</button>'+
         '<div class="mp-pop" role="menu"><button type="button" role="menuitem" data-act="csv">'+I.down+'Export as .csv</button><button type="button" role="menuitem" data-act="tax">'+I.doc+'Tax Deduction Report</button></div></div>';
-  var seg='<nav class="mp-seg" aria-label="'+(ev?'Orders and payouts':'Transactions and payouts')+'">'+SCN[S.scn].tabs.map(function(t){
-    return '<a href="#/'+S.scn+'/'+t[0]+'"'+(S.tab===t[0]?' class="on" aria-current="page"':'')+'>'+t[1]+'</a>';
+  var seg='<nav class="mp-seg" aria-label="'+(ev?'Orders and payouts':'Transactions and payouts')+'">'+manageTabs(p).map(function(t){
+    return '<a href="#/manage/'+p.id+'/'+t[0]+'"'+(S.tab===t[0]?' class="on" aria-current="page"':'')+'>'+t[1]+'</a>';
   }).join('')+'</nav>';
   var head='<h2 class="mp-title">'+(ev?'Orders &amp; Payouts':'Transactions &amp; Payouts')+'</h2><div class="mp-bar">'+seg+'<div class="mp-acts">'+actions+'</div></div>';
-  var body=S.tab==='payouts' ? viewPayouts(p) : S.tab==='invoices' ? viewInvoices(p) : viewRows(p);
+  var body=S.tab==='payouts' ? viewPayouts(p) : S.tab==='invoices' ? viewInvoices([p.id]) : viewRows(p);
   return '<div class="mp'+(ev?' is-event':'')+'"><div class="mp-inner">'+
     '<nav class="mp-crumb" aria-label="Breadcrumb"><a href="#" aria-label="Home">'+I.home+'</a>'+crumb.map(function(c){ return I.crumb+'<a href="#">'+h(c)+'</a>'; }).join('')+'</nav>'+
     side+'<section class="mp-card">'+head+body+'</section></div></div>';
@@ -231,14 +292,15 @@ function summaryBox(left, rows){
 }
 /* a long label set on two lines; the words stay as written */
 function two(a, b){ return a+' <span class="l2">'+b+'</span>'; }
-function payStatus(date){
+function payStatus(date, bank){
   var done=date<=TODAY;
-  return '<span class="tag '+(done?'ok':'up')+'">'+(done?I.check+'Paid':I.clock+'Upcoming')+'</span><span class="tx">Agathos '+(done?'paid ':'pays ')+BANK+'<br>on '+fmtDate(date)+'</span>';
+  return '<span class="tag '+(done?'ok':'up')+'">'+(done?I.check+'Paid':I.clock+'Upcoming')+'</span><span class="tx">Agathos '+(done?'paid ':'pays ')+bank+'<br>on '+fmtDate(date)+'</span>';
 }
 function bigLeft(label, value, status){
   return '<div class="lbl">'+label+'</div><div class="big">'+money(value)+'</div>'+(status?'<div class="ov-status">'+status+'</div>':'');
 }
 function nextDate(list){ return list.filter(function(r){ return r.st==='await' || r.st==='proc'; }).map(function(r){ return payoutDate(r.per); }).sort()[0]; }
+function bankOf(p){ return ENTITIES[p.ent].bank; }
 
 function summaryRows(p, list){
   var t=totals(list), cnt='<small class="cnt">'+countText(p, t.n)+'</small>';
@@ -251,7 +313,7 @@ function summaryRows(p, list){
       ['Love gifts to Agathos (invoiced)', money(t.lg), 'after']]);
   }
   if(S.per==='all'){
-    /* default summary: the totals on the right; on the left, a bar of paid out and awaiting pay out, one amount per line */
+    /* default summary: the totals on the right; on the left, paid out and awaiting pay out, one amount per line, and the bar under them */
     var aw=c2(t.await+t.proc), due=nextDate(list), all=t.paid+aw || 1;
     var left='<ul class="ov-lines">'+
         '<li><div class="lbl"><i class="sw paid"></i>Total paid out</div><div class="v">'+money(t.paid)+'</div></li>'+
@@ -265,7 +327,7 @@ function summaryRows(p, list){
       [two('Total Processing fees','(to Payment Service Provider)'), money(-t.fee)],
       ['Total Net to you', money(t.net), 'total']]);
   }
-  var status=S.per==='none' ? '<span class="tag up">'+I.clock+'Not in a payout yet</span>' : payStatus(payoutDate(S.per));
+  var status=S.per==='none' ? '<span class="tag up">'+I.clock+'Not in a payout yet</span>' : payStatus(payoutDate(S.per), bankOf(p));
   return summaryBox(bigLeft('Net to you', t.net, status), [
     ['Total '+amountLabel(p)+cnt, money(t.recv)],
     [agathosLabel(p), money(-t.ben)],
@@ -273,7 +335,8 @@ function summaryRows(p, list){
     ['Net to you', money(t.net), 'total']]);
 }
 
-/* payout summary card: no payment provider named; says when this is part of a larger payout; the expected date only while unpaid */
+/* payout summary card: this project's share only; says when it is part of a larger payout; the expected date only while unpaid;
+   the link goes to the payouts above the project level (Josias, A22) */
 function payoutCard(p){
   if(S.per==='none') return '';
   var per=S.per;
@@ -282,11 +345,11 @@ function payoutCard(p){
     per=mine.filter(function(m){ return payoutDate(m)>TODAY; })[0] || mine[mine.length-1];
   }
   if(!per) return '';
-  var po=payout(per), part=po.parts.filter(function(x){ return x.id===p.id; })[0];
-  return '<a class="ps" href="#/'+S.scn+'/payouts" data-act="toPayout" data-per="'+per+'"><span class="hp-kicker">Payout summary</span>'+
+  var po=payout(per, p.ent), part=po.parts.filter(function(x){ return x.id===p.id; })[0];
+  return '<a class="ps" href="#/pages/'+p.ent+'/payouts" data-act="toPayout" data-per="'+per+'" data-ent="'+p.ent+'"><span class="hp-kicker">Payout summary</span>'+
     '<b>'+monthRange(per)+'</b>'+
     '<p>'+money(part.t.net)+' to you'+(po.paid?'':' · Agathos pays on '+fmtDate(po.date))+'</p>'+
-    (po.ids.length>1?'<p>This is part of a larger payout of '+money(po.t.net)+' with '+others(po.ids, p.id)+'.</p>':'')+
+    (po.ids.length>1?'<p>This is part of a larger payout with '+others(po.ids, p.id)+'.</p>':'')+
     '<span class="go">See payout summary '+I.arrow+'</span></a>';
 }
 
@@ -405,31 +468,72 @@ function table(p, list){
                  : '<div class="fr-empty">No '+rowsWord(p).toLowerCase()+' here.</div>')+'</section>';
 }
 
-/* ---------- 2. Payouts: one row per payout, expandable by project and event ---------- */
+/* ---------- 2. Payouts ---------- */
+function split(label){ var i=label.indexOf('/'); return label.slice(0,i+1)+'<span class="l2">'+label.slice(i+1)+'</span>'; }
+function nextBox(dates){
+  var up=dates.filter(function(x){ return x>TODAY; }).sort()[0];
+  if(!up) return '';
+  return '<div class="nx">'+I.cal+'<div><b>Next payout: '+fmtDate(up)+'</b><p>Payouts are processed on the 20th of each month for the previous month\'s sales.<br>If the 20th falls on a non-working day, the payout shifts to the next working day.</p></div></div>';
+}
+/* Paid out and Balance under the table, so they show whatever the sideways scroll */
+function payBalance(paid, balance){ return '<div class="fr-tot"><div><span>Paid out</span><b>'+money(paid)+'</b></div><div><span>Balance</span><b>'+money(balance)+'</b></div></div>'; }
+function payoutFilters(pers, allPers){
+  if(S.pper!=='all' && pers.indexOf(S.pper)<0) S.pper='all';
+  return '<div class="fr-filters">'+sel('Year','pyear',yearOpts(allPers),S.pyear)+sel('Payout period','pper',[['all','All payouts']].concat(pers.map(function(m){ return [m, monthRange(m)]; })),S.pper)+'</div>';
+}
+
+/* 2a. Manage Project / Manage Event: this project's or event's share of each payout */
+function viewPayouts(p){
+  var allPers=periodsOf([p.id]), pers=allPers.filter(function(m){ return yearOk(m, S.pyear); });
+  var filters=payoutFilters(pers, allPers), shown=S.pper==='all' ? pers : [S.pper];
+  var lines=shown.map(function(per){
+    var t=totals(rowsOf(p.id).filter(function(r){ return r.per===per && inPeriod(r); })), date=payoutDate(per);
+    return {per:per, t:t, date:date, paid:date<=TODAY, po:payout(per, p.ent)};
+  });
+  var sum={recv:0, ben:0, fee:0, net:0, unpaid:0};
+  lines.forEach(function(x){ sum.recv+=cents(x.t.recv); sum.ben+=cents(x.t.ben); sum.fee+=cents(x.t.fee); sum.net+=cents(x.t.net); if(!x.paid) sum.unpaid+=cents(x.t.net); });
+  var unpaid=lines.filter(function(x){ return !x.paid; }), agathos=isEv(p)?'Agathos platform fee':'Beneficiary love gift to Agathos';
+  var rows=[['Total '+amountLabel(p), money(sum.recv/100)], [agathos, money(-sum.ben/100)], ['Processing fees', money(-sum.fee/100)], ['Net payout', money(sum.net/100), 'total']];
+  var status;
+  if(S.pper==='all'){
+    if(unpaid.length) rows.push([two('Not paid yet','Agathos pays on '+fmtDate(unpaid[0].date)), money(sum.unpaid/100), 'after']);
+    status=unpaid.length ? payStatus(unpaid[0].date, bankOf(p)) : (lines.length?payStatus(lines[lines.length-1].date, bankOf(p)):'');
+  } else status=payStatus(lines[0].date, bankOf(p));
+  var body=lines.map(function(x){
+    return '<tr><td class="c1"><b>'+fmtDate(x.date)+'</b>'+(x.paid?'':stTag('await','Not paid yet'))+'</td>'+
+      '<td class="c2 desc"><b>Monthly payout</b><span>'+monthRange(x.per)+' · '+countText(p, x.t.n)+'</span>'+(x.po.ids.length>1?'<span>Part of a larger payout with '+others(x.po.ids, p.id)+'</span>':'')+'</td>'+
+      '<td class="n">'+num(x.t.recv)+'</td><td class="n">'+num(-x.t.ben)+'</td><td class="n">'+num(-x.t.fee)+'</td><td class="n net">'+num(x.t.net)+'</td>'+
+      '<td>'+(x.paid?'<button type="button" class="lnk" data-act="invoice">Download Invoice</button>':'<span class="na">—</span>')+'</td></tr>';
+  }).join('');
+  var head='<tr><th class="c1">Date</th><th class="c2">Description</th><th class="n">Total '+amountLabel(p)+'</th><th class="n">'+agathos+'</th><th class="n">Processing fees</th><th class="n">Net payout</th><th>Action</th></tr>';
+  var cards=lines.map(function(x){
+    return '<div class="fr-item"><div class="r1"><span>'+fmtDate(x.date)+' · '+monthRange(x.per)+'</span><b>SGD '+num(x.t.net)+'</b></div>'+
+      '<div class="r2">'+stTag(x.paid?'paid':'await', x.paid?'Paid out':'Not paid yet')+'<span class="net">'+countText(p, x.t.n)+'</span></div></div>';
+  }).join('');
+  return filters+nextBox(lines.map(function(x){ return x.date; }))+summaryBox(bigLeft('Net to you', sum.net/100, status), rows)+
+    '<section class="fr-sec"><div class="fr-sec-head"><h3>Payout History</h3></div>'+
+    '<div class="fr-tw has-cards"><table class="fr-t ph"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div><div class="fr-cards">'+cards+'</div>'+
+    payBalance(c2((sum.net-sum.unpaid)/100), sum.unpaid/100)+'</section>';
+}
+
+/* 2b. Manage Pages › Payouts: every payout to this organisation (or Personal), summed across its projects and events,
+   each expandable by project and event (team comments F24–F33) */
 var COL_AMOUNT='Total Funding Amount/Total Ticket Sales Amount';
 var COL_AGATHOS='Beneficiary love gift to Agathos/Agathos platform fee';
-function split(label){ var i=label.indexOf('/'); return label.slice(0,i+1)+'<span class="l2">'+label.slice(i+1)+'</span>'; }
-function nextBox(pos){
-  var up=pos.filter(function(x){ return !x.paid; })[0];
-  if(!up) return '';
-  return '<div class="nx">'+I.cal+'<div><b>Next payout: '+fmtDate(up.date)+'</b><p>Payouts are processed on the 20th of each month for the previous month\'s sales.<br>If the 20th falls on a non-working day, the payout shifts to the next working day.</p></div></div>';
-}
-function viewPayouts(p){
-  var allPers=periodsOf(ORG_IDS), pers=allPers.filter(function(m){ return yearOk(m, S.pyear); });
-  if(S.pper!=='all' && pers.indexOf(S.pper)<0) S.pper='all';
-  var shown=S.pper==='all' ? pers : [S.pper];
-  var pos=shown.map(payout), unpaid=pos.filter(function(x){ return !x.paid; });
-  var filters='<div class="fr-filters">'+sel('Year','pyear',yearOpts(allPers),S.pyear)+sel('Payout period','pper',[['all','All payouts']].concat(pers.map(function(m){ return [m, monthRange(m)]; })),S.pper)+'</div>';
-  /* summary table: the same columns as the table below, summed across projects and events */
+function viewEntityPayouts(e){
+  var ids=pidsOf(e.id).filter(function(id){ return !PROJECTS[id].ipc; });
+  var allPers=periodsOf(ids), pers=allPers.filter(function(m){ return yearOk(m, S.pyear); });
+  if(!allPers.length) return '<div class="dp-empty">No payouts yet.</div>';
+  var filters=payoutFilters(pers, allPers), shown=S.pper==='all' ? pers : [S.pper];
+  var pos=shown.map(function(per){ return payout(per, e.id); }), unpaid=pos.filter(function(x){ return !x.paid; });
   var sum={recv:0, ben:0, fee:0, net:0, unpaid:0};
   pos.forEach(function(x){ sum.recv+=cents(x.t.recv); sum.ben+=cents(x.t.ben); sum.fee+=cents(x.t.fee); sum.net+=cents(x.t.net); if(!x.paid) sum.unpaid+=cents(x.t.net); });
   var rows=[[split(COL_AMOUNT), money(sum.recv/100)], [split(COL_AGATHOS), money(-sum.ben/100)], ['Processing fees', money(-sum.fee/100)], ['Net payout', money(sum.net/100), 'total']];
   var status;
   if(S.pper==='all'){
     if(unpaid.length) rows.push([two('Not paid yet','Agathos pays on '+fmtDate(unpaid[0].date)), money(sum.unpaid/100), 'after']);
-    status=unpaid.length ? payStatus(unpaid[0].date) : (pos.length?payStatus(pos[pos.length-1].date):'');
-  } else status=payStatus(pos[0].date);
-  var summary=summaryBox(bigLeft('Net to you', sum.net/100, status), rows);
+    status=unpaid.length ? payStatus(unpaid[0].date, e.bank) : (pos.length?payStatus(pos[pos.length-1].date, e.bank):'');
+  } else status=payStatus(pos[0].date, e.bank);
   var body=pos.map(function(x){
     var open=S.pper!=='all' || S.open[x.per];
     var main='<tr class="po'+(open?' open':'')+'"><td class="c1"><b>'+fmtDate(x.date)+'</b>'+(x.paid?'':stTag('await','Not paid yet'))+'</td>'+
@@ -438,31 +542,30 @@ function viewPayouts(p){
       '<td>'+(x.paid?'<button type="button" class="lnk" data-act="invoice">Download Invoice</button>':'<span class="na">—</span>')+'</td></tr>';
     var subs=open ? x.parts.map(function(y){
       var q=PROJECTS[y.id];
-      return '<tr class="sub'+(y.id===p.id?' me':'')+'"><td class="c1"></td><td class="c2"><b>'+h(q.name)+'</b><span>'+(isEv(q)?'Event':'Project')+' · '+countText(q, y.t.n)+'</span></td>'+
+      return '<tr class="sub"><td class="c1"></td><td class="c2"><a href="#/manage/'+q.id+'/'+manageTabs(q)[0][0]+'"><b>'+h(q.name)+'</b></a><span>'+(isEv(q)?'Event':'Project')+' · '+countText(q, y.t.n)+'</span></td>'+
         '<td class="n">'+num(y.t.recv)+'</td><td class="n">'+num(-y.t.ben)+'</td><td class="n">'+num(-y.t.fee)+'</td><td class="n net">'+num(y.t.net)+'</td><td></td></tr>';
     }).join('') : '';
     return main+subs;
   }).join('');
-  var paid=c2(sum.net/100-sum.unpaid/100);
-  var foot='<tr><td class="c1"></td><td class="c2">Paid out</td><td></td><td></td><td></td><td class="n">'+num(paid)+'</td><td></td></tr>'+
-    '<tr><td class="c1"></td><td class="c2">Balance</td><td></td><td></td><td></td><td class="n">'+num(sum.unpaid/100)+'</td><td></td></tr>';
   var head='<tr><th class="c1">Date</th><th class="c2">Description</th><th class="n">'+split(COL_AMOUNT)+'</th><th class="n">'+split(COL_AGATHOS)+'</th><th class="n">Processing fees</th><th class="n">Net payout</th><th>Action</th></tr>';
   var cards=pos.map(function(x){
     return '<div class="fr-item"><div class="r1"><span>'+fmtDate(x.date)+' · '+monthRange(x.per)+'</span><b>SGD '+num(x.t.net)+'</b></div>'+
       '<div class="r2">'+stTag(x.paid?'paid':'await', x.paid?'Paid out':'Not paid yet')+'<span class="net">'+kinds(x.ids)+'</span></div>'+
       '<details><summary>By project and event</summary><dl>'+x.parts.map(function(y){ return '<div><dt>'+h(PROJECTS[y.id].name)+'</dt><dd>'+num(y.t.net)+'</dd></div>'; }).join('')+'</dl></details></div>';
   }).join('');
-  return filters+nextBox(pos)+summary+
+  return filters+nextBox(pos.map(function(x){ return x.date; }))+summaryBox(bigLeft('Net to you', sum.net/100, status), rows)+
     '<section class="fr-sec"><div class="fr-sec-head"><h3>Payout History</h3></div>'+
-    '<div class="fr-tw has-cards"><table class="fr-t ph"><thead>'+head+'</thead><tbody>'+body+'</tbody><tfoot>'+foot+'</tfoot></table></div><div class="fr-cards">'+cards+'</div></section>';
+    '<div class="fr-tw has-cards"><table class="fr-t ph"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div><div class="fr-cards">'+cards+'</div>'+
+    payBalance(c2((sum.net-sum.unpaid)/100), sum.unpaid/100)+'</section>';
 }
 
 /* ---------- IPC: the charity receives the money from AXS; Agathos invoices its love gifts ---------- */
-function viewInvoices(p){
-  var all=rowsOf(p.id);
-  var inv=MONTHS.filter(function(m){ return m>=p.from && m<TODAY.slice(0,7); }).map(function(m, i){
-    var t=totals(all.filter(function(r){ return r.per===m; }));
-    return '<tr><td class="c1"><b>AG-'+m.replace('-','')+'-'+(101+i)+'</b></td><td class="c2">'+monthLabel(m)+'</td><td class="n">'+num(t.ben)+'</td><td class="n">'+num(t.tip)+'</td><td class="n net">'+num(t.lg)+'</td>'+
+function viewInvoices(ids){
+  var n=0, inv=MONTHS.filter(function(m){ return m<TODAY.slice(0,7); }).map(function(m){
+    var list=[]; ids.forEach(function(id){ list=list.concat(rowsOf(id).filter(function(r){ return r.per===m; })); });
+    if(!list.length) return '';
+    var t=totals(list); n++;
+    return '<tr><td class="c1"><b>AG-'+m.replace('-','')+'-'+(100+n)+'</b></td><td class="c2">'+monthLabel(m)+'</td><td class="n">'+num(t.ben)+'</td><td class="n">'+num(t.tip)+'</td><td class="n net">'+num(t.lg)+'</td>'+
       '<td><button type="button" class="lnk" data-act="invoice">Download Invoice</button></td></tr>';
   }).join('');
   return '<div class="nx">'+I.cal+'<div><b>Love gifts to Agathos</b><span class="tbc">Invoice schedule to confirm</span><p>AXS pays donations to you directly. Agathos sends you an invoice for its love gifts.</p></div></div>'+
@@ -470,12 +573,8 @@ function viewInvoices(p){
     '<div class="fr-tw"><table class="fr-t inv"><thead><tr><th class="c1">Invoice</th><th class="c2">Month</th><th class="n">Beneficiary love gift</th><th class="n">Donor love gifts</th><th class="n">Amount</th><th>Action</th></tr></thead><tbody>'+inv+'</tbody></table></div></section>';
 }
 
-/* ---------- review notes: the comments this version does not follow, both decided on 29/10 ---------- */
+/* ---------- review notes: the comments this version does not follow ---------- */
 var NOTES=[
-  {t:'Payouts sit inside Manage Project and Manage Event',
-   fb:['Transactions > Project level','Payouts > Dashboard level but under or same level as \'Manage Pages\'. Consider how to distinguish between project/events under org vs under personal'],
-   now:'Transactions are at project level, as asked. Payouts are not at dashboard level: they sit in the same tab as transactions, called "Transactions & Payouts" in Manage Project and "Orders & Payouts" in Manage Event. Each payout row covers every project and event in that payout and expands to show them one by one.',
-   why:'Decided by the product lead on 29 Oct 2026.'},
   {t:'Admin console questions not covered',
    fb:['For admin console: How to account for emergency disbursement? Date of payout --> can this be always a fixed date or formularised? Or should we get finance to key in a date manually'],
    now:'This version covers the project and event owner screens only. Both questions are still open.',
@@ -484,7 +583,7 @@ var NOTES=[
 function notesHtml(){
   var x=svg('<path d="M6 6l12 12M18 6L6 18"/>');
   return '<div class="fr-md" role="dialog" aria-modal="true" aria-labelledby="fr-md-t">'+
-    '<div class="fr-md-head"><div><h2 id="fr-md-t">Changes from the feedback</h2><p>Every other comment is built as written. These '+NOTES.length+' are not, and why.</p></div>'+
+    '<div class="fr-md-head"><div><h2 id="fr-md-t">Changes from the feedback</h2><p>Every other comment is built as written. '+(NOTES.length===1?'This one is':'These '+NOTES.length+' are')+' not, and why.</p></div>'+
     '<button class="fr-md-x" type="button" data-act="notesClose" aria-label="Close">'+x+'</button></div>'+
     '<ol class="fr-md-list">'+NOTES.map(function(o, i){
       return '<li class="fr-nt"><div class="fr-nt-h"><span class="no">'+(i+1)+'</span><h3>'+h(o.t)+'</h3></div>'+
@@ -507,15 +606,21 @@ function notesClose(){
 }
 
 /* ---------- page ---------- */
+var REVIEW=[['Manage Pages','#/pages/antioch/projects'],['Manage Project','#/manage/erbil/transactions'],['Manage Event','#/manage/concert/orders'],['IPC charity (AXS)','#/manage/sunny/transactions']];
+function reviewOn(i){
+  if(S.view==='pages') return i===0;
+  var p=cur();
+  return i===(p.ipc ? 3 : isEv(p) ? 2 : 1);
+}
 function renderReview(){
   document.getElementById('fr-review').innerHTML='<span class="t">Financial report</span><span class="ver">Version 2</span>'+
-    '<nav class="fr-rtabs" aria-label="Scenarios">'+Object.keys(SCN).map(function(k){ return '<a href="#/'+k+'"'+(S.scn===k?' class="on"':'')+'>'+SCN[k].label+'</a>'; }).join('')+'</nav>'+
+    '<nav class="fr-rtabs" aria-label="Screens">'+REVIEW.map(function(x,i){ return '<a href="'+x[1]+'"'+(reviewOn(i)?' class="on"':'')+'>'+x[0]+'</a>'; }).join('')+'</nav>'+
     '<span class="note">Sample data · today is '+fmtDate(TODAY)+'</span>'+
     '<button class="fr-notes" type="button" data-act="notes" aria-haspopup="dialog"><span class="c">'+NOTES.length+'</span>Changes from the feedback</button>';
 }
 function render(){
   route(); renderReview(); hideTip();
-  document.getElementById('fr').innerHTML=page(cur());
+  document.getElementById('fr').innerHTML=S.view==='pages' ? pagesView(ENTITIES[S.key]) : managePage(cur());
 }
 
 var toastT;
@@ -523,9 +628,8 @@ function toast(msg){ var t=document.getElementById('fr-toast'); t.textContent=ms
 
 /* CSV: the summary numbers first (payout period included), then one line per transaction */
 function downloadCSV(){
-  var p=cur(), list=S.tab==='transactions' || S.tab==='orders' ? filtered(p) : rowsOf(p.id), t=totals(list);
+  var p=cur(), onRows=S.tab==='transactions' || S.tab==='orders', list=onRows ? filtered(p) : rowsOf(p.id), t=totals(list);
   var esc=function(s){ s=String(s==null?'':s); return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; };
-  var onRows=S.tab==='transactions' || S.tab==='orders';
   var period=!onRows || S.per==='all' ? (onRows && S.year!=='all' ? 'All payouts in '+S.year : 'All payouts') : S.per==='none' ? 'Not in a payout yet' : monthRange(S.per);
   var sum=[[isEv(p)?'Event':'Project', p.name], [p.ipc?'Month':'Payout period', period], ['Currency','SGD']];
   var head, line;
@@ -575,8 +679,13 @@ document.addEventListener('pointerout', function(ev){ var hit=ev.target.closest 
 var ACT={
   page:function(t){ S.page=+t.getAttribute('data-p'); render(); var l=document.querySelector('.fr-list'); if(l) l.scrollIntoView({block:'start'}); },
   csv:downloadCSV,
-  expand:function(t){ var per=t.getAttribute('data-per'); S.open[per]=!S.open[per]; render(); },
-  toPayout:function(t){ S.pper=t.getAttribute('data-per'); S.pyear='all'; S.open={}; location.hash='#/'+S.scn+'/payouts'; },
+  expand:function(t){
+    var per=t.getAttribute('data-per');
+    S.open[per]=!S.open[per];
+    keepScroll(render);
+    var b=document.querySelector('.exp[data-per="'+per+'"]'); if(b) b.focus({preventScroll:true});
+  },
+  toPayout:function(t){ S.carry=t.getAttribute('data-per'); location.hash='#/pages/'+t.getAttribute('data-ent')+'/payouts'; },
   offline:function(){ toast('Opens the Add Offline Transaction form, as today'); },
   tax:function(){ toast('Opens the Tax Deduction Report menu, as today'); },
   invoice:function(){ toast('Sample: no invoice file yet'); },
@@ -585,6 +694,15 @@ var ACT={
   notesClose:notesClose,
   menu:function(t){ var dd=t.closest('.mp-dd'), open=!dd.classList.contains('open'); closeMenus(); dd.classList.toggle('open', open); t.setAttribute('aria-expanded', open?'true':'false'); }
 };
+/* redraw without losing the reader's place: the page, the Manage Pages list (it scrolls on its own) and each table's sideways scroll */
+function keepScroll(fn){
+  var y=window.scrollY, list=document.querySelector('.dp-list'), top=list ? list.scrollTop : 0;
+  var left=Array.prototype.map.call(document.querySelectorAll('.fr-tw'), function(e){ return e.scrollLeft; });
+  fn();
+  var l2=document.querySelector('.dp-list'); if(l2) l2.scrollTop=top;
+  Array.prototype.forEach.call(document.querySelectorAll('.fr-tw'), function(e, i){ if(left[i]){ e.scrollLeft=left[i]; e.classList.add('scrolled'); } });
+  window.scrollTo(0, y);
+}
 function closeMenus(){
   document.querySelectorAll('.mp-dd.open').forEach(function(dd){ dd.classList.remove('open'); dd.querySelector('[data-act="menu"]').setAttribute('aria-expanded','false'); });
 }

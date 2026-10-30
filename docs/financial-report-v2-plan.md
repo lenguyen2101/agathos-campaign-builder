@@ -489,3 +489,73 @@ Chỉ đổi bố cục, không đổi nội dung hay chữ của comment.
 - Script node: 75/75 kiểm tra qua, gồm toàn bộ 66 kiểm tra theo comment của vòng 4 cộng 9 kiểm tra bố cục.
 - Curl trả về 200.
 - Chưa xem giao diện bằng mắt.
+
+## 14. Vòng 6 (30/10/2026): dữ liệu theo từng project, và tầng Payouts ở Manage Pages
+
+**Anh yêu cầu:**
+1. Manage Project / Manage Event chỉ hiện dữ liệu của project/event đang xem. Chỗ nào cần thì chỉnh lại UI cho hợp.
+2. Dựng pixel perfect trang Manage Pages, được phép cấu trúc lại và redesign. Trang này quản lý projects/events theo Personal hoặc theo từng Organization, và cần tìm chỗ đặt dashboard Payouts.
+
+**Căn cứ** (rà lại 30/10):
+- Comment F1: *"Payouts > Dashboard level but under or same level as 'Manage Pages'. Consider how to distinguish between project/events under org vs under personal"*.
+- Josias, ô A22: *"…sits above the project/event level… shortcut in 'Payout Summary'… OR… a separate payout summary on the project/event level"*.
+
+### Mặc định em chọn
+
+- **Payouts ở dashboard:** đặt trong Manage Pages. Chọn Personal hoặc một Organization ở cột trái, rồi chọn tab **Payouts** cạnh Projects / Events.
+  - Cột trái chính là chỗ phân biệt org với cá nhân (F1).
+  - Nội dung là phần Payouts gộp mọi project/event (F23–F33), chuyển nguyên từ Manage Project sang. Mỗi payout bấm vào thì mở ra theo từng project/event (F28).
+  - Charity IPC không có payout từ Agathos, nên tab thứ ba là **Invoices**.
+- **Manage Project / Manage Event:**
+  - Pill Payouts chỉ còn phần của chính project/event đó trong từng đợt. Đây là phương án "OR… payout summary on the project/event level" trong ô A22.
+  - Thẻ Payout summary ghi "part of a larger payout with N other …". Câu này không hiện số tiền của cả khoản chuyển.
+  - Link "See payout summary" dẫn sang Manage Pages › Payouts, đúng đợt đó. Đây là phương án "shortcut" trong ô A22.
+  - Tên cột theo đúng loại: project dùng "Total Funding Amount" và "Beneficiary love gift to Agathos"; event dùng "Total Ticket Sales Amount" và "Agathos platform fee". Đây là hai nửa của tên cột có dấu "/" mà team đặt.
+- **Paid out / Balance:** đưa ra một dải riêng dưới bảng, để luôn nhìn thấy khi bảng cuộn ngang.
+- **Manage Pages dựng theo 4 ảnh production:**
+  - Hàng 5 tab của tài khoản.
+  - Cột trái gồm Personal và các Organization, cùng nút Create Organization.
+  - Phần đầu của org: tên, nhãn Owner, menu Actions (Manage / View Page / Leave Organization).
+  - Pill Projects / Events, nút Create Event.
+  - Thẻ project: ảnh, nhãn Ongoing, Manage Project, ô xanh có Started, Public, số tiền, contributions, thanh tiến độ, % mục tiêu.
+  - Thẻ event: ảnh, tên, Public, thời gian, Manage Event.
+  - Phần thêm mới duy nhất là pill **Payouts** (hoặc Invoices).
+- **Dữ liệu mẫu:**
+  - Cột trái có Personal, Antioch 21 (gồm 2 project và 1 event) và Sunshine Care Society (charity IPC).
+  - Thêm 1 project dưới Personal, trả về tài khoản cá nhân, để thấy rõ khác biệt giữa org và cá nhân.
+  - Ảnh lấy từ `assets/img/home`. Avatar của org dùng chữ viết tắt, vì không có logo.
+- **Modal notes:** F1 đã được đáp ứng, chỉ còn F16 (admin console).
+
+### Nhật ký vòng 6 (30/10/2026). Chưa commit.
+
+Đã làm theo phần mặc định ở trên.
+
+**Đường dẫn:**
+- Manage Pages: `#/pages/<personal|antioch|sunshine>/<projects|events|payouts|invoices>`.
+- Manage Project / Manage Event: `#/manage/<id>/<tab>`.
+- Link cũ dạng `#/project/...` vẫn mở được.
+- Thanh review có thêm tab "Manage Pages".
+
+**Manage Project / Manage Event:**
+- Không còn tên hay số tiền nào của project/event khác.
+- Pill Payouts chỉ còn phần của chính project/event đó. Ví dụ Special Needs Centre in Erbil: Net payout 30,077.51, trong đó 1,841.01 chưa trả.
+- Mỗi đợt ghi "Part of a larger payout with 2 other projects and events". Câu này không có số tiền.
+- Paid out / Balance nằm thành một dải riêng dưới bảng.
+
+**Manage Pages:**
+- Hàng tab tài khoản; cột trái gồm Personal, Antioch 21, Sunshine Care Society và nút Create Organization.
+- Phần đầu của org: tên, nhãn Owner, menu Actions.
+- Pill: Projects / Events / Payouts. Với charity IPC, pill thứ ba là Invoices.
+- Thẻ project và thẻ event dùng đúng các field production.
+- Payouts của Antioch 21 gộp 3 project/event. Mỗi đợt mở ra được, tên từng dòng dẫn sang trang Manage của project/event đó.
+- Payouts của Personal trả về tài khoản POSB ••••1093.
+
+**Lối tắt:** "See payout summary" ở pill Transactions mở Manage Pages › Payouts, đúng đợt đang xem.
+
+**Modal notes:** còn 1 mục (F16).
+
+**Đã kiểm tra:**
+- `node --check` qua.
+- Script node: 35/35 kiểm tra qua, gồm các kiểm tra theo comment F9–F33, các kiểm tra "chỉ dữ liệu của project này", Manage Pages và lối tắt.
+- Curl: trang và các ảnh đều trả về 200.
+- Chưa xem giao diện bằng mắt.
