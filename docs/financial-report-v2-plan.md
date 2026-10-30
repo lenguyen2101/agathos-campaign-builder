@@ -321,3 +321,171 @@ Anh gửi thêm 2 ý tưởng trên Figma (Orders & Payouts của Manage Event, 
   7. Bỏ thẻ Payout summary.
 - Modal đóng bằng nút ×, phím Esc hoặc bấm ra ngoài.
 - Kiểm tra bằng node: 67/67 qua.
+
+## 12. Vòng 3 (30/10/2026): audit theo góc fintech
+
+Anh duyệt: làm hết theo đề xuất audit và cập nhật modal notes.
+
+### Phạm vi
+
+| # | Việc | Cách làm |
+|---|---|---|
+| 1 | Processing fees | Thêm icon (i) ở tóm tắt và đầu cột, hiện mức phí owner đã đồng ý trả (sheet Intro, "Agathos To Merchant Fee"). |
+| 3 | Next payout lên đầu | Thẻ tóm tắt mở đầu bằng **Next payout**: số tiền, ngày trả, tài khoản. Bên dưới là một dòng phép tính: Total Funding Amount − Deducted (− Refunds) = Net payout. Chọn một kỳ thì thẻ mở đầu bằng payout của kỳ đó. Tab Payouts đổi hộp "Next payout" thành "Payout schedule" để không lặp. |
+| 4 | Tách 3 phần | Paid out / Awaiting next payout / Processing. Phần Processing có thanh kẻ sọc và icon (i) "chưa được xác nhận". Dùng đúng tên 3 trạng thái của team. |
+| 5 | Biểu đồ | Số tiền vẽ dạng đường cộng dồn. Số lượt (số vé với event) vẽ dạng cột. Theo ngày khi chọn một kỳ, theo tháng khi xem All hoặc một năm. |
+| 6 | Bảng | Bỏ cột Currency, thay bằng một dòng "All amounts in SGD" (CSV vẫn giữ cột Currency). Reference về cột riêng, hiện đủ, có nút copy. Payment method nằm dưới cột ngày. Thêm ô tìm theo reference hoặc số tiền; ô này chỉ lọc bảng, không đổi tóm tắt. |
+| 7 | Đối soát payout | Mỗi payout có mã ngân hàng (ví dụ PO-202609-ANT21). "Download Invoice" đổi thành "Download statement": file CSV liệt kê đủ các project/event trong khoản chuyển. |
+| + | Hoàn tiền | Project mẫu có 2 khoản: một khoản hoàn trước khi trả (Refunded, không tính vào tổng), một khoản hoàn sau khi đã trả (trừ vào payout kế tiếp). |
+| + | Offline | Project mẫu có 2 khoản offline. Trạng thái "Offline", không có phí và net, không cộng vào tổng hay payout. Thẻ tóm tắt ghi riêng một dòng "Not included". |
+| + | Ngày lễ | Ngày trả bỏ qua thứ 7, chủ nhật và ngày lễ Singapore (danh sách của MOM, 12/2025–12/2026). |
+| Notes | Modal | Viết lại 7 mục cho khớp bản mới. Thêm nhóm "Added, not in the comments" gồm 3 mục: hoàn tiền, offline, ngày lễ. |
+
+### Mặc định em chọn (chờ team xác nhận)
+
+- **Phí khi hoàn tiền:** owner chỉ trả lại phần đã nhận (net payout của khoản đó). Agathos chịu phí.
+- **Offline:** không tính vào Total Funding Amount của báo cáo này.
+- **Statement:** liệt kê mọi project/event của tổ chức có trong khoản chuyển. Cần hỏi team xem mọi project manager có được xem không.
+
+### Kiểm tra nghiệm thu
+
+- Total − Deducted − Refunds = Net payout = Paid out + Awaiting + Processing, khớp tới từng cent, với mọi bộ lọc.
+- Điểm cuối của đường cộng dồn = Total Funding Amount. Tổng các cột = số giao dịch (với event là số vé).
+- Không ngày trả nào rơi vào thứ 7, chủ nhật hay ngày lễ.
+- Statement: tổng các dòng = tổng khoản chuyển.
+- Tìm kiếm theo reference và theo số tiền đều chạy.
+- Modal có 10 mục, chia 2 nhóm.
+- Cả 6 màn render được. Không còn cột Currency, không còn reference bị cắt ngắn.
+
+### Nhật ký vòng 3 (30/10/2026). Chưa commit.
+
+Đã làm đủ phạm vi ở mục 12.
+
+**Số mẫu sau khi sửa** (project "Special Needs Centre in Erbil", xem All):
+- Total Funding Amount 32,690.00 − Deducted 2,521.89 − Refunds 90.60 = Net payout 30,077.51.
+- Net payout 30,077.51 = Paid out 28,236.50 + Awaiting next payout 1,614.26 + Processing 226.75.
+- Next payout: S$1,614.26 vào ngày 20 Nov 2026. Bank reference của payout tháng 10: PO-202610-ANT21. Khoản này nằm trong một lần chuyển S$5,421.78 gồm 3 project/event.
+- Không tính vào tổng: S$150.00 hoàn trước khi trả (1 khoản), S$800.00 ghi nhận offline (2 khoản).
+- Total Funding Amount giảm từ 32,840 xuống 32,690, vì khoản hoàn trước khi trả không còn được tính.
+
+**Đã kiểm tra:**
+- `node --check` qua.
+- Script node với DOM giả: 86/86 kiểm tra qua.
+  - Các đẳng thức cộng trừ khớp tới từng cent với 10 bộ lọc ở 3 kịch bản.
+  - Điểm cuối của đường cộng dồn bằng tổng. Các cột cộng lại bằng số giao dịch (số vé với event).
+  - Không ngày trả nào rơi vào thứ 7, chủ nhật hay ngày lễ.
+  - Statement: 3 dòng, cộng lại bằng khoản chuyển. Statement tháng 10 có dòng hoàn tiền.
+  - Tìm theo reference và theo số tiền đều chạy.
+  - CSV có Currency, Bank reference và Note.
+  - Modal có 10 mục chia 2 nhóm.
+- Curl trả về 200.
+- Chưa xem giao diện bằng mắt.
+
+## 13. Vòng 4 (30/10/2026): làm lại, bám sát comment hồng
+
+Anh không đồng ý vòng 3: em tự đè lên 7 comment bằng ý kiến riêng, rồi còn thêm refund, dòng offline và danh sách ngày lễ, làm notes tăng từ 7 lên 10. Vòng này làm đúng chữ của từng comment hồng, không chế thêm gì.
+
+**Gỡ bỏ hết những gì comment không yêu cầu:**
+- refund
+- dòng offline mẫu
+- danh sách ngày lễ
+- bank reference
+- statement
+- ô tìm kiếm, nút copy, dòng "All amounts in SGD"
+- icon mức phí
+- khối "Next payout" ở đầu thẻ tóm tắt và phép tính
+- thanh 3 phần
+- đường cộng dồn và biểu đồ cột
+- pill "Overview"
+
+**Giữ lại** những gì do anh chốt, kể cả ý trong Figma của anh:
+- Payouts nằm trong tab Transactions của Manage Project, và trong tab mới Orders & Payouts của Manage Event.
+- Hộp "Next payout" với câu chữ từ Figma.
+- Bảng Payout History, kèm "Download Invoice".
+- Pill "Version 2".
+
+### Đối chiếu từng comment
+
+| # | Comment (nguyên văn) | Làm thế nào |
+|---|---|---|
+| F1 | Transactions > Project level · Payouts > Dashboard level… | Transactions ở tầng project. Payouts **theo quyết định của anh**: nằm trong Manage Project / Manage Event. Ghi trong modal notes. |
+| F2 | don't think we will need project or event filter… | Bỏ ô chọn project/event. |
+| F3 | Include current buttons in the txn page… (eg. offline trx) | Export as .csv, Add Offline Transaction, Tax Deduction Report (Manage Project). Export Orders as .csv (Manage Event). |
+| F4 | Default no payout period · option for not-yet-included · new period on upload, summary shows not paid + date · select year first? · earliest first | Mặc định "All payouts". Có lựa chọn "Not in a payout yet". Kỳ chỉ xuất hiện khi có data. Tóm tắt ghi số chưa trả và ngày Agathos trả. Có ô chọn Year. Kỳ xếp cũ nhất trước. |
+| F5 | Remove "Payout period" from summary, keep in .csv | Bỏ khỏi tóm tắt. CSV vẫn có dòng Payout period. |
+| F6 | Received → 'Total Funding Amount' / 'Total Ticket Sales Amount' | Đúng chữ. |
+| F7 | → Beneficiary Love Gift to Agathos (project) / Agathos Platform fee (event) | Đúng chữ. |
+| F8 | → Processing fees (to Payment Service Provider) | Đúng chữ, có cả phần trong ngoặc. |
+| F9 | Default summary: Total Received · Total LG / Platform fee · Total payment fees · Total Net to you; left: bar Total paid out / Total awaiting pay out | Bên phải: Total Funding Amount, Total Beneficiary Love Gift to Agathos, Total Processing fees (to Payment Service Provider), Total Net to you. Bên trái: Total paid out, Total awaiting pay out, và thanh 2 phần. |
+| F10 | Not sure if we want the bar? … highlights the fees | Bỏ thanh phí. |
+| F11 | Line graph within a period: Amount collect per day · No. of donations per day | 2 biểu đồ đường, theo ngày, trong phạm vi bộ lọc. Với event: No. of orders per day. |
+| F12 | No timeline; include expected payout date; not relevant if paid | Bỏ timeline. Ngày dự kiến nằm trong thẻ Payout summary, và chỉ hiện khi chưa trả. |
+| F13 | Add text "part of a larger payout" (>1 projects + events) · Remove PSP | **Giữ thẻ Payout summary.** Thêm câu "This is part of a larger payout of S$X with N other …". Bỏ tên PSP. |
+| F14 | Include summary numbers in .csv | Đầu CSV có khối tóm tắt. |
+| F15 | Add a screen for AXS / IPC: charity receives money, Agathos invoices love gifts | Kịch bản "IPC charity (AXS)", gồm pill Transactions và pill Invoices. Lịch gửi hóa đơn ghi "To confirm". |
+| F16 | Admin console: emergency disbursement? payout date? | Không làm, **theo quyết định của anh** (D4). Ghi trong modal notes. |
+| F17 | Add currency indicator | Cột Currency (SGD), như cột Currency trong sheet POEO. |
+| F18–F21 | Amount → Funding / Ticket Sales Amount · Platform fee → LG / Platform fee · Payment fees → Processing fees · Net to you → Net payout | Đúng chữ. |
+| F22 | Payout status: Processing · Awaiting next payout · Paid out | Đúng 3 trạng thái. |
+| F23 | Remove Payment provider | Không có ô chọn PSP. |
+| F24 | Default: all payouts, summary = lifetime · new period on upload, summary shows not paid + date · year first? · earliest first | Pill Payouts có ô chọn Year và Payout period, mặc định là tất cả. Tóm tắt là tổng từ trước tới nay, có dòng "Not paid yet · Agathos pays on …". |
+| F25 | Remove Payout period from summary | Bỏ. |
+| F26 | Summary table = columns below, summed across projects and events for that payout | Các dòng bên phải = các cột của bảng, cộng gộp mọi project/event trong payout đó. |
+| F27 | Not sure about the bar | Bỏ thanh. |
+| F28 | Default by payouts; each payout expandable by project and event | Mỗi dòng là một payout, bấm vào thì mở ra theo project/event. |
+| F29 | → 'Total Funding Amount/Total Ticket Sales Amount' | Đúng chữ. |
+| F30 | → 'Beneficiary love gift to Agathos/Agathos platform fee' (THINK MORE) | Đúng chữ. |
+| F31 | Add 'Processing fees' column | Thêm. |
+| F32 | → 'Net payout' | Đúng chữ. |
+| F33 | Or just show payout and balance | Dòng cuối bảng là Paid out và Balance, thay cho Total. |
+
+**Modal notes** chỉ còn 2 mục, cả 2 đều do anh quyết: F1 và F16.
+
+### Nhật ký vòng 4 (30/10/2026). Chưa commit.
+
+Đã làm theo đúng bảng đối chiếu ở trên. Mọi phần của vòng 3 nằm ngoài comment đã gỡ hết.
+
+**Số mẫu** (project "Special Needs Centre in Erbil"):
+- Xem All:
+  - Total Funding Amount 32,840.00 − Total Beneficiary Love Gift 1,642.00 − Total Processing fees 893.74 = Total Net to you 30,304.26.
+  - Total paid out 28,236.50 + Total awaiting pay out 2,067.76 = 30,304.26.
+- Kỳ 1–31 Oct 2026: Net to you 1,841.01, Agathos trả ngày 20 Nov 2026. Đây là một phần của payout S$5,648.53, cùng 2 project/event khác.
+- Pill Payouts, xem All: Net payout cộng gộp mọi project/event là 49,505.19. Trong đó 5,648.53 chưa trả.
+
+**Đã kiểm tra:**
+- `node --check` qua.
+- Script node: 66/66 kiểm tra qua. Mỗi kiểm tra gắn với một comment hồng (F2–F33):
+  - nhãn và thứ tự các dòng tóm tắt;
+  - cột của bảng;
+  - mở rộng payout, Paid out / Balance;
+  - tổng theo ngày khớp với tổng chung;
+  - khối tóm tắt của CSV.
+- Script cũng kiểm tra không còn các phần đã gỡ và không còn chữ cũ.
+- Curl trả về 200.
+- Chưa xem giao diện bằng mắt.
+
+### Vòng 5 (30/10/2026): gọn lại giao diện, theo góp ý của anh. Chưa commit.
+
+Chỉ đổi bố cục, không đổi nội dung hay chữ của comment.
+
+- **Đầu card:**
+  - Pill Transactions / Payouts đổi thành segmented control.
+  - Các nút nằm cùng hàng, bên phải.
+  - Manage Project có nút "Add Offline Transaction" và nút "Export ▾". Menu Export gồm "Export as .csv" và "Tax Deduction Report", nên vẫn đủ 3 nút đang có (F3).
+  - Manage Event chỉ có nút "Export Orders as .csv".
+- **Khối tóm tắt:**
+  - Bên trái: thanh ở trên. Total paid out và Total awaiting pay out, mỗi mục gồm nhãn một dòng, số một dòng. Ngày trả nằm dòng dưới.
+  - Trạng thái "Paid / Upcoming" là một tag. Chữ "Agathos paid DBS … on …" xuống dòng riêng.
+  - Bên phải: nhãn dài được ngắt thành 2 dòng, chữ giữ nguyên. Ví dụ "Total Processing fees" / "(to Payment Service Provider)", và "Total Funding Amount/" / "Total Ticket Sales Amount".
+- **Bảng:**
+  - Cột rộng theo nội dung, không ép xuống dòng. Bảng cuộn ngang trong khung bo góc.
+  - 2 cột đầu đứng yên khi cuộn: Date & time và Reference (với Payout History là Date và Description, với Invoices là Invoice và Month). Khi đã cuộn, cột thứ 2 có bóng ở cạnh phải.
+  - Trạng thái hiển thị dạng pill, không xuống dòng.
+  - Trên phone vẫn dùng dạng thẻ.
+- **Phân trang:** "71–80 of 153", nút ‹ › và các số trang, ví dụ 1 … 7 8 9 … 16.
+
+**Đã kiểm tra:**
+- `node --check` qua.
+- Script node: 75/75 kiểm tra qua, gồm toàn bộ 66 kiểm tra theo comment của vòng 4 cộng 9 kiểm tra bố cục.
+- Curl trả về 200.
+- Chưa xem giao diện bằng mắt.
