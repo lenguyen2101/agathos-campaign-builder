@@ -314,10 +314,10 @@ function summaryRows(p, list){
   }
   if(S.per==='all'){
     /* default summary: the totals on the right; on the left, paid out and awaiting pay out, one amount per line, and the bar under them */
-    var aw=c2(t.await+t.proc), due=nextDate(list), all=t.paid+aw || 1;
+    var aw=c2(t.await+t.proc), all=t.paid+aw || 1;
     var left='<ul class="ov-lines">'+
         '<li><div class="lbl"><i class="sw paid"></i>Total paid out</div><div class="v">'+money(t.paid)+'</div></li>'+
-        '<li><div class="lbl"><i class="sw await"></i>Total awaiting pay out</div><div class="v">'+money(aw)+'</div>'+(aw && due?'<div class="s">Agathos pays on '+fmtDate(due)+'</div>':'')+'</li>'+
+        '<li><div class="lbl"><i class="sw await"></i>Total awaiting pay out</div><div class="v">'+money(aw)+'</div></li>'+
       '</ul>'+
       '<div class="ov-bar" role="img" aria-label="Total paid out '+money(t.paid)+', total awaiting pay out '+money(aw)+'">'+
         (t.paid?'<i class="paid" style="width:'+(t.paid/all*100).toFixed(2)+'%"></i>':'')+(aw?'<i class="await" style="width:'+(aw/all*100).toFixed(2)+'%"></i>':'')+'</div>';
@@ -494,10 +494,9 @@ function viewPayouts(p){
   lines.forEach(function(x){ sum.recv+=cents(x.t.recv); sum.ben+=cents(x.t.ben); sum.fee+=cents(x.t.fee); sum.net+=cents(x.t.net); if(!x.paid) sum.unpaid+=cents(x.t.net); });
   var unpaid=lines.filter(function(x){ return !x.paid; }), agathos=isEv(p)?'Agathos platform fee':'Beneficiary love gift to Agathos';
   var rows=[['Total '+amountLabel(p), money(sum.recv/100)], [agathos, money(-sum.ben/100)], ['Processing fees', money(-sum.fee/100)], ['Net payout', money(sum.net/100), 'total']];
-  var status;
+  var status='';
   if(S.pper==='all'){
     if(unpaid.length) rows.push([two('Not paid yet','Agathos pays on '+fmtDate(unpaid[0].date)), money(sum.unpaid/100), 'after']);
-    status=unpaid.length ? payStatus(unpaid[0].date, bankOf(p)) : (lines.length?payStatus(lines[lines.length-1].date, bankOf(p)):'');
   } else status=payStatus(lines[0].date, bankOf(p));
   var body=lines.map(function(x){
     return '<tr><td class="c1"><b>'+fmtDate(x.date)+'</b>'+(x.paid?'':stTag('await','Not paid yet'))+'</td>'+
@@ -529,10 +528,9 @@ function viewEntityPayouts(e){
   var sum={recv:0, ben:0, fee:0, net:0, unpaid:0};
   pos.forEach(function(x){ sum.recv+=cents(x.t.recv); sum.ben+=cents(x.t.ben); sum.fee+=cents(x.t.fee); sum.net+=cents(x.t.net); if(!x.paid) sum.unpaid+=cents(x.t.net); });
   var rows=[[split(COL_AMOUNT), money(sum.recv/100)], [split(COL_AGATHOS), money(-sum.ben/100)], ['Processing fees', money(-sum.fee/100)], ['Net payout', money(sum.net/100), 'total']];
-  var status;
+  var status='';
   if(S.pper==='all'){
     if(unpaid.length) rows.push([two('Not paid yet','Agathos pays on '+fmtDate(unpaid[0].date)), money(sum.unpaid/100), 'after']);
-    status=unpaid.length ? payStatus(unpaid[0].date, e.bank) : (pos.length?payStatus(pos[pos.length-1].date, e.bank):'');
   } else status=payStatus(pos[0].date, e.bank);
   var body=pos.map(function(x){
     var open=S.pper!=='all' || S.open[x.per];

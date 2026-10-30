@@ -559,3 +559,25 @@ Chỉ đổi bố cục, không đổi nội dung hay chữ của comment.
 - Script node: 35/35 kiểm tra qua, gồm các kiểm tra theo comment F9–F33, các kiểm tra "chỉ dữ liệu của project này", Manage Pages và lối tắt.
 - Curl: trang và các ảnh đều trả về 200.
 - Chưa xem giao diện bằng mắt.
+
+### Vòng 7 (30/10/2026): gỡ 2 chỗ em tự thêm, theo phương án A anh chọn. Chưa commit.
+
+**Lý do:** anh hỏi vì sao tab Orders ghi S$2,494.73 trả ngày 20/11, còn tab Payouts ghi S$1,798.21 cũng trả ngày 20/11. Cả hai số đều đúng. Đợt 20/11 mới chỉ gồm 15 order đã có trong file upload (S$1,798.21). Còn 4 order ngày 26–28/10 đang Processing (S$696.52). Chỗ gây rối là 2 dòng chữ em tự thêm, không có comment nào yêu cầu:
+- Dòng ngày dưới "Total awaiting pay out". F9 không có dòng này; em đã mượn từ F4, vốn chỉ áp dụng khi chọn một đợt.
+- Tag "Upcoming" và câu "Agathos pays DBS … on …" ở cột trái tab Payouts khi xem All. Khối này có từ v1, khi màn này luôn xem một đợt. Từ khi F24 đổi mặc định sang tổng từ trước tới nay, tag lại nằm cạnh con số tổng.
+
+**Đã gỡ:**
+- Dòng ngày dưới "Total awaiting pay out", ở cả tab Transactions và tab Orders.
+- Tag và câu tài khoản ở cột trái phần Payouts khi xem All, ở cả Manage Project/Event và Manage Pages. Cột trái chỉ còn "Net to you".
+- Rule CSS `.ov-lines .s`, vì không còn chỗ nào dùng.
+
+**Giữ nguyên:**
+- Dòng "Not paid yet · Agathos pays on …" bên phải (F24).
+- Khi chọn riêng một đợt, tag Upcoming/Paid và câu tài khoản vẫn hiện như cũ.
+- Mọi con số.
+
+**Đã kiểm tra:**
+- `node --check` qua.
+- Script node: 50/50 kiểm tra qua. Hai kiểm tra cũ về câu tài khoản ở màn All đã đổi thành kiểm tra khi chọn một đợt. Thêm 10 kiểm tra cho phương án A.
+- Curl trả về 200, file đang phục vụ đã có thay đổi.
+- Chưa xem giao diện bằng mắt.
