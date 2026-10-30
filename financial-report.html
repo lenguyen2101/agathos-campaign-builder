@@ -3,15 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Agathos — Financial report</title>
+<title>Agathos — Financial report (version 2)</title>
 <link rel="stylesheet" href="assets/home.css">
-<link rel="stylesheet" href="assets/onboarding.css">
 <link rel="stylesheet" href="assets/financial-report.css">
 </head>
 <body>
-<div class="hp ob-page">
+<div class="hp fr-page">
 
-<!-- NAV (same bar as the homepage; the user pill is rendered by financial-report.js) -->
+<div class="fr-review" id="fr-review"></div>
+
+<!-- NAV (signed-in bar as on production) -->
 <header class="hp-nav" id="nav">
   <div class="hp-inner">
     <a href="home.html"><img class="logo" src="assets/img/home/agathos-logo.png" alt="agathos"></a>
@@ -30,10 +31,13 @@
       <a href="home.html#stories">News Highlights</a>
       <a href="#">FAQ</a>
     </nav>
-    <div class="hp-nav-auth" id="nav-auth"></div>
+    <div class="hp-nav-auth fr-auth">
+      <button class="bell" type="button" aria-label="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9.5a6 6 0 0 1 12 0c0 4.5 1.8 6.5 1.8 6.5H4.2S6 14 6 9.5z"/><path d="M10 19.5a2 2 0 0 0 4 0"/></svg></button>
+      <a class="me" href="#"><img src="assets/img/task220/avatar-user.png" alt=""><span>lenguyen2101</span></a>
+      <button class="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nav-menu"><i></i><i></i><i></i></button>
+    </div>
   </div>
   <nav class="hp-nav-menu" id="nav-menu">
-    <a class="create" href="onboarding.html#/begin">+ Create</a>
     <a href="home.html#causes">Support a Cause</a>
     <a href="home.html#ways">Join an Event</a>
     <div class="grp">About Us</div>
@@ -71,8 +75,8 @@
 
 </div>
 
-<div class="ob-toast" id="fr-toast"></div>
-<div class="ob-demo" id="fr-demo"></div>
+<div class="fr-toast" id="fr-toast"></div>
+<div class="fr-tip" id="fr-tip" role="tooltip"></div>
 
 <script src="assets/financial-report.js"></script>
 </body>
