@@ -1,8 +1,8 @@
 /* ============================================================================
    Admin shell — left nav + top bar, shared by every page.
-   Mirrors the existing portal chrome. Only Project, Campaign Management and
-   Site Content are wired up; the other nav entries are present so the layers
-   sit in the same information architecture, and are inert in this prototype.
+   Mirrors the existing portal chrome. Only Project, Campaign Management,
+   Site Content and Finance are wired up; the other nav entries are present so the
+   layers sit in the same information architecture, and are inert in this prototype.
    ============================================================================ */
 
 var ICON = {
@@ -30,6 +30,7 @@ var ICON = {
   warn:     '<path d="M12 3l9.5 17H2.5z"/><path d="M12 9v5M12 17h.01"/>',
   inbox:    '<path d="M4 13h4l1.5 3h5L16 13h4"/><path d="M4 13L6.5 5h11L20 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/>',
   doc:      '<path d="M5 3h9l5 5v13H5z"/><path d="M14 3v5h5"/><path d="M8 8h3M8 11.5h3"/><circle cx="15" cy="16" r="3.2"/><path d="M13.7 16l1 1 1.8-2"/>',
+  finance:  '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><path d="M7 15h3M14 15h3"/><path d="M7 6V4.5M17 6V4.5"/>',
   grip:     '<circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="18" r="1.4"/>'
 };
 
@@ -56,7 +57,7 @@ function navSub(label, kids, open){
 }
 
 /* activeKey: which leaf is highlighted — 'project', 'campaign',
-   'homepage-hero' or 'other-slides'. The Requests screen hangs off the Project
+   'homepage-hero', 'other-slides' or 'finance'. The Requests screen hangs off the Project
    list, so it keeps Project highlighted. */
 function mountShell(activeKey){
   var collapsed = localStorage.getItem(SHELL_KEY) === '1';
@@ -88,6 +89,11 @@ function mountShell(activeKey){
     +   '<button type="button" onclick="toggleNavGroup(this)"><span>' + icon('users') + '</span>'
     +   '<span class="lbl">Org Management</span><span class="chev">' + icon('chev', 14) + '</span></button>'
     +   '<div class="kids">' + navLeaf('Organization') + '</div>'
+    + '</div>'
+    + '<div class="grp' + (activeKey === 'finance' ? ' open' : '') + '">'
+    +   '<button type="button" onclick="toggleNavGroup(this)"><span>' + icon('finance') + '</span>'
+    +   '<span class="lbl">Finance</span><span class="chev">' + icon('chev', 14) + '</span></button>'
+    +   '<div class="kids">' + navLeaf('Financial Report', 'finance.html', activeKey === 'finance') + '</div>'
     + '</div>'
     + '<a href="#" onclick="return false"><span>' + icon('heart') + '</span><span class="lbl">Health</span></a>'
     + '<a href="#" onclick="return false"><span>' + icon('settings') + '</span><span class="lbl">Configuration</span></a>'

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agathos Admin — Financial Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+<style>
+  /* Financial Report (sheet "Agathos Financial Reports", 3.0): filters, summary, every reconciled transaction */
+  .fin-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:end;border:1px solid var(--split);border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;background:#fff;}
+  .fin-filters label,.fin-filters .lbl{display:block;font-size:14px;color:var(--ink);margin-bottom:8px;}
+  .ms{position:relative;}
+  .ms .ctl{display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left;cursor:pointer;}
+  .ms .ctl span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ms .ctl svg{flex:none;color:var(--muted);}
+  .ms-pop{display:none;position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:20;max-height:300px;overflow:auto;padding:4px;border-radius:var(--radius);background:#fff;box-shadow:0 6px 16px rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);}
+  .ms.open .ms-pop{display:block;}
+  .ms.open .ctl{border-color:var(--link);box-shadow:0 0 0 2px rgba(22,119,255,.1);}
+  .ms-opt{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:4px;font-size:14px;cursor:pointer;}
+  .ms-opt:hover{background:var(--fill);}
+  .ms-opt input{margin:0;width:15px;height:15px;accent-color:var(--link);}
+
+  .fin-sum{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 40px;border:1px solid var(--split);border-radius:var(--radius);padding:8px 20px;margin-bottom:20px;background:#fff;}
+  .fin-sum dl{margin:0;}
+  .fin-sum .sr{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:11px 0;border-bottom:1px solid var(--split);font-size:14px;}
+  .fin-sum dl .sr:last-child{border-bottom:none;}
+  .fin-sum dt{color:var(--ink-2);}
+  .fin-sum dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right;}
+  .fin-sum .sr.item{padding:5px 0 5px 16px;border-bottom:none;font-size:13px;}
+  .fin-sum .sr.item dt,.fin-sum .sr.item dd{color:var(--muted);font-weight:400;}
+  .fin-sum .sr.item.last{padding-bottom:11px;border-bottom:1px solid var(--split);}
+  .fin-sum .sr.final dt{font-weight:600;color:var(--ink);}
+  .fin-sum .sr.final dd{font-size:18px;}
+
+  .fin-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+  .fin-head h2{font-size:16px;font-weight:600;}
+  .fin-head .n{padding:0 8px;border-radius:10px;background:var(--fill);font-size:12px;line-height:20px;color:var(--ink-2);}
+
+  /* every column of the sheet: wide, scrolls sideways, the project or event stays in view */
+  table.ct.fin{width:max-content;min-width:100%;table-layout:auto;}
+  table.ct.fin th{font-size:13px;}
+  table.ct.fin td{font-size:13.5px;white-space:nowrap;}
+  table.ct.fin th:last-child,table.ct.fin td:last-child{position:static;border-left:none;}
+  table.ct.fin th:last-child::after,table.ct.fin td:last-child::after{display:none;}
+  table.ct.fin th:first-child,table.ct.fin td:first-child{position:sticky;left:0;z-index:1;background:#fff;box-shadow:inset -1px 0 0 var(--split);}
+  table.ct.fin th:first-child{background:#FAFAFA;z-index:2;}
+  table.ct.fin tbody tr:hover td:first-child{background:#FAFAFA;}
+  table.ct.fin .r{text-align:right;}
+  table.ct.fin .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;color:var(--ink-2);}
+  table.ct.fin .na{color:var(--hint);}
+  table.ct.fin .sub{display:block;font-size:12px;color:var(--muted);}
+  table.ct.fin .tally-ok{color:#389E0D;font-weight:600;}
+  table.ct.fin .tally-off{color:var(--danger);font-weight:600;}
+  .fin-empty{padding:40px 16px;text-align:center;color:var(--muted);}
+  @media (max-width:900px){
+    .fin-filters,.fin-sum{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div id="shell"></div>
+<div class="toast" id="toast"></div>
+
+<script src="assets/shell.js"></script>
+<script src="assets/finance-data.js"></script>
+<script>
+  var CONTENT = mountShell('finance');
+  var F = FIN;
+
+  var PAGE_SIZES = [10, 20, 50, 100];
+  /* project: '' for all, or a project or event id; psp: '' or stripe / 2c2p / axs;
+     pers: the payout months picked, none picked means all (sheet D67: several payout periods) */
+  var V = { project:'', psp:'', pers:[], msOpen:false, page:1, pageSize:20 };
+
+  /* the 19 detail columns of sheet 3.0 (C77–C95); Agathos Payout Date left out (D96: "don't need for now") */
+  var COLS = [
+    ['Project / Event Name'], ['Transaction Date & Time'], ['Transaction Reference'], ['Payment Method'], ['Receiving Currency'],
+    ['Receiving Amount','r'], ['Fees (PSP charges)','r'], ['Agathos Margin from PSP fees','r'], ['Beneficiary Love Gift Amount','r'],
+    ['Agathos Platform Fee','r'],
+    ['Net to Merchant','r','Receiving Amount minus Fees, Agathos Margin, Bene Love Gift, Agathos Platform Fee'],
+    ['Donor Love Gift Amount','r'], ['Finalized Donor Love Gift Amount','r'],
+    ['Total to Agathos','r','Bene Love Gift + Finalized Donor Love Gift + Agathos Margin'],
+    ['PSP Payout Date'], ['PSP name'], ['PSP merchant id'], ['PSP model'], ['Tally check']
+  ];
+
+  /* ----- data ----- */
+  function allRows(){
+    var out = [];
+    Object.keys(F.PROJECTS).forEach(function(id){
+      F.rowsOf(id).forEach(function(r){ if(F.reconciled(r)) out.push(r); });
+    });
+    return out.sort(function(a, b){ return a.at < b.at ? 1 : -1; });
+  }
+  var ALL = allRows();
+  var PERIODS = F.MONTHS.filter(function(m){ return ALL.some(function(r){ return r.per === m; }); });
+
+  function rows(){
+    return ALL.filter(function(r){
+      if(V.project && r.p.id !== V.project) return false;
+      if(V.psp && r.p.psp !== V.psp) return false;
+      if(V.pers.length && V.pers.indexOf(r.per) < 0) return false;
+      return true;
+    }).map(F.adminRow);
+  }
+  /* the summary section of 3.0 (C69–C76), and Elaine's definitions per PSP model (B100–D104).
+     Stripe's monthly charges come off what Stripe pays Agathos, so they are taken from the payout and the final amount. */
+  function summary(list){
+    var c = {gross:0, fees:0, payout:0, disbursed:0, paidOut:0, final:0};
+    list.forEach(function(a){
+      c.gross += F.cents(a.gross); c.fees += F.cents(a.fees) + F.cents(a.feeGift);
+      c.payout += F.cents(a.pspPayout); c.disbursed += F.cents(a.disbursed); c.paidOut += F.cents(a.paidOut); c.final += F.cents(a.final);
+    });
+    var other = F.otherCharges(list), oc = F.cents(other.total);
+    return {gross:c.gross/100, fees:c.fees/100, other:other, payout:(c.payout-oc)/100, disbursed:c.disbursed/100, paidOut:c.paidOut/100, final:(c.final-oc)/100};
+  }
+
+  /* ----- filters ----- */
+  var CARET = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>';
+  function projectOptions(){
+    var h = '<option value="">All projects and events</option>';
+    F.ENT_ORDER.forEach(function(eid){
+      var ids = F.pidsOf(eid);
+      if(!ids.length) return;
+      h += '<optgroup label="' + F.h(F.ENTITIES[eid].name) + '">' + ids.map(function(id){
+        return '<option value="' + id + '"' + (V.project === id ? ' selected' : '') + '>' + F.h(F.PROJECTS[id].name) + '</option>';
+      }).join('') + '</optgroup>';
+    });
+    return h;
+  }
+  function filters(){
+    var picked = V.pers, label = !picked.length ? '-' : picked.length < 3 ? picked.map(F.payoutLabel).join(', ') : picked.length + ' payout periods';
+    return '<div class="fin-filters">'
+      + '<div><label for="f-project">Project / Event</label><select class="ctl" id="f-project" onchange="setFilter(\'project\', this.value)">' + projectOptions() + '</select></div>'
+      + '<div><label for="f-psp">PSP</label><select class="ctl" id="f-psp" onchange="setFilter(\'psp\', this.value)">'
+      +   [['','All PSPs'],['stripe','Stripe'],['2c2p','2c2p'],['axs','AXS']].map(function(o){ return '<option value="' + o[0] + '"' + (V.psp === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('')
+      + '</select></div>'
+      + '<div><span class="lbl" id="f-pers-l">Payout period</span><div class="ms' + (V.msOpen ? ' open' : '') + '" id="ms">'
+      +   '<button class="ctl" type="button" aria-haspopup="true" aria-expanded="' + V.msOpen + '" aria-labelledby="f-pers-l" onclick="toggleMonths()"><span>' + F.h(label) + '</span>' + CARET + '</button>'
+      +   '<div class="ms-pop">' + PERIODS.map(function(m){
+            return '<label class="ms-opt"><input type="checkbox" value="' + m + '"' + (picked.indexOf(m) >= 0 ? ' checked' : '') + ' onchange="pickMonth(this)">' + F.payoutLabel(m) + '</label>';
+          }).join('') + '</div>'
+      + '</div></div>'
+      + '</div>';
+  }
+  function setFilter(k, v){ V[k] = v; V.page = 1; render(); }
+  function toggleMonths(){ V.msOpen = !V.msOpen; render(); }
+  function pickMonth(box){
+    var m = box.value;
+    V.pers = box.checked ? V.pers.concat([m]).sort() : V.pers.filter(function(x){ return x !== m; });
+    V.page = 1; V.msOpen = true; render();
+    var again = CONTENT.querySelector('.ms-pop input[value="' + m + '"]'); if(again) again.focus();
+  }
+  /* a click outside closes the month list; a click that redrew the page has a target that is no longer on it */
+  document.addEventListener('click', function(ev){
+    if(V.msOpen && ev.target.isConnected && !ev.target.closest('#ms')){ V.msOpen = false; render(); }
+  });
+  document.addEventListener('keydown', function(ev){ if(ev.key === 'Escape' && V.msOpen){ V.msOpen = false; render(); } });
+
+  /* ----- summary ----- */
+  function sr(k, v, cls){ return '<div class="sr' + (cls ? ' ' + cls : '') + '"><dt>' + k + '</dt><dd>' + v + '</dd></div>'; }
+  function summaryBox(list){
+    var s = summary(list), o = s.other;
+    var period = V.pers.length ? V.pers.map(F.payoutLabel).join(', ') : 'All';
+    return '<section class="fin-sum">'
+      + '<dl>'
+      +   sr('Payout Period', F.h(period))
+      +   sr('Total Trx Amt', F.money(s.gross))
+      +   sr('Total PSP Fees', F.money(s.fees))
+      +   sr('Other PSP charges', F.money(o.total))
+      +   sr('Account Volume Billing', F.money(o.volume), 'item')
+      +   sr('Active Account Billing', F.money(o.active), 'item')
+      +   sr('Payout Fee', F.money(o.payout), 'item last')
+      + '</dl>'
+      + '<dl>'
+      +   sr('Total PSP Payout to Agathos', F.money(s.payout))
+      +   sr('Total Disbursed to Projects/Events', F.money(s.disbursed))
+      +   sr('Total Paid Out to Projects/Events (Connect)', F.money(s.paidOut))
+      +   sr('Final Amount to Agathos', F.money(s.final), 'final')
+      + '</dl>'
+      + '</section>';
+  }
+
+  /* ----- table ----- */
+  function n2(x){ return F.num(x); }
+  function cells(a){
+    var r = a.r, p = r.p, ev = F.isEv(p);
+    var na = '<span class="na">—</span>';
+    return [
+      '<span class="tname">' + F.h(p.name) + '</span>',
+      F.fmtDMY(r.day) + ' ' + r.at.slice(11, 16),
+      '<span class="mono">' + F.h(r.ref) + '</span>',
+      F.h(r.method) + (r.intl ? '<span class="sub">International</span>' : ''),
+      'SGD',
+      n2(r.recv), n2(a.fees), n2(a.margin),
+      ev ? na : n2(a.bene),
+      ev ? n2(a.platform) : na,
+      n2(a.net),
+      ev ? na : n2(a.gift),
+      ev ? na : n2(a.finalGift),
+      n2(a.toAgathos),
+      F.fmtDMY(a.payDate),
+      a.psp,
+      a.mid ? '<span class="mono">' + F.h(a.mid) + '</span>' : na,
+      a.model,
+      F.cents(a.tally) === 0 ? '<span class="tally-ok">OK</span>' : '<span class="tally-off">' + n2(a.tally) + '</span>'
+    ];
+  }
+  function table(list){
+    var pages = Math.max(1, Math.ceil(list.length / V.pageSize));
+    if(V.page > pages) V.page = pages;
+    var start = (V.page - 1) * V.pageSize, slice = list.slice(start, start + V.pageSize);
+    var head = '<tr>' + COLS.map(function(c){ return '<th class="' + (c[1] || '') + '"' + (c[2] ? ' title="' + F.h(c[2]) + '"' : '') + '>' + F.h(c[0]) + '</th>'; }).join('') + '</tr>';
+    var body = slice.map(function(a){
+      return '<tr>' + cells(a).map(function(v, i){ return '<td class="num ' + (COLS[i][1] || '') + '">' + v + '</td>'; }).join('') + '</tr>';
+    }).join('');
+    return '<div class="fin-head"><h2>Transactions</h2><span class="n">' + list.length + '</span></div>'
+      + (list.length
+          ? '<div class="tablewrap"><table class="ct fin"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>'
+            + '<div class="tfoot"><div class="left">Showing ' + (start + 1) + '–' + (start + slice.length) + ' of ' + list.length + ' transactions</div>' + pager(pages) + '</div>'
+          : '<div class="tablewrap"><div class="fin-empty">No transactions match these filters.</div></div>');
+  }
+
+  /* Ant-style page list, as on the Campaign page */
+  function pageList(cur, total){
+    var out = [], i;
+    if(total <= 7){ for(i = 1; i <= total; i++) out.push(i); return out; }
+    var lo = Math.max(2, cur - 1), hi = Math.min(total - 1, cur + 1);
+    if(cur <= 4){ lo = 2; hi = 5; }
+    if(cur >= total - 3){ lo = total - 4; hi = total - 1; }
+    out.push(1);
+    if(lo > 2) out.push('gap');
+    for(i = lo; i <= hi; i++) out.push(i);
+    if(hi < total - 1) out.push('gap');
+    out.push(total);
+    return out;
+  }
+  function gotoPage(p){ V.page = p; render(); }
+  function setPageSize(n){ V.pageSize = Number(n); V.page = 1; render(); }
+  function pager(totalPages){
+    var h = '<div class="pager">'
+      + '<button class="arw" onclick="gotoPage(' + (V.page - 1) + ')"' + (V.page === 1 ? ' disabled' : '') + '>‹</button>';
+    pageList(V.page, totalPages).forEach(function(p){
+      h += p === 'gap'
+        ? '<span class="gap">•••</span>'
+        : '<button class="pg' + (p === V.page ? ' on' : '') + '" onclick="gotoPage(' + p + ')">' + p + '</button>';
+    });
+    h += '<button class="arw" onclick="gotoPage(' + (V.page + 1) + ')"' + (V.page === totalPages ? ' disabled' : '') + '>›</button>'
+      + '<select onchange="setPageSize(this.value)">'
+      + PAGE_SIZES.map(function(n){ return '<option value="' + n + '"' + (V.pageSize === n ? ' selected' : '') + '>' + n + ' / page</option>'; }).join('')
+      + '</select></div>';
+    return h;
+  }
+
+  function render(){
+    var list = rows(), wrap = CONTENT.querySelector('.tablewrap'), left = wrap ? wrap.scrollLeft : 0;
+    CONTENT.innerHTML =
+        '<div class="pagehead"><h1>Financial Report</h1><span class="spacer"></span>'
+      +   '<span class="meta">Reconciled with the PSP files uploaded up to ' + F.fmtDate(F.UPLOADED) + '</span></div>'
+      + filters()
+      + summaryBox(list)
+      + table(list);
+    var w2 = CONTENT.querySelector('.tablewrap'); if(w2 && left) w2.scrollLeft = left;
+  }
+  render();
+</script>
+</body>
+</html>
