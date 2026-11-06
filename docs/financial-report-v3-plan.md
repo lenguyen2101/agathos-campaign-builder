@@ -357,3 +357,15 @@ Anh duyệt plan, kèm câu trả lời về AXS: *"AXS trong excel có thông t
 - Một lần chạy fail do em ghi sai số mong đợi trong script (đợt năm 2026 là 11, từ Jan đến Nov, không phải 10). Đã sửa script; trang không sai.
 - Script phía chủ project vẫn 52/52 qua.
 - Chưa xem giao diện bằng mắt.
+
+**Ô Project / Event thành thanh tìm kiếm (06/11/2026, theo ý anh). Chưa commit.**
+- Bỏ danh sách để chọn. Gõ vào thanh tìm kiếm thì cả trang lọc ngay (số tiền chính, các ô chỉ số, biểu đồ, bảng, CSV), theo tên project, event hoặc tổ chức, không phân biệt hoa thường.
+- Có nút × để xoá chữ. Esc trong thanh tìm kiếm cũng xoá.
+- Bấm một dòng ở "Top projects and events" thì tên project/event đó được điền vào thanh tìm kiếm.
+- Khi gõ, chỉ phần dưới thanh lọc được vẽ lại, nên thanh tìm kiếm giữ con trỏ. Trong lúc đang ghép dấu tiếng Việt (Telex/VNI) trang không vẽ lại; gõ xong dấu mới lọc.
+- **Đã kiểm tra:** script trang Finance 35/35 qua. Thêm các kiểm tra:
+  - không còn danh sách chọn;
+  - gõ tên project, gõ tên tổ chức, gõ chữ không khớp;
+  - nút ×;
+  - đang ghép dấu thì không lọc;
+  - bấm dòng project thì tên điền vào thanh tìm kiếm.
