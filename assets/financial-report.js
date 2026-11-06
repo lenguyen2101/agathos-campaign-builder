@@ -434,12 +434,12 @@ function viewInvoices(ids){
     var list=[]; ids.forEach(function(id){ list=list.concat(rowsOf(id).filter(function(r){ return r.per===m; })); });
     if(!list.length) return '';
     var t=totals(list); n++;
-    return '<tr><td class="c1"><b>AG-'+m.replace('-','')+'-'+(100+n)+'</b></td><td class="c2">'+monthLabel(m)+'</td><td class="n">'+num(t.ben)+'</td><td class="n">'+num(t.tip)+'</td><td class="n net">'+num(t.lg)+'</td>'+
+    return '<tr><td class="c1"><b>AG-'+m.replace('-','')+'-'+(100+n)+'</b></td><td class="c2">'+monthLabel(m)+'</td><td class="n">'+num(t.tip)+'</td><td class="n net">'+num(t.lg)+'</td>'+
       '<td><button type="button" class="lnk" data-act="invoice">Download Invoice</button></td></tr>';
   }).join('');
   return '<div class="nx">'+I.cal+'<div><b>Love gifts to Agathos</b><span class="tbc">Invoice schedule to confirm</span><p>AXS pays donations to you directly. Agathos sends you an invoice for its love gifts.</p></div></div>'+
     '<section class="fr-sec"><div class="fr-sec-head"><h3>Invoices</h3></div>'+
-    '<div class="fr-tw"><table class="fr-t inv"><thead><tr><th class="c1">Invoice</th><th class="c2">Month</th><th class="n">Beneficiary love gift</th><th class="n">Donor love gifts</th><th class="n">Amount</th><th>Action</th></tr></thead><tbody>'+inv+'</tbody></table></div></section>';
+    '<div class="fr-tw"><table class="fr-t inv"><thead><tr><th class="c1">Invoice</th><th class="c2">Month</th><th class="n">Donor love gifts</th><th class="n">Amount</th><th>Action</th></tr></thead><tbody>'+inv+'</tbody></table></div></section>';
 }
 
 /* ---------- review notes: the comments this version does not follow ---------- */

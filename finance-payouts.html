@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agathos Admin — Summary Payout Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/finance-admin.css">
+<style>
+  /* Summary Payout Report (sheet "Agathos Financial Reports", section 2: "we will use this"):
+     one PSP settlement period, grouped by project; what Finance acts on for the disbursement */
+  .pay-sum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;margin-bottom:16px;overflow:hidden;background:var(--split);}
+  .pay-cell{display:flex;flex-direction:column;gap:6px;padding:16px 18px;background:#fff;}
+  .pay-cell .lbl{font-size:13px;color:var(--ink-2);}
+  .pay-cell b{font-size:22px;font-weight:600;letter-spacing:-.01em;color:var(--ink);}
+  .pay-cell small{font-size:12.5px;color:var(--muted);}
+  .pay-cell ul{margin:2px 0 0;padding:0;list-style:none;}
+  .pay-cell li{display:flex;justify-content:space-between;gap:10px;padding:2px 0;font-size:12.5px;color:var(--ink-2);}
+  .pay-cell li span:last-child{color:var(--ink);font-variant-numeric:tabular-nums;}
+  .pay-cell.key{grid-column:span 2;background:var(--blue-bg);}
+  .pay-cell.key b{font-size:30px;}
+  .pay-cell.na b{color:var(--hint);}
+  table.ct.fin-t.pay-t tfoot td{background:#FAFAFA;border-top:1px solid var(--split);font-weight:600;}
+  table.ct.fin-t.pay-t tfoot td:first-child{background:#FAFAFA;}
+  table.ct.fin-t.pay-t td.key{font-weight:600;}
+  @media (max-width:1100px){
+    .pay-sum{grid-template-columns:repeat(2,minmax(0,1fr));}
+  }
+  @media (max-width:640px){
+    .pay-sum{grid-template-columns:1fr;}
+    .pay-cell.key{grid-column:auto;}
+  }
+</style>
+</head>
+<body>
+
+<div id="shell"></div>
+<div class="toast" id="toast"></div>
+
+<script src="assets/shell.js"></script>
+<script src="assets/finance-data.js"></script>
+<script>
+(function(){
+  'use strict';
+  var CONTENT = mountShell('finance-payouts');
+  var F = FIN, C = F.cents, h = F.h;
+
+  var SVG = function(p, s){ return '<svg width="'+(s||16)+'" height="'+(s||16)+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+p+'</svg>'; };
+  var IC = {
+    down: SVG('<path d="M6 9l6 6 6-6"/>', 14), cal: SVG('<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>', 15),
+    check: SVG('<path d="M4.5 12.5l5 5L19.5 7"/>', 16), dl: SVG('<path d="M12 4v11M7.5 11l4.5 4.5 4.5-4.5M5 20h14"/>', 15)
+  };
+
+  /* every transaction in an uploaded PSP file, as Agathos Finance sees it */
+  var ALL = [];
+  Object.keys(F.PROJECTS).forEach(function(id){ F.rowsOf(id).forEach(function(r){ if(F.reconciled(r)) ALL.push(F.adminRow(r)); }); });
+  var PERIODS = F.MONTHS.filter(function(m){ return ALL.some(function(a){ return a.r.per === m; }); });
+  var LATEST = PERIODS[PERIODS.length - 1];
+  var PSPS = [['','All'],['stripe','Stripe'],['2c2p','2c2p'],['axs','AXS']];
+  /* filters of section 2 (C43–C44): a PSP and one payout period, the latest by default */
+  var V = { psp:'', per:LATEST, open:false };
+
+  function plural(n, one){ return n + ' ' + one + (n === 1 ? '' : 's'); }
+  function slice(){ return ALL.filter(function(a){ return a.r.per === V.per && (!V.psp || a.r.p.psp === V.psp); }); }
+  /* the summary section (C45–C51), in whole cents. Stripe's monthly charges come off what Stripe pays Agathos */
+  function sum(list){
+    var c = {gross:0, fees:0, payout:0, merchant:0, ag:0, master:0};
+    list.forEach(function(a){
+      c.gross += C(a.gross); c.fees += C(a.fees) + C(a.feeGift); c.payout += C(a.pspPayout); c.merchant += C(a.net); c.ag += C(a.toAgathos);
+      if(a.r.p.model === 'master') c.master++;
+    });
+    var o = F.otherCharges(list);
+    return {n:list.length, gross:c.gross/100, fees:c.fees/100, other:o, payout:(c.payout - C(o.total))/100, merchant:c.merchant/100, ag:c.ag/100, master:c.master};
+  }
+  /* the detail columns (C52–C59), one row per project or event */
+  function byProject(list){
+    var g = {}, order = [];
+    list.forEach(function(a){
+      var id = a.r.p.id;
+      if(!g[id]){ g[id] = {p:a.r.p, n:0, gross:0, fees:0, ag:0, net:0}; order.push(id); }
+      var x = g[id]; x.n++; x.gross += C(a.gross); x.fees += C(a.fees) + C(a.feeGift); x.ag += C(a.toAgathos); x.net += C(a.net);
+    });
+    return order.map(function(id){ return g[id]; }).sort(function(a, b){ return b.net - a.net; });
+  }
+
+  /* ---------- filter row ---------- */
+  function filters(){
+    var changed = V.psp || V.per !== LATEST;
+    return '<div class="card fin-bar">'
+      + '<div class="fin-f"><span class="lbl" id="l-psp">PSP</span><div class="fin-seg" role="group" aria-labelledby="l-psp">' + PSPS.map(function(o){
+          return '<button type="button" data-act="psp" data-v="' + o[0] + '" aria-pressed="' + (V.psp === o[0]) + '"' + (V.psp === o[0] ? ' class="on"' : '') + '>' + o[1] + '</button>';
+        }).join('') + '</div></div>'
+      + '<div class="fin-f period"><span class="lbl" id="l-per">Payout period</span><div class="fin-anchor">'
+      +   '<button class="fin-trig" type="button" data-act="openPeriod" aria-haspopup="listbox" aria-expanded="' + V.open + '" aria-labelledby="l-per">'
+      +     '<span class="ic">' + IC.cal + '</span><span class="v">' + F.payoutLabel(V.per) + '</span><span class="ic">' + IC.down + '</span></button>'
+      +   '<div class="fin-pop"' + (V.open ? '' : ' hidden') + '><div class="fin-menu" role="listbox" aria-labelledby="l-per">' + PERIODS.slice().reverse().map(function(m){
+            var on = m === V.per, n = ALL.filter(function(a){ return a.r.per === m && (!V.psp || a.r.p.psp === V.psp); }).length;
+            return '<button type="button" role="option" aria-selected="' + on + '" data-act="period" data-v="' + m + '"' + (on ? ' class="on"' : '') + '>' + IC.check + F.payoutLabel(m) + '<small>' + plural(n, 'transaction') + '</small></button>';
+          }).join('') + '</div></div>'
+      + '</div></div>'
+      + '<button class="fin-reset" type="button" data-act="reset"' + (changed ? '' : ' hidden') + '>Reset filters</button>'
+      + '</div>';
+  }
+
+  /* ---------- summary ---------- */
+  function cell(label, value, sub, cls){ return '<div class="pay-cell' + (cls ? ' ' + cls : '') + '"><span class="lbl">' + label + '</span><b>' + value + '</b>' + (sub || '') + '</div>'; }
+  function summary(s){
+    var o = s.other;
+    var date = s.master ? F.fmtDate(F.payoutDate(V.per)) : '—';
+    return '<section class="card pay-sum" aria-label="Summary">'
+      + cell('Payout Period', F.payoutLabel(V.per), '<small>PSP to Agathos / PSP to merchant payout</small>')
+      + cell('Total Trx Amt', F.money(s.gross), '<small>' + plural(s.n, 'transaction') + '</small>')
+      + cell('Total PSP trx Fees', F.money(s.fees), '<small>' + (s.gross ? (s.fees / s.gross * 100).toFixed(1) : '0') + '% of Total Trx Amt</small>')
+      + cell('Other PSP charges', F.money(o.total), '<ul><li><span>Account Volume Billing</span><span>' + F.money(o.volume) + '</span></li><li><span>Active Account Billing</span><span>' + F.money(o.active) + '</span></li><li><span>Payout Fee</span><span>' + F.money(o.payout) + '</span></li></ul>')
+      + cell('Total Payout to Agathos', F.money(s.payout))
+      + cell('Total Payout to Merchant', F.money(s.merchant), '<small>How much to disburse to each PO/EO: see the table below</small>', 'key')
+      + cell('Agathos to Merchant payout date', date, '<small>' + (s.master ? 'Applicable for master merchant model only' : 'No master merchant model payout in this view') + '</small>', s.master ? '' : 'na')
+      + '</section>';
+  }
+
+  /* ---------- by project ---------- */
+  function table(list){
+    var rows = byProject(list), n = F.num;
+    var tot = rows.reduce(function(t, x){ t.gross += x.gross; t.fees += x.fees; t.ag += x.ag; t.net += x.net; return t; }, {gross:0, fees:0, ag:0, net:0});
+    var head = '<tr><th>Project/Event</th><th class="r">Total Trx Amt</th><th class="r">Total PSP trx Fees</th><th class="r">Total Net to Agathos</th><th class="r" title="How much to disburse to each PO/EO">Total Net to Merchant</th></tr>';
+    var body = rows.map(function(x){
+      var p = x.p;
+      return '<tr><td><span class="tname">' + h(p.name) + '</span><span class="sub">' + h(F.ENTITIES[p.ent].name) + ' · ' + F.PSP_NAME[p.psp] + ' ' + F.MODEL_NAME[p.model] + ' · ' + plural(x.n, 'transaction') + '</span></td>'
+        + '<td class="num r">' + n(x.gross / 100) + '</td><td class="num r">' + n(x.fees / 100) + '</td><td class="num r">' + n(x.ag / 100) + '</td><td class="num r key">' + n(x.net / 100) + '</td></tr>';
+    }).join('');
+    var foot = '<tr><td>Total</td><td class="num r">' + n(tot.gross / 100) + '</td><td class="num r">' + n(tot.fees / 100) + '</td><td class="num r">' + n(tot.ag / 100) + '</td><td class="num r">' + n(tot.net / 100) + '</td></tr>';
+    return '<section class="card fin-tx" aria-labelledby="pay-t"><div class="fin-tx-head"><h2 id="pay-t">By project</h2><span class="n">' + rows.length + '</span></div>'
+      + (rows.length
+          ? '<div class="tablewrap"><table class="ct fin-t pay-t"><thead>' + head + '</thead><tbody>' + body + '</tbody><tfoot>' + foot + '</tfoot></table></div>'
+          : '<div class="tablewrap"><div class="fin-empty">No transactions for this PSP in this payout period.</div></div>')
+      + '</section>';
+  }
+
+  /* ---------- CSV: the summary, then one line per project ---------- */
+  function exportCSV(){
+    var list = slice(), s = sum(list), rows = byProject(list), esc = function(v){ v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    var head = [['PSP', V.psp ? F.PSP_NAME[V.psp] : 'All'], ['Payout Period', F.payoutLabel(V.per)], ['Total Trx Amt', s.gross.toFixed(2)], ['Total PSP trx Fees', s.fees.toFixed(2)],
+      ['Other PSP charges', s.other.total.toFixed(2)], ['Total Payout to Agathos', s.payout.toFixed(2)], ['Total Payout to Merchant', s.merchant.toFixed(2)],
+      ['Agathos to Merchant payout date', s.master ? F.payoutDate(V.per) : '']];
+    var lines = rows.map(function(x){ return [x.p.name, (x.gross / 100).toFixed(2), (x.fees / 100).toFixed(2), (x.ag / 100).toFixed(2), (x.net / 100).toFixed(2)]; });
+    var csv = head.map(function(r){ return r.map(esc).join(','); })
+      .concat(['', ['Project/Event','Total Trx Amt','Total PSP trx Fees','Total Net to Agathos','Total Net to Merchant'].join(',')], lines.map(function(r){ return r.map(esc).join(','); })).join('\n');
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+    link.download = 'agathos-summary-payout-' + V.per + '.csv';
+    document.body.appendChild(link); link.click(); link.remove();
+  }
+
+  function render(){
+    var list = slice(), s = sum(list);
+    CONTENT.innerHTML = '<div class="fin">'
+      + '<div class="pagehead"><h1>Summary Payout Report</h1><span class="spacer"></span><span class="meta">PSP files uploaded up to ' + F.fmtDate(F.UPLOADED) + '</span>'
+      +   '<div class="acts"><button class="btn" type="button" data-act="csv">' + IC.dl + 'Export .csv</button></div></div>'
+      + filters() + summary(s) + table(list) + '</div>';
+  }
+  function focusSoon(sel){ var el = CONTENT.querySelector(sel); if(el) el.focus(); }
+
+  var ACT = {
+    psp: function(t){ V.psp = t.getAttribute('data-v'); render(); },
+    openPeriod: function(){ V.open = !V.open; render(); if(V.open) focusSoon('.fin-menu [aria-selected="true"]'); },
+    period: function(t){ V.per = t.getAttribute('data-v'); V.open = false; render(); focusSoon('[data-act="openPeriod"]'); },
+    reset: function(){ V.psp = ''; V.per = LATEST; V.open = false; render(); },
+    csv: exportCSV
+  };
+  document.addEventListener('click', function(ev){
+    var t = ev.target.closest('[data-act]');
+    if(t && CONTENT.contains(t) && ACT[t.getAttribute('data-act')]){ ACT[t.getAttribute('data-act')](t); return; }
+    /* a click outside the open list closes it; a click that redrew the page has a target no longer on it */
+    if(V.open && ev.target.isConnected && !ev.target.closest('.fin-anchor')){ V.open = false; render(); }
+  });
+  document.addEventListener('keydown', function(ev){
+    var menu = ev.target.closest && ev.target.closest('.fin-menu');
+    if(menu && (ev.key === 'ArrowDown' || ev.key === 'ArrowUp')){
+      var items = [].slice.call(menu.querySelectorAll('[role="option"]')), i = items.indexOf(ev.target) + (ev.key === 'ArrowDown' ? 1 : -1);
+      if(items[i]) items[i].focus();
+      ev.preventDefault(); return;
+    }
+    if(ev.key === 'Escape' && V.open){ V.open = false; render(); focusSoon('[data-act="openPeriod"]'); }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

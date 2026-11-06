@@ -369,3 +369,62 @@ Anh duyệt plan, kèm câu trả lời về AXS: *"AXS trong excel có thông t
   - nút ×;
   - đang ghép dấu thì không lọc;
   - bấm dòng project thì tên điền vào thanh tìm kiếm.
+
+---
+
+## 12. Đối chiếu lại với file copy (có định dạng) và làm báo cáo mục 2 (06/11/2026). Anh đã duyệt ("LÀM THEO ĐỀ XUẤT ĐI"). Chưa commit.
+
+**Em đọc sai.** Lúc trước em đọc Excel bằng script chỉ lấy chữ, nên mất định dạng (gạch ngang, màu). Đọc lại có định dạng:
+- Mục 1 "Transaction Report (All trx)" **bị gạch**, thay bằng **3.0** "Transaction report (all trx) v2". Đây là trang `/finance` hiện tại.
+- Câu của Rach *"Same thought to have the two sections combined to one"* **bị gạch**, nghĩa là **không gộp**.
+- Mục 2 *"Summary Payout Report Per PSP Settlement period — we will use this"* vẫn phải làm, thành **báo cáo thứ hai**.
+- Intro trong file copy khác file cũ: D5 (không có benTip cho Hidden Cause), D6 (phí AXS cộng $0.20 / $0.10), A13 (ngày Stripe và 2c2p trả tiền), D8 (Rach cần biết donor love gift để clawback).
+
+**Đã sửa theo file copy:**
+- `assets/finance-data.js`:
+  - Sunny Days (AXS) không còn Beneficiary Love Gift.
+  - Phí AXS thật = 1.2% + $0.20 (thẻ trong nước), 2.8% + $0.10 (thẻ quốc tế), 0.4% (PayNow).
+  - Ngày PSP trả: Stripe vào ngày làm việc đầu tiên của tháng sau; 2c2p T+3 ngày làm việc. AXS chưa có báo cáo (D8), nên vẫn là số mẫu T+2 ngày làm việc.
+  - Total Disbursed = net to merchant cho cả 3 mô hình (Elaine B103). Trước đây Connect bị để bằng 0.
+- `assets/financial-report.js`: bảng Invoices của charity AXS bỏ cột Beneficiary love gift, vì cột này giờ luôn bằng 0.
+- `finance.html`: thêm ô "Donor love gift to claw back (AXS)" (Intro D8, E89), và thêm dòng này vào CSV.
+
+**Làm mục 2, file mới `finance-payouts.html`:**
+- **Menu Finance có 2 mục:** "Transaction Report" (trang 3.0, đổi tên từ "Financial Report") và "Summary Payout Report" (mới).
+- **Bộ lọc** (C43–C44): PSP; Payout period chọn 1 kỳ, mặc định là kỳ mới nhất. Cả 2 đều là ô tự vẽ. Có "Reset filters".
+- **Tóm tắt** (C45–C51), 7 dòng:
+  - Payout Period
+  - Total Trx Amt
+  - Total PSP trx Fees
+  - Other PSP charges (liệt kê từng khoản)
+  - Total Payout to Agathos
+  - Total Payout to Merchant
+  - Agathos to Merchant payout date: chỉ hiện khi có mô hình Master (D51), theo luật ngày 20 của tháng sau.
+- **Bảng gom theo project** (A41, C52–C59): Project/Event, Total Trx Amt, Total PSP trx Fees, Total Net to Agathos, Total Net to Merchant ("How much to disburse to each PO/EO"), và dòng tổng.
+  - 3 cột ngân hàng (C53–C55) chưa đưa vào, vì sheet ghi "To be included in the future as part of onboarding".
+- Có nút Export .csv.
+- **CSS dùng chung** của 2 trang chuyển ra file `assets/finance-admin.css`.
+
+**Kiểm tra nghiệm thu:**
+- Đủ 7 dòng tóm tắt và 5 cột.
+- Tổng mỗi project khớp với tổng các giao dịch của nó bên Transaction Report.
+- Total Payout to Merchant = tổng cột Total Net to Merchant.
+- Ngày Agathos trả chỉ hiện khi có mô hình Master.
+- Bộ lọc PSP và kỳ đúng; CSV đúng; menu sáng đúng mục ở cả 2 trang.
+
+**Nhật ký mục 12 (06/11/2026). Chưa commit.**
+- **File mới:**
+  - `finance-payouts.html`: Summary Payout Report.
+  - `assets/finance-admin.css`: CSS dùng chung của 2 trang Finance, chuyển nguyên từ `finance.html`.
+- **`assets/shell.js`:** menu Finance có 2 mục, Transaction Report và Summary Payout Report. Nhóm Finance mở sẵn ở cả 2 trang.
+- **`finance.html`:** đổi tên thành "Transaction Report" (title, tiêu đề, tên file CSV).
+- **Số mẫu của Summary Payout Report**, kỳ mặc định Nov 2026 (doanh thu tháng 10, file PSP đến 25/10): 41 giao dịch, Total Payout to Merchant S$6,538.15, Agathos to Merchant payout date 20 Nov 2026.
+- **Đã kiểm tra:**
+  - Script trang mới: 17/17 qua. Gồm menu, kỳ mặc định, 7 dòng tóm tắt đúng thứ tự, 5 cột; mỗi dòng project bằng tổng các giao dịch của nó và khớp Net payout chủ project thấy; Total Payout to Merchant bằng tổng cột; ngày Agathos trả chỉ hiện khi có Master; lọc theo PSP và kỳ; CSV.
+  - Transaction Report: 42/42 qua. Thêm các kiểm tra theo file copy: D5, D6, A13, D8 và B103/B104.
+  - Trang chủ project: 52/52 qua.
+- **Còn chờ team trả lời:**
+  - E13: còn cần cột "Computed PSP Payout to Agathos" không?
+  - C90: Total to Agathos có cộng Platform Fee không? Hiện đang cộng.
+  - Định nghĩa Tally check.
+  - Ngày AXS trả tiền: AXS chưa có báo cáo.

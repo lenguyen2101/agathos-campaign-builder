@@ -1,8 +1,9 @@
 /* ============================================================================
    Agathos — financial report sample data, shared by the owner pages
    (/financial-report) and the Agathos admin page (/finance).
-   Rules come from "Agathos Financial Report Reconcilation copy.xlsx":
+   Rules come from "Agathos Financial Report Reconcilation copy.xlsx" (the newest version of the file):
      fees           sheet Intro, rows 5 (Agathos to merchant) and 6 (PSP to Agathos)
+     PSP pay dates  sheet Intro, A13
      admin columns  sheet "Agathos Financial Reports", section 3.0, and Elaine's
                     definitions per PSP model (B100–D104)
    Sample data: one payout a month, on the 20th of the next month, named after the
@@ -24,7 +25,8 @@ var PROJECTS={
   concert: {id:'concert',  ent:'antioch',  name:'Benefit concert for the unseen',   kind:'event',   psp:'2c2p',   model:'master',  mid:'764764000011923', ben:.03, tip:0,  n:18, from:'2026-08', img:'project-carnival.jpg', when:['2026-11-15T19:00','2026-11-15T22:00'],
             tickets:[{name:'Benefit concert for the unseen - Student / NSF', price:35}, {name:'Benefit concert for the unseen - Working Adults', price:60}]},
   care:    {id:'care',     ent:'personal', name:'Care packages for migrant workers', kind:'project', psp:'stripe', model:'master',  ben:.05, tip:.5, n:6,  from:'2026-05', goal:8000,  img:'hero-3.jpg'},
-  sunny:   {id:'sunny',    ent:'sunshine', name:'Sunny Days for Seniors',           kind:'project', psp:'axs',    model:'direct',  mid:'30019871', ipc:true, ben:.05, tip:.4, n:10, from:'2026-01', goal:40000, img:'hero-2.jpg'}
+  /* AXS is the Hidden Cause route: no beneficiary love gift there (Intro D5) */
+  sunny:   {id:'sunny',    ent:'sunshine', name:'Sunny Days for Seniors',           kind:'project', psp:'axs',    model:'direct',  mid:'30019871', ipc:true, ben:0,   tip:.4, n:10, from:'2026-01', goal:40000, img:'hero-2.jpg'}
 };
 /* Manage Pages: the account's own pages and the organisations it belongs to.
    Agathos pays each one with one transfer per payout date, to that one's bank account.
@@ -80,7 +82,7 @@ function pspFee(psp, method, intl, amt){
   var card=method!=='PayNow';
   if(psp==='stripe') return c2(card ? (intl?.039:.034)*amt+.5 : .013*amt*1.09);
   if(psp==='2c2p') return c2(card ? ((intl?.034:.028)*amt+.2)*1.09 : .008*amt*1.09);
-  return c2((card ? (intl?.028:.012) : .004)*amt);
+  return c2(card ? (intl ? .028*amt+.1 : .012*amt+.2) : .004*amt);
 }
 /* the PSP fee on a donor love gift: the percentage part only (sheet DB Table, psp_fee_on_donor_lovegift) */
 function pspFeeOnGift(psp, method, intl, tip){
@@ -185,8 +187,11 @@ function payout(per, eid){
 /* ---------- admin: one transaction as Agathos Finance sees it ----------
    Only transactions in an uploaded PSP file ("after reconciliation data from PSP file", A2). */
 function reconciled(r){ return r.day<=UPLOADED; }
-/* sample settlement lags from the transaction date */
-function pspPayoutDate(r){ return addDays(r.day, r.p.psp==='stripe' ? 7 : r.p.psp==='2c2p' ? 3 : 2); }
+/* Intro A13: Stripe pays on the first business day of the month (for the month before); 2c2p three business days
+   after the transaction. AXS has not sent a report yet (Intro D8), so its two business days are a sample */
+function businessDay(iso){ var w=weekday(iso); return w===6 ? addDays(iso,2) : w===0 ? addDays(iso,1) : iso; }
+function addBusinessDays(iso, n){ var x=iso; while(n>0){ x=addDays(x,1); var w=weekday(x); if(w!==0 && w!==6) n--; } return x; }
+function pspPayoutDate(r){ return r.p.psp==='stripe' ? businessDay(nextMonth(r.per)+'-01') : addBusinessDays(r.day, r.p.psp==='2c2p' ? 3 : 2); }
 function merchantId(p){ return p.model==='connect' ? ENTITIES[p.ent].acct : p.mid || ''; }
 function adminRow(r){
   var p=r.p, C=cents, gross=C(r.recv)+C(r.tip), fees, feeGift, finalGift;
@@ -194,7 +199,9 @@ function adminRow(r){
   else { feeGift=r.tip ? C(pspFeeOnGift(p.psp, r.method, r.intl, r.tip)) : 0; fees=C(pspFee(p.psp, r.method, r.intl, r.recv)); finalGift=C(r.tip)-feeGift; }
   var margin=C(r.fee)-fees, net=C(r.net), toAgathos=C(r.ben)+finalGift+margin;
   var toAgathosFromPsp = p.model==='direct' ? margin : p.model==='connect' ? gross-fees-feeGift-net : gross-fees-feeGift;
-  var disbursed = p.model==='connect' ? 0 : net, paidOut = p.model==='connect' ? net : 0;
+  /* Elaine's table (B103): Total Disbursed is the total net to merchant for every model, Connect included;
+     Total Paid Out (Connect) is the Connect part of it */
+  var disbursed = net, paidOut = p.model==='connect' ? net : 0;
   var final = p.model==='connect' ? toAgathosFromPsp : p.model==='master' ? toAgathosFromPsp-disbursed : toAgathosFromPsp+finalGift;
   var x=function(v){ return v/100; };
   return {r:r, gross:x(gross), fees:x(fees), margin:x(margin), bene:isEv(p)?0:r.ben, platform:isEv(p)?r.ben:0, net:r.net,

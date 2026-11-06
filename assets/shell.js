@@ -57,7 +57,7 @@ function navSub(label, kids, open){
 }
 
 /* activeKey: which leaf is highlighted — 'project', 'campaign',
-   'homepage-hero', 'other-slides' or 'finance'. The Requests screen hangs off the Project
+   'homepage-hero', 'other-slides', 'finance' (Transaction Report) or 'finance-payouts' (Summary Payout Report). The Requests screen hangs off the Project
    list, so it keeps Project highlighted. */
 function mountShell(activeKey){
   var collapsed = localStorage.getItem(SHELL_KEY) === '1';
@@ -90,10 +90,11 @@ function mountShell(activeKey){
     +   '<span class="lbl">Org Management</span><span class="chev">' + icon('chev', 14) + '</span></button>'
     +   '<div class="kids">' + navLeaf('Organization') + '</div>'
     + '</div>'
-    + '<div class="grp' + (activeKey === 'finance' ? ' open' : '') + '">'
+    + '<div class="grp' + (/^finance/.test(activeKey || '') ? ' open' : '') + '">'
     +   '<button type="button" onclick="toggleNavGroup(this)"><span>' + icon('finance') + '</span>'
     +   '<span class="lbl">Finance</span><span class="chev">' + icon('chev', 14) + '</span></button>'
-    +   '<div class="kids">' + navLeaf('Financial Report', 'finance.html', activeKey === 'finance') + '</div>'
+    +   '<div class="kids">' + navLeaf('Transaction Report', 'finance.html', activeKey === 'finance')
+    +     navLeaf('Summary Payout Report', 'finance-payouts.html', activeKey === 'finance-payouts') + '</div>'
     + '</div>'
     + '<a href="#" onclick="return false"><span>' + icon('heart') + '</span><span class="lbl">Health</span></a>'
     + '<a href="#" onclick="return false"><span>' + icon('settings') + '</span><span class="lbl">Configuration</span></a>'
