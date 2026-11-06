@@ -17,6 +17,9 @@ var EMAIL_TAKEN=['lenguyen2101@gmail.com'];
 var BAD_USER=/[<>&"'\s$%!#?§,;:*~\/\\|^=\[\]{}()`]/;
 var BAD_NAME=/[<>&"$%!#?§;*~\/\\|^=\[\]{}()]/;
 function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+var DAY=864e5;
+var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function when(ms){ var d=new Date(ms); return d.getDate()+' '+MON[d.getMonth()]+' '+d.getFullYear()+', '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
 var MSG={
   usernameRequired:'Please enter a username.',
   usernameLength:'Username must be between 3 and 255 characters.',
@@ -30,7 +33,8 @@ var MSG={
   emailTaken:'An account with this email already exists. Try logging in or resetting your password.',
   passwordRequired:'Please enter a password.',
   passwordMatch:'Passwords don’t match.',
-  saveFailed:'We couldn’t save your change. Please try again.'
+  saveFailed:'We couldn’t save your change. Please try again.',
+  tooSoon:function(f, t){ return 'You changed your '+NAMES[f]+' less than 24 hours ago. Try again after '+t+'.'; }
 };
 function check(f, v){
   if(f==='username'){
@@ -49,9 +53,9 @@ function check(f, v){
 var S;
 function fresh(){
   return {
-    left:{username:2, firstName:2, lastName:2},
+    last:{username:0, firstName:0, lastName:0},
     vals:{username:'lenguyen2101', firstName:'Nguyen', lastName:'Le'},
-    edit:null, draft:'', err:'', modal:null, failNext:false,
+    edit:null, draft:'', err:'', modal:null,
     other:{gender:'male', bio:'Christian. Vietnamese. Product Designer.', news:true, dirty:false},
     su:{v:{first:'', last:'', email:'', username:'', pw:'', pw2:''}, e:{}, show:{}, done:false}
   };
@@ -71,10 +75,8 @@ var I={
   pen:ic('<path d="M12.8 3.7l3.5 3.5L7.5 16H4v-3.5z"/><path d="M11 5.5l3.5 3.5"/>'),
   lock:ic('<rect x="4.5" y="8.5" width="11" height="8" rx="1.8"/><path d="M7 8.5V6.5a3 3 0 0 1 6 0v2"/>'),
   info:ic('<circle cx="10" cy="10" r="7.5"/><path d="M10 9v4.5M10 6.4v.1"/>'),
-  count:ic('<path d="M15.5 6.5A6.5 6.5 0 1 0 16.5 10"/><path d="M16.5 3.5v3.3h-3.3"/>'),
-  mail:ic('<rect x="2.5" y="4.5" width="15" height="11" rx="2"/><path d="M3 5.5l7 5.5 7-5.5"/>'),
+  clock:ic('<circle cx="10" cy="10" r="7.5"/><path d="M10 5.8V10l2.8 1.8"/>'),
   err:'<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.5" fill="currentColor"/><path d="M10 5.8v5.4" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="10" cy="14.1" r="1.2" fill="#fff"/></svg>',
-  warn:ic('<path d="M10 2.8l7.8 13.6H2.2z"/><path d="M10 8v4M10 14.3v.1"/>',' stroke-width="1.7"'),
   down:ic('<path d="M5 7.5l5 5 5-5"/>',' stroke-width="1.8"'),
   tick:'<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="#111"/><path d="M6 10.3l2.7 2.6L14 7.5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   vn:'<svg viewBox="0 0 30 20" aria-hidden="true"><rect width="30" height="20" fill="#DA251D"/><path d="M15 4.2l1.6 4.9h5.2l-4.2 3 1.6 4.9-4.2-3-4.2 3 1.6-4.9-4.2-3h5.2z" fill="#FFCD00"/></svg>',
@@ -86,19 +88,21 @@ function h(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ retu
 
 /* ============ ACCOUNT SETTINGS ============ */
 function same(f){ return f==='username' ? S.draft===S.vals[f] : S.draft.trim()===S.vals[f]; }
-function limited(f){
-  var left=S.left[f], ed=S.edit===f;
-  var act=ed ? '' : left>0 ? '<button class="as-change" type="button" data-act="edit" data-f="'+f+'">'+I.pen+'Change</button>' : '<span class="as-locked">'+I.lock+'No changes left</span>';
+/* each field can change once every 24 hours; returns when it unlocks, or 0 */
+function until(f){ var t=S.last[f]; return t && Date.now()-t<DAY ? t+DAY : 0; }
+function limited(f, cls){
+  var lock=until(f), ed=S.edit===f;
+  var act=ed || lock ? '' : '<button class="as-change" type="button" data-act="edit" data-f="'+f+'">'+I.pen+'Change</button>';
   var input=ed
     ? '<input class="as-in edit'+(S.err?' err':'')+'" id="as-'+f+'" value="'+h(S.draft)+'" data-draft="'+f+'" autocomplete="off" spellcheck="false" aria-invalid="'+(S.err?'true':'false')+'" aria-describedby="as-'+f+'-err">'
     : '<input class="as-in" id="as-'+f+'" value="'+h(S.vals[f])+'" disabled>';
-  var notes=(f==='username' ? '<p class="as-note pub">'+I.info+'<span>'+PUBLIC+'</span></p>' : '')+
-    '<p class="as-note">'+I.count+'<span>You have <b>'+left+' of 2</b> '+NAMES[f]+' changes remaining for this account.</span></p>'+
-    (left===0 ? '<p class="as-note">'+I.mail+'<span>Need another change? Contact us at <a href="mailto:hello@agathos.be">hello@agathos.be</a>.</span></p>' : '');
-  return '<div class="as-f" data-field="'+f+'">'+
+  var notes=(!ed && lock ? '<p class="as-note lock">'+I.lock+'<span>Change again after '+when(lock)+'</span></p>' : '')+
+    (f==='username' ? '<p class="as-note pub">'+I.info+'<span>'+PUBLIC+'</span></p>' : '')+
+    (ed ? '<p class="as-note">'+I.clock+'<span>You can change your '+NAMES[f]+' once every 24 hours.</span></p>' : '');
+  return '<div class="as-f'+(cls?' '+cls:'')+'" data-field="'+f+'">'+
     '<div class="as-lbl"><label for="as-'+f+'">'+LABELS[f]+'</label>'+act+'</div>'+input+
     '<p class="as-err" id="as-'+f+'-err"'+(ed && S.err ? '' : ' hidden')+'>'+I.err+'<span>'+h(S.err)+'</span></p>'+notes+
-    (ed ? '<div class="as-acts"><button class="as-btn ghost" type="button" data-act="cancel">Cancel</button><button class="as-btn primary" type="button" data-act="save" id="as-fsave"'+(same(f)?' disabled':'')+'>Save</button></div>' : '')+
+    (ed ? '<div class="as-acts"><button class="as-btn ghost" type="button" data-act="cancel">Cancel</button><button class="as-btn primary" type="button" data-act="save" id="as-fsave"'+(same(f) || lock?' disabled':'')+'>Save</button></div>' : '')+
   '</div>';
 }
 function settings(){
@@ -107,30 +111,31 @@ function settings(){
   return '<div class="as"><div class="as-inner">'+
     '<aside class="as-side"><nav class="as-crumb" aria-label="Breadcrumb"><a href="home.html" aria-label="Home">'+I.home+'</a>'+I.crumb+'<a href="#/settings">Profile</a>'+I.crumb+'<span>Account Settings</span></nav>'+
       '<h1>Account Settings</h1><ul class="as-menu">'+menu.map(function(m){ return '<li><a href="#/settings"'+(m[2]?' class="on" aria-current="page"':'')+'>'+m[0]+'<span>'+m[1]+'</span>'+I.right+'</a></li>'; }).join('')+'</ul></aside>'+
+    '<div class="as-main">'+
+    '<section class="as-card as-names"><div class="as-card-head"><h2>Username and name</h2></div>'+
+      '<div class="as-grid">'+limited('username','full')+limited('firstName')+limited('lastName')+'</div>'+
+    '</section>'+
     '<section class="as-card"><div class="as-card-head"><h2>Account Information</h2><button class="as-save" type="button" data-act="saveOther"'+(o.dirty?'':' disabled')+'>Save</button></div>'+
       '<div class="as-grid">'+
-        limited('username')+
         '<div class="as-f"><div class="as-lbl"><label for="as-email">Email</label></div><input class="as-in" id="as-email" value="lenguyen2101@gmail.com" disabled></div>'+
-        limited('firstName')+limited('lastName')+
         '<div class="as-f"><div class="as-lbl"><span class="l">Phone Number</span></div><div class="as-phone"><span class="cc">'+I.vn+'VN'+I.down+'</span><input value="+84 793 617 115" data-other aria-label="Phone number"></div></div>'+
         '<div class="as-f"><div class="as-lbl"><span class="l">Gender</span></div><div class="as-gender">'+
           '<button type="button" data-act="gender" data-g="male" class="'+(o.gender==='male'?'on':'')+'">Male'+(o.gender==='male'?I.tick:'')+'</button>'+
           '<button type="button" data-act="gender" data-g="female" class="'+(o.gender==='female'?'on':'')+'">Female'+(o.gender==='female'?I.tick:'')+'</button></div></div>'+
-        '<div class="as-f full"><div class="as-lbl big"><label>Language</label></div><button class="as-lang" type="button">English'+I.down+'</button></div>'+
+        '<div class="as-f"><div class="as-lbl"><label>Language</label></div><button class="as-lang" type="button">English'+I.down+'</button></div>'+
         '<div class="as-f full"><div class="as-lbl"><label for="as-bio">Bio</label></div><div class="as-bio"><textarea id="as-bio" maxlength="200" data-other>'+h(o.bio)+'</textarea><span id="as-bio-n">'+o.bio.length+'/200</span></div></div>'+
       '</div>'+
       '<label class="as-toggle"><input type="checkbox" data-other'+(o.news?' checked':'')+'><i></i>I want to receive updates on latest news and events.</label>'+
-    '</section></div></div>';
+    '</section></div></div></div>';
 }
 function modal(){
   var m=S.modal; if(!m) return '';
-  var f=m.f, after=S.left[f]-1, n=NAMES[f];
+  var f=m.f, n=NAMES[f];
   return '<div class="md-wrap" data-act="mdBackdrop"><div class="md" role="dialog" aria-modal="true" aria-labelledby="md-t">'+
     '<h3 id="md-t">Change your '+n+'?</h3>'+
     '<dl class="diff"><div><dt>Current</dt><dd>'+h(S.vals[f])+'</dd></div><div class="new"><dt>New</dt><dd>'+h(m.to)+'</dd></div></dl>'+
     (f==='username' ? '<p>Your new username will be displayed publicly next to your donations.</p>' : '')+
-    '<p>After this change, you will have <b>'+after+' of 2</b> '+n+' changes remaining for this account.</p>'+
-    (after===0 ? '<div class="warn">'+I.warn+'<span>This is your last '+n+' change. After this, you won’t be able to change it yourself.</span></div>' : '')+
+    '<p>You won’t be able to change your '+n+' again until <b>'+when(Date.now()+DAY)+'</b>.</p>'+
     '<div class="acts"><button class="as-btn ghost" type="button" data-act="mdCancel">Cancel</button><button class="as-btn primary" type="button" data-act="mdConfirm">Change '+n+'</button></div>'+
   '</div></div>';
 }
@@ -172,12 +177,12 @@ function suValidate(){
 /* ============ FLOW & MESSAGES ============ */
 function flow(){
   var steps=[
-    ['Account Information','Each of the three fields shows “You have 2 of 2 … changes remaining for this account.”'],
-    ['Change','Click Change next to Username, First Name or Last Name. The field opens for editing.'],
+    ['Username and name','Username, First Name and Last Name sit in their own box. Each has its own Change button.'],
+    ['Change','The field opens for editing, with “You can change your [field] once every 24 hours.”'],
     ['Type the new value','Rules are checked on Save, then live as the person fixes the error.'],
-    ['Save','Opens the confirmation modal: current → new, and how many changes are left after.'],
-    ['Confirm','The value is saved, the count drops by one, and a toast confirms it.'],
-    ['No changes left','At 0 of 2, Change becomes “No changes left”, with a line to contact the team.']
+    ['Save','Opens the confirmation modal: current → new, and when the field can be changed again.'],
+    ['Confirm','The value is saved and a toast confirms it.'],
+    ['Locked for 24 hours','Change becomes “Change again after [date, time]” until 24 hours have passed.']
   ];
   var rows=[
     ['Username',[
@@ -197,8 +202,9 @@ function flow(){
       ['Empty',MSG.passwordRequired,'signup','Please specify password.','missingPasswordMessage'],
       ['Confirmation differs',MSG.passwordMatch,'signup','Password confirmation doesn\'t match.','invalidPasswordConfirmMessage']]],
     ['Account settings only',[
-      ['Save fails (server or network); no change is used',MSG.saveFailed,'settings','',''],
-      ['No changes left (a state, not an error)','You have 0 of 2 username changes remaining for this account. Need another change? Contact us at hello@agathos.be.','settings','','']]]
+      ['Save fails (server or network); the 24 hours don’t start',MSG.saveFailed,'settings','',''],
+      ['Field changed less than 24 hours ago, e.g. on another device',MSG.tooSoon('username','7 Nov 2026, 14:32'),'settings','',''],
+      ['Changed in the last 24 hours (a state, not an error)','Change again after 7 Nov 2026, 14:32','settings','','']]]
   ];
   var where={both:'Sign up, Account settings', signup:'Sign up', settings:'Account settings'};
   return '<div class="fm"><div class="fm-inner">'+
@@ -206,9 +212,9 @@ function flow(){
     '<h2>Changing a field in Account settings</h2>'+
     '<div class="fm-flow">'+steps.map(function(s,i){ return '<div class="fm-step"><span class="n">'+String(i+1).padStart(2,'0')+'</span><b>'+s[0]+'</b><p>'+s[1]+'</p></div>'; }).join('')+'</div>'+
     '<div class="fm-branches">'+
-      '<div class="fm-branch"><b>Cancel</b>In the field or in the modal. Nothing changes and no change is used.</div>'+
-      '<div class="fm-branch"><b>Last change</b>With 1 of 2 left, the modal warns that the field can’t be changed again after this.</div>'+
-      '<div class="fm-branch"><b>Save fails</b>The field stays open with an error. No change is used. Try it with “Next save fails” in the bar above.</div>'+
+      '<div class="fm-branch"><b>Cancel</b>In the field or in the modal. Nothing changes and the 24 hours don’t start.</div>'+
+      '<div class="fm-branch"><b>Changed on another device</b>If the field changed elsewhere in the last 24 hours, the server refuses and the field shows when it can change again. See it with “Changed on another device” in the bar above.</div>'+
+      '<div class="fm-branch"><b>Save fails</b>The field stays open with an error. The 24 hours don’t start. See it with “Save fails” in the bar above.</div>'+
     '</div>'+
     '<h2>Error messages</h2>'+
     '<div class="fm-wrap"><table class="fm-table"><thead><tr><th>When</th><th>Message</th><th>Shown on</th><th>Keycloak today (sign up)</th></tr></thead><tbody>'+
@@ -219,19 +225,21 @@ function flow(){
     '<h2>Notes for the team</h2><ul class="fm-notes">'+
       '<li>The rules are Keycloak’s defaults: username 3 to 255 characters, no spaces or the symbols listed; names up to 255 characters. <span class="tbc">To check</span> whether the Agathos realm changes them.</li>'+
       '<li>To show the new messages on sign up, override the keys above in the realm’s Localization tab. <code>error-invalid-length</code> and <code>error-invalid-length-too-long</code> are shared by every field, so the text needs the field name placeholder <code>{0}</code>, e.g. “{0} must be between {1} and {2} characters.” The prohibited-character validators accept their own message key in the User Profile settings.</li>'+
-      '<li>Account settings should check the same rules before saving, and the backend still has the last word (for example a username taken a second earlier).</li>'+
-      '<li>New copy waiting for approval <span class="tbc">To confirm</span>: the modal text, the last-change warning, “No changes left”, the contact line, and the messages that differ from Keycloak’s.</li>'+
-      '<li>Questions <span class="tbc">To confirm</span>: does a change count if someone changes back to an old value? Should we email the person after each change?</li>'+
+      '<li>Account settings should check the same rules before saving, and the backend still has the last word (for example a username taken a second earlier, or a change made on another device in the last 24 hours).</li>'+
+      '<li>Each field has its own 24 hours: changing the username doesn’t lock the first name or last name. Times show in the person’s own time zone.</li>'+
+      '<li>New copy waiting for approval <span class="tbc">To confirm</span>: the box title “Username and name”, the 24-hour line, the modal text, “Change again after …”, and the messages that differ from Keycloak’s.</li>'+
+      '<li>Questions <span class="tbc">To confirm</span>: does the first change also have to wait 24 hours after sign-up? Should we email the person after each change?</li>'+
     '</ul></div></div>';
 }
 
 /* ============ page ============ */
 function route(){ var x=location.hash; return x==='#/signup' ? 'signup' : x==='#/flow' ? 'flow' : 'settings'; }
 function review(r){
-  var all=function(n){ return S.left.username===n && S.left.firstName===n && S.left.lastName===n; };
+  var locked=Object.keys(S.last).filter(until).length;
   var ctl='';
-  if(r==='settings') ctl='<em>Changes left</em>'+[2,1,0].map(function(n){ return '<button type="button" data-act="setLeft" data-n="'+n+'"'+(all(n)?' class="on"':'')+'>'+n+' of 2</button>'; }).join('')+
-    '<button type="button" data-act="failNext"'+(S.failNext?' class="on"':'')+'>Next save fails</button><button type="button" data-act="reset">Reset</button><em>Taken: admin, agathos, wallytham</em>';
+  if(r==='settings') ctl='<button type="button" data-act="setLock" data-v="0"'+(locked===0?' class="on"':'')+'>Can change</button><button type="button" data-act="setLock" data-v="1"'+(locked===3?' class="on"':'')+'>Changed 3 hours ago</button>'+
+    '<button type="button" data-act="demoFail">Save fails</button><button type="button" data-act="demoElsewhere">Changed on another device</button>'+
+    '<button type="button" data-act="reset">Reset</button><em>Taken: admin, agathos, wallytham</em>';
   if(r==='signup') ctl='<button type="button" data-act="suErrors">Show errors</button><button type="button" data-act="suReset">Reset</button><em>Taken: admin, agathos · lenguyen2101@gmail.com</em>';
   return '<span class="t">Task #220 <span>· Change username, first and last name</span></span>'+
     '<nav class="t2-tabs" aria-label="Screens">'+[['signup','Sign up'],['settings','Account settings'],['flow','Flow & messages']].map(function(t){ return '<a href="#/'+t[0]+'"'+(r===t[0]?' class="on" aria-current="page"':'')+'>'+t[1]+'</a>'; }).join('')+'</nav>'+
@@ -254,7 +262,7 @@ function showErr(){
   if(!el) return;
   el.classList.toggle('err', !!S.err); el.setAttribute('aria-invalid', S.err?'true':'false');
   p.hidden=!S.err; p.querySelector('span').textContent=S.err;
-  b.disabled=same(f);
+  b.disabled=same(f) || !!until(f);
 }
 function trySave(){
   var f=S.edit, v=f==='username' ? S.draft : S.draft.trim();
@@ -274,11 +282,12 @@ var ACT={
   mdBackdrop:function(t, ev){ if(ev.target===t) closeModal(); },
   mdConfirm:function(){
     var f=S.modal.f, to=S.modal.to; S.modal=null;
-    if(S.failNext){ S.failNext=false; S.err=MSG.saveFailed; render(true); focusDraft(); return; }
-    S.vals[f]=to; S.left[f]--; S.edit=null; S.err=''; render(true); toast(cap(NAMES[f])+' changed');
+    S.vals[f]=to; S.last[f]=Date.now(); S.edit=null; S.err=''; render(true); toast(cap(NAMES[f])+' changed');
   },
-  setLeft:function(t){ var n=+t.getAttribute('data-n'); S.left={username:n, firstName:n, lastName:n}; S.edit=null; S.err=''; render(true); },
-  failNext:function(){ S.failNext=!S.failNext; render(true); },
+  setLock:function(t){ var at=t.getAttribute('data-v')==='1' ? Date.now()-3*36e5 : 0; S.last={username:at, firstName:at, lastName:at}; S.edit=null; S.err=''; render(true); },
+  /* the two server errors, shown straight away on a field that is open with a new value */
+  demoFail:function(){ S.modal=null; S.last.username=0; S.edit='username'; S.draft=S.vals.username==='nguyenle' ? 'nguyenle2' : 'nguyenle'; S.err=MSG.saveFailed; render(true); focusDraft(); },
+  demoElsewhere:function(){ S.modal=null; S.last.firstName=Date.now()-3*36e5; S.edit='firstName'; S.draft='Ann'; S.err=MSG.tooSoon('firstName', when(until('firstName'))); render(true); focusDraft(); },
   reset:function(){ S=fresh(); render(true); },
   gender:function(t){ S.other.gender=t.getAttribute('data-g'); S.other.dirty=true; render(true); },
   saveOther:function(){ S.other.dirty=false; render(true); toast('Saved'); },
@@ -294,7 +303,7 @@ document.addEventListener('click', function(ev){
 });
 document.addEventListener('input', function(ev){
   var el=ev.target;
-  if(el.hasAttribute('data-draft')){ S.draft=el.value; if(S.err){ var v=S.edit==='username'?S.draft:S.draft.trim(); S.err=check(S.edit, v); } showErr(); return; }
+  if(el.hasAttribute('data-draft')){ S.draft=el.value; if(S.err && !until(S.edit)){ var v=S.edit==='username'?S.draft:S.draft.trim(); S.err=check(S.edit, v); } showErr(); return; }
   if(el.hasAttribute('data-su')){ S.su.v[el.getAttribute('data-su')]=el.value; return; }
   if(el.hasAttribute('data-other')){
     if(el.id==='as-bio'){ S.other.bio=el.value; document.getElementById('as-bio-n').textContent=el.value.length+'/200'; }
@@ -307,7 +316,7 @@ document.addEventListener('change', function(ev){
 document.addEventListener('keydown', function(ev){
   if(S.modal && ev.key==='Escape'){ closeModal(); return; }
   if(ev.target.hasAttribute && ev.target.hasAttribute('data-draft')){
-    if(ev.key==='Enter'){ ev.preventDefault(); if(!same(S.edit)) trySave(); }
+    if(ev.key==='Enter'){ ev.preventDefault(); if(!same(S.edit) && !until(S.edit)) trySave(); }
     if(ev.key==='Escape'){ ACT.cancel(); }
   }
   if(ev.target.hasAttribute && ev.target.hasAttribute('data-su') && ev.key==='Enter'){ ev.preventDefault(); ACT.suSubmit(); }
