@@ -303,3 +303,57 @@ Anh duyệt plan, kèm câu trả lời về AXS: *"AXS trong excel có thông t
 - Trong chế độ này vẫn mở/đóng từng đợt payout được, và dải Paid out / Balance vẫn ở cuối.
 - **Đã kiểm tra:** script phía chủ project 46/46 qua. Thêm 4 kiểm tra cho chế độ toàn màn hình.
 - **Chưa làm:** bảng Transactions / Orders trong Manage Project / Event. Đang chờ anh quyết có áp dụng giống vậy không.
+
+**"View full screen" cho bảng Transactions / Orders (06/11/2026, theo yêu cầu của anh). Chưa commit.**
+- Áp dụng cho bảng Transactions của Manage Project (kể cả trang AXS) và bảng Orders của Manage Event. Cùng nút, cùng cách làm với Payout History; nút dùng chung một hàm `fullBtn()`.
+- Đang ở chế độ toàn màn hình mà chuyển trang của bảng thì vẫn ở chế độ đó, và bảng cuộn về đầu.
+- Bảng trống thì không có nút.
+- **Đã kiểm tra:** script phía chủ project 52/52 qua. Thêm 6 kiểm tra: có nút ở cả 3 trang, mở toàn màn hình, chuyển sang trang 2 vẫn giữ toàn màn hình, Esc để thoát.
+
+---
+
+## 11. Trang Financial Report của Admin, làm lại thành dashboard (06/11/2026). Chưa commit.
+
+**Lý do:** anh nhận xét bản trước *"quá tệ … có helpful đủ chưa? … trực quan chưa? … hàng trăm projects/events mà nhét vô 1 cái selection kiếm chừng nào mới ra?"*, và cho phép thêm biểu đồ kiểu BI dashboard.
+
+**Bố cục mới (`finance.html`), từ trên xuống:**
+- **Thanh lọc, một hàng.** Không còn dùng ô chọn của trình duyệt.
+  - **Project / Event:** có ô tìm kiếm theo tên project, event hoặc tổ chức. Danh sách nhóm theo chủ sở hữu (Personal / tổ chức), mỗi dòng ghi Project hay Event và PSP. Bấm tên nhóm thì chọn cả tổ chức. Dùng được bằng phím mũi tên và Enter. Cách này vẫn dùng được khi có hàng trăm project.
+  - **PSP:** nút chuyển All / Stripe / 2c2p / AXS.
+  - **Payout period:** các mốc nhanh (All, Latest payout, Last 3 payouts, All of 2025, All of 2026), rồi lưới tháng theo năm, chọn được nhiều tháng. Tên đợt theo tháng trả tiền (D1).
+  - Có nút "Reset filters" khi đang lọc.
+- **Khung chính:**
+  - Final Amount to Agathos là con số lớn nhất trang, kèm dòng "Payout Period: …" ghi bộ lọc đang dùng.
+  - Bên phải là Total PSP Payout to Agathos, Total Disbursed to Projects/Events và Total Paid Out to Projects/Events (Connect). Số tiền của 3 ô thẳng hàng ở đáy, dù nhãn dài 1 hay 2 dòng.
+  - Bên dưới là thanh chia "Where the Total Trx Amt went": Net to Merchant / Total to Agathos / PSP fees, có % và chú thích.
+- **Bốn ô chỉ số:**
+  - Total Trx Amt (kèm số giao dịch).
+  - Total PSP Fees (kèm % trên Total Trx Amt).
+  - Other PSP charges (liệt kê 3 khoản).
+  - Tally check (icon và chữ: "All tally, 395 of 395").
+- **Biểu đồ.** Mỗi phần tiền có một màu cố định ở mọi biểu đồ. Bảng màu đã qua script kiểm định của skill dataviz (xanh `#2a78d6`, cam `#eb6834`, xanh ngọc `#1baf7a` trên nền trắng: ALL CHECKS PASS). Riêng xanh ngọc có tương phản 2.82:1, nên mọi biểu đồ có chú thích, tooltip và nút xem dạng bảng.
+  - **By payout period:** cột chồng cho từng đợt, cột cao nhất ghi tổng. Bấm cột thì lọc theo đợt đó.
+  - **By PSP:** thanh ngang, 3 phần nối nhau. Bấm thì lọc theo PSP.
+  - **Top projects and events:** 8 cái lớn nhất theo Total Trx Amt. Bấm thì chỉ xem giao dịch của nó; nếu có nhiều hơn 8 thì có dòng hướng dẫn tìm phần còn lại.
+- **Bảng giao dịch:** 19 cột như cũ, thêm:
+  - ô tìm theo reference, project, event hoặc tổ chức;
+  - nút "View full screen";
+  - cột đầu ghi thêm tên tổ chức;
+  - phân trang kiểu Ant.
+- **Nút Export .csv** ở đầu trang: xuất phần tóm tắt và các giao dịch đang lọc.
+
+**Đã kiểm tra:**
+- Script trang Finance (viết lại): 34/34 qua, gồm:
+  - menu;
+  - đủ 8 dòng tóm tắt của 3.0;
+  - 3 phần cộng lại bằng Total Trx Amt (S$89,461.50);
+  - tally 395/395;
+  - 12 cột theo đợt, 4 dòng PSP;
+  - tìm kiếm trong ô chọn project/event (theo tên project và theo tên tổ chức);
+  - chọn cả tổ chức, PSP, các mốc nhanh, chọn nhiều tháng;
+  - bấm vào biểu đồ để lọc;
+  - bảng 19 cột, tìm kiếm, toàn màn hình, CSV;
+  - với mọi dòng: Net to Merchant bằng Net payout chủ project thấy.
+- Một lần chạy fail do em ghi sai số mong đợi trong script (đợt năm 2026 là 11, từ Jan đến Nov, không phải 10). Đã sửa script; trang không sai.
+- Script phía chủ project vẫn 52/52 qua.
+- Chưa xem giao diện bằng mắt.

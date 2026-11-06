@@ -336,6 +336,8 @@ function pager(total, start, count, pages){
     }).join('')+
     '<button type="button" class="arw" data-act="page" data-p="'+(S.page+1)+'"'+(S.page>=pages?' disabled':'')+' aria-label="Next page">'+svg('<path d="M9.5 6.5L15 12l-5.5 5.5"/>')+'</button></div></nav>';
 }
+/* a table over the whole screen, so every column fits without scrolling sideways */
+function fullBtn(){ return '<button class="fr-full" type="button" data-act="full" aria-pressed="'+!!S.full+'">'+(S.full ? I.shrink+'Exit full screen' : I.expand+'View full screen')+'</button>'; }
 function table(p, list){
   var cols=columns(p), pages=Math.max(1, Math.ceil(list.length/PER_PAGE));
   if(S.page>pages) S.page=pages;
@@ -348,7 +350,7 @@ function table(p, list){
       '<div class="r2">'+(r.st?txStatus(r):'<span>'+h(r.method)+'</span>')+'<span class="net">'+netCol[0]+' '+num(r[netCol[1]])+'</span></div>'+
       '<details><summary>Details</summary><dl>'+cols.map(function(c){ return '<div><dt>'+c[0]+'</dt><dd>'+cell(c,r)+'</dd></div>'; }).join('')+'</dl></details></div>';
   }).join('');
-  return '<section class="fr-sec fr-list"><div class="fr-sec-head"><h3>'+rowsWord(p)+' <span class="n">'+list.length+'</span></h3></div>'+
+  return '<section class="fr-sec fr-list'+(S.full?' is-full':'')+'" aria-label="'+rowsWord(p)+'"><div class="fr-sec-head"><h3>'+rowsWord(p)+' <span class="n">'+list.length+'</span></h3>'+(list.length?fullBtn():'')+'</div>'+
     (list.length ? '<div class="fr-tw has-cards"><table class="fr-t tx"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div><div class="fr-cards">'+cards+'</div>'+pager(list.length, start, slice.length, pages)
                  : '<div class="fr-empty">No '+rowsWord(p).toLowerCase()+' here.</div>')+'</section>';
 }
@@ -421,7 +423,7 @@ function viewEntityPayouts(e){
   }).join('');
   return filters+nextBox(pos.map(function(x){ return x.date; }))+summaryBox(bigLeft('Net to you', sum.net/100, status), rows)+
     '<section class="fr-sec'+(S.full?' is-full':'')+'" aria-label="Payout History"><div class="fr-sec-head"><h3>Payout History</h3>'+
-      '<button class="fr-full" type="button" data-act="full" aria-pressed="'+!!S.full+'">'+(S.full ? I.shrink+'Exit full screen' : I.expand+'View full screen')+'</button></div>'+
+      fullBtn()+'</div>'+
     '<div class="fr-tw has-cards"><table class="fr-t ph"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div><div class="fr-cards">'+cards+'</div>'+
     payBalance(c2((sum.net-sum.unpaid)/100), sum.unpaid/100)+'</section>';
 }
@@ -544,7 +546,11 @@ document.addEventListener('pointerout', function(ev){ var hit=ev.target.closest 
 
 /* ---------- events ---------- */
 var ACT={
-  page:function(t){ S.page=+t.getAttribute('data-p'); render(); var l=document.querySelector('.fr-list'); if(l) l.scrollIntoView({block:'start'}); },
+  page:function(t){
+    S.page=+t.getAttribute('data-p'); render();
+    var l=document.querySelector('.fr-list'); if(!l) return;
+    if(S.full) l.scrollTop=0; else l.scrollIntoView({block:'start'});
+  },
   csv:downloadCSV,
   expand:function(t){
     var per=t.getAttribute('data-per');
@@ -555,7 +561,6 @@ var ACT={
   toPayout:function(t){ S.carry=t.getAttribute('data-per'); location.hash='#/pages/'+t.getAttribute('data-ent')+'/payouts'; },
   toTx:function(t){ S.carryTx=t.getAttribute('data-per'); location.hash=t.getAttribute('href'); },
   chart:function(t){ S.chart=t.getAttribute('data-c'); keepScroll(render); },
-  /* Payout History over the whole screen, so every column fits without scrolling sideways */
   full:function(){ S.full=!S.full; keepScroll(render); var b=document.querySelector('.fr-full'); if(b) b.focus({preventScroll:true}); },
   offline:function(){ toast('Opens the Add Offline Transaction form, as today'); },
   tax:function(){ toast('Opens the Tax Deduction Report menu, as today'); },
