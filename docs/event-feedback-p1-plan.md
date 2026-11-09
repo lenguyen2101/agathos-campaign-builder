@@ -153,3 +153,5 @@ Bảng này giả định UI của mỗi task có 1–3 màn. Nếu nhiều màn
 - **#209:** đã có, bỏ qua.
 - **#226, #227, #228:** chỉ đổi copy, không cần redesign.
 - **#218:** team đang cần solution. Em viết solution bằng tiếng Anh và làm mockup dạng ảnh để anh gửi vào GitLab. Plan riêng ở `docs/task218-plan.md`.
+
+**09/11/2026, anh chốt:** #218 giải quyết luôn #228. Câu lỗi mới của #228 nằm ở mockup 7 của `/task218`, nên không cần làm riêng cho #228.
