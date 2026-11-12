@@ -207,7 +207,7 @@ function adminRow(r){
   return {r:r, gross:x(gross), fees:x(fees), margin:x(margin), bene:isEv(p)?0:r.ben, platform:isEv(p)?r.ben:0, net:r.net,
     gift:r.tip, finalGift:x(finalGift), feeGift:x(feeGift), toAgathos:x(toAgathos),
     pspPayout:x(toAgathosFromPsp), disbursed:x(disbursed), paidOut:x(paidOut), final:x(final),
-    tally:x(gross-fees-feeGift-net-toAgathos), payDate:pspPayoutDate(r), psp:PSP_NAME[p.psp], mid:merchantId(p), model:MODEL_NAME[p.model]};
+    payDate:pspPayoutDate(r), psp:PSP_NAME[p.psp], mid:merchantId(p), model:MODEL_NAME[p.model]};
 }
 /* Stripe's monthly charges on Connect (sheet D48), sample rates: S$2.00 per active connected account,
    0.25% of the volume paid out to connected accounts, S$0.25 per payout to a connected account */

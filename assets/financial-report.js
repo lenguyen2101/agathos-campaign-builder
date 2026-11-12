@@ -1,7 +1,7 @@
 /* ============================================================================
-   Agathos — financial report, version 3 (/financial-report).
-   v2 reworked to follow the team's "v2 feedback" comments of 06/11/2026 one by one
-   (mapping in docs/financial-report-v3-plan.md):
+   Agathos — financial report, version 4 (/financial-report).
+   v3 reworked to follow the team's feedback of 12/11/2026 one by one
+   (mapping in docs/financial-report-v4-plan.md; v3 in docs/financial-report-v3-plan.md):
      #/pages/<entity>/projects|events|payouts   Manage Pages: Personal or one organisation;
                                                 Payouts sit here, above the project level (F1)
      #/manage/<id>/transactions                 Manage Project › Transactions (no payouts tab, M1)
@@ -169,14 +169,17 @@ function byTicket(p, list){
 }
 /* a long label set on two lines; the words stay as written */
 function two(a, b){ return a+' <span class="l2">'+b+'</span>'; }
-function payStatus(date, bank){
-  var done=date<=TODAY;
-  return '<span class="tag '+(done?'ok':'up')+'">'+(done?I.check+'Paid':I.clock+'Upcoming')+'</span><span class="tx">Agathos '+(done?'paid ':'pays ')+bank+'<br>on '+fmtDate(date)+'</span>';
-}
+/* no paid / upcoming tag and no bank account or date under the amount (O4, P1) */
 function bigLeft(label, value, status){
   return '<div class="lbl">'+label+'</div><div class="big">'+money(value)+'</div>'+(status?'<div class="ov-status">'+status+'</div>':'');
 }
-function bankOf(p){ return ENTITIES[p.ent].bank; }
+/* the payout split is by whether a transaction sits in a payout month, not by whether it is paid (O2); words from the team */
+var INFO={
+  asg:'Total net amount of transactions that have been sorted into a payout month. Includes both completed disbursements and scheduled upcoming payouts.',
+  un:'Total net amount of transactions that have not yet been assigned to a payout month. These are typically more recent transactions.'
+};
+function infoBtn(label, k){ return '<button type="button" class="ov-i" data-info="'+k+'" aria-label="About '+label+'">'+I.info+'</button>'; }
+var PAY_NOTE='Payouts are disbursed on the 20th of each month for the previous month\'s transactions. Funds might take a few days to reach your bank account depending on where you are located.';
 
 function summaryRows(p, list){
   var t=totals(list), cnt='<small class="cnt">'+countText(p, t.n)+'</small>';
@@ -189,14 +192,14 @@ function summaryRows(p, list){
       ['Love gifts to Agathos (invoiced)', money(t.lg), 'after']]);
   }
   if(S.per==='all'){
-    /* default summary: the totals on the right; on the left, paid out and awaiting pay out, one amount per line, and the bar under them */
-    var aw=c2(t.await+t.proc), all=t.paid+aw || 1;
+    /* default summary: the totals on the right; on the left, assigned to a payout and unassigned (O2), one amount per line, and the bar under them */
+    var asg=c2(t.paid+t.await), un=t.proc, all=asg+un || 1;
     var left='<ul class="ov-lines">'+
-        '<li><div class="lbl"><i class="sw paid"></i>Total paid out</div><div class="v">'+money(t.paid)+'</div></li>'+
-        '<li><div class="lbl"><i class="sw await"></i>Total awaiting pay out</div><div class="v">'+money(aw)+'</div></li>'+
+        '<li><div class="lbl"><i class="sw paid"></i>Assigned to payout'+infoBtn('Assigned to payout','asg')+'</div><div class="v">'+money(asg)+'</div></li>'+
+        '<li><div class="lbl"><i class="sw await"></i>Unassigned transactions'+infoBtn('Unassigned transactions','un')+'</div><div class="v">'+money(un)+'</div></li>'+
       '</ul>'+
-      '<div class="ov-bar" role="img" aria-label="Total paid out '+money(t.paid)+', total awaiting pay out '+money(aw)+'">'+
-        (t.paid?'<i class="paid" style="width:'+(t.paid/all*100).toFixed(2)+'%"></i>':'')+(aw?'<i class="await" style="width:'+(aw/all*100).toFixed(2)+'%"></i>':'')+'</div>';
+      '<div class="ov-bar" role="img" aria-label="Assigned to payout '+money(asg)+', unassigned transactions '+money(un)+'">'+
+        (asg?'<i class="paid" style="width:'+(asg/all*100).toFixed(2)+'%"></i>':'')+(un?'<i class="await" style="width:'+(un/all*100).toFixed(2)+'%"></i>':'')+'</div>';
     return summaryBox(left, [
       ['Total '+amountLabel(p)+cnt, money(t.recv), isEv(p)?'has-tt':''],
       byTicket(p, list),
@@ -204,8 +207,7 @@ function summaryRows(p, list){
       [two('Total Processing fees','(to Payment Service Provider)'), money(-t.fee)],
       ['Total Net to you', money(t.net), 'total']]);
   }
-  var status=S.per==='none' ? '<span class="tag up">'+I.clock+'Processing</span>' : payStatus(payoutDate(S.per), bankOf(p));
-  return summaryBox(bigLeft('Net to you', t.net, status), [
+  return summaryBox(bigLeft('Net to you', t.net), [
     ['Total '+amountLabel(p)+cnt, money(t.recv), isEv(p)?'has-tt':''],
     byTicket(p, list),
     [agathosLabel(p), money(-t.ben)],
@@ -213,15 +215,17 @@ function summaryRows(p, list){
     ['Net to you', money(t.net), 'total']]);
 }
 
-/* payout card (E5, E6): which payout the picked month is, whether it is part of a larger payout, and the way to the
-   full payout on Manage Pages; no amount and no date. Not shown for "-" or "Processing", where no payout is picked */
-function payoutCard(p){
-  if(S.per==='all' || S.per==='none') return '';
+/* payout summary (O5): above "Net to you", as the title of what follows. With a payout picked: which payout it is and
+   whether it is part of a larger one. "View full payout summary" is a small link on the side, and stays, as an FYI line,
+   when no payout is picked. No amount and no date */
+function payoutHead(p){
+  var picked=S.per!=='all' && S.per!=='none';
+  var go='<a class="ps-go" href="#/pages/'+p.ent+'/payouts" data-act="toPayout"'+(picked?' data-per="'+S.per+'"':'')+' data-ent="'+p.ent+'">View full payout summary'+I.arrow+'</a>';
+  var note='<p class="ps-note">'+I.info+'<span>'+PAY_NOTE+'</span></p>';
+  if(!picked) return '<div class="ps-fyi">'+note+go+'</div>';
   var po=payout(S.per, p.ent);
-  return '<a class="ps" href="#/pages/'+p.ent+'/payouts" data-act="toPayout" data-per="'+S.per+'" data-ent="'+p.ent+'"><span class="hp-kicker">Payout summary</span>'+
-    '<b>'+payoutLabel(S.per)+'</b>'+
-    (po.ids.length>1?'<p>This is part of a larger payout with '+others(po.ids, p.id)+'.</p>':'')+
-    '<span class="go">View full payout summary '+I.arrow+'</span></a>';
+  return '<div class="ps"><div class="ps-top"><div><span class="hp-kicker">Payout summary</span><h3>'+payoutLabel(S.per)+'</h3></div>'+go+'</div>'+
+    (po.ids.length>1?'<p class="ps-sub">This is part of a larger payout with '+others(po.ids, p.id)+'.</p>':'')+note+'</div>';
 }
 
 /* ---------- 1. Transactions / Orders ---------- */
@@ -240,7 +244,7 @@ function viewRows(p){
   var allPers=periodsOf([p.id]), pers=allPers.filter(function(m){ return yearOk(m, S.year); });
   var hasProc=!p.ipc && rowsOf(p.id).some(function(r){ return r.st==='proc' && yearOk(r.per, S.year); });
   var opts=[['all','-']].concat(pers.map(function(m){ return [m, p.ipc ? monthLabel(m) : payoutLabel(m)]; }));
-  if(hasProc) opts.push(['none','Processing']);
+  if(hasProc) opts.push(['none','Unassigned']);
   if(!opts.some(function(o){ return o[0]===S.per; })) S.per='all';
   var list=filtered(p);
   /* the CSV follows the filters, so the two sit in one box (E2) */
@@ -248,17 +252,17 @@ function viewRows(p){
       '<div class="fr-filters">'+sel('Year','year',yearOpts(allPers),S.year)+sel(p.ipc?'Month':'Payout period','per',opts,S.per)+'</div>'+
       '<button class="mp-act" type="button" data-act="csv">'+I.down+(isEv(p)?'Export Orders as .csv':'Export as .csv')+'</button>'+
     '</div></section>'+
-    summaryRows(p, list)+(p.ipc?'':payoutCard(p))+stats(p, list)+table(p, list);
+    (p.ipc?'':payoutHead(p))+summaryRows(p, list)+stats(p, list)+table(p, list);
 }
 
 /* statistics in one line graph (M2): amount collected per day, or number of donations (orders for an event) per day,
-   one at a time. Not two y-axes on one chart: two scales on one picture are easy to misread */
+   one at a time. Not two y-axes on one chart: two scales on one picture are easy to misread.
+   Only for a picked payout period (O3): with "-" or "Unassigned" there is no statistics section */
 var CHARTS=[];
 function stats(p, list){
-  if(!list.length) return '';
-  var days=list.map(function(r){ return r.day; }).sort(), first, last, keys=[], amt={}, cnt={};
-  if(S.per!=='all' && S.per!=='none'){ first=S.per+'-01'; last=S.per===TODAY.slice(0,7) ? days[days.length-1] : S.per+'-'+monthDays(S.per); }
-  else { first=days[0]; last=days[days.length-1]; }
+  if(!list.length || S.per==='all' || S.per==='none') return '';
+  var days=list.map(function(r){ return r.day; }).sort(), keys=[], amt={}, cnt={};
+  var first=S.per+'-01', last=S.per===TODAY.slice(0,7) ? days[days.length-1] : S.per+'-'+monthDays(S.per);
   for(var x=first; x<=last; x=addDays(x,1)){ keys.push(x); amt[x]=0; cnt[x]=0; }
   list.forEach(function(r){ if(r.day in amt){ amt[r.day]+=cents(r.recv); cnt[r.day]++; } });
   var a={money:true, pts:keys.map(function(k){ return {l:fmtDate(k), v:amt[k]/100}; })};
@@ -302,8 +306,8 @@ function columns(p){
     [agathosLabel(p),'ben','n','neg'], ['Processing fees','fee','n','neg'], ['Net payout','net','n','net'], ['Payout status','st']];
 }
 function stTag(st, text){ return '<span class="st st-'+st+'"><i></i>'+text+'</span>'; }
-/* two statuses (E7): Processing until the PSP file has it, then the payout it is in */
-function txStatus(r){ return r.st==='proc' ? stTag('proc','Processing') : stTag('in', payoutLabel(r.per)); }
+/* two statuses (E7): Unassigned until the PSP file has it (the "Unassigned transactions" of O2), then the payout it is in */
+function txStatus(r){ return r.st==='proc' ? stTag('proc','Unassigned') : stTag('in', payoutLabel(r.per)); }
 function cell(c, r){
   if(c[1]==='dt') return fmtDate(r.at)+', '+r.at.slice(11,16);
   if(c[1]==='cur') return 'SGD';
@@ -357,13 +361,12 @@ function table(p, list){
 
 /* ---------- 2. Payouts ---------- */
 function split(label){ var i=label.indexOf('/'); return label.slice(0,i+1)+'<span class="l2">'+label.slice(i+1)+'</span>'; }
+/* the team's copy (P3); the title with the date stays */
 function nextBox(dates){
   var up=dates.filter(function(x){ return x>TODAY; }).sort()[0];
   if(!up) return '';
-  return '<div class="nx">'+I.cal+'<div><b>Next payout: '+fmtDate(up)+'</b><p>Payouts are processed on the 20th of each month for the previous month\'s sales.<br>If the 20th falls on a non-working day, the payout shifts to the next working day.</p></div></div>';
+  return '<div class="nx">'+I.cal+'<div><b>Next payout: '+fmtDate(up)+'</b><p>'+PAY_NOTE+'</p></div></div>';
 }
-/* Paid out and Balance under the table, so they show whatever the sideways scroll */
-function payBalance(paid, balance){ return '<div class="fr-tot"><div><span>Paid out</span><b>'+money(paid)+'</b></div><div><span>Balance</span><b>'+money(balance)+'</b></div></div>'; }
 /* payout months, several at a time (P1); none ticked shows every payout, as "-" */
 function payoutFilters(pers, allPers){
   S.pper=S.pper.filter(function(m){ return pers.indexOf(m)>=0; });
@@ -375,13 +378,10 @@ function payoutFilters(pers, allPers){
         return '<label class="ms-opt"><input type="checkbox" data-ms="pper" value="'+m+'"'+(picked.indexOf(m)>=0?' checked':'')+'>'+payoutLabel(m)+'</label>';
       }).join('')+'</div></div></div></div>';
 }
-/* count under the amount row; with no month picked it also names the new transactions the Transactions tab counts but no payout holds yet */
-function payoutCnt(ids, tx, ev){
-  var proc=[];
-  if(!S.pper.length) ids.forEach(function(id){ proc=proc.concat(rowsOf(id).filter(function(r){ return r.st==='proc' && yearOk(r.per, S.pyear); })); });
-  var txt=[tx?plural(tx,'transaction'):'', ev?plural(ev,'order'):''].filter(Boolean).join(', ');
-  if(proc.length) txt+=' · '+proc.length+' processing ('+money(proc.reduce(function(s,r){ return s+cents(r.recv); }, 0)/100)+')';
-  return '<small class="cnt">'+txt+'</small>';
+/* count under the amount row, for picked months only: with no month picked the line is gone (P4) */
+function payoutCnt(tx, ev){
+  if(!S.pper.length) return '';
+  return '<small class="cnt">'+[tx?plural(tx,'transaction'):'', ev?plural(ev,'order'):''].filter(Boolean).join(', ')+'</small>';
 }
 
 /* Manage Pages › Payouts: every payout to this organisation (or Personal), summed across its projects and events,
@@ -394,20 +394,17 @@ function viewEntityPayouts(e){
   var allPers=periodsOf(ids), pers=allPers.filter(function(m){ return yearOk(m, S.pyear); });
   if(!allPers.length) return '<div class="dp-empty">No payouts yet.</div>';
   var filters=payoutFilters(pers, allPers), shown=S.pper.length ? S.pper : pers, one=S.pper.length===1;
-  var pos=shown.map(function(per){ return payout(per, e.id); }), unpaid=pos.filter(function(x){ return !x.paid; });
-  var sum={tx:0, ev:0, recv:0, ben:0, fee:0, net:0, unpaid:0};
-  pos.forEach(function(x){ x.parts.forEach(function(q){ sum[isEv(PROJECTS[q.id])?'ev':'tx']+=q.t.n; }); sum.recv+=cents(x.t.recv); sum.ben+=cents(x.t.ben); sum.fee+=cents(x.t.fee); sum.net+=cents(x.t.net); if(!x.paid) sum.unpaid+=cents(x.t.net); });
-  var rows=[[split(COL_AMOUNT)+payoutCnt(ids, sum.tx, sum.ev), money(sum.recv/100)], [split(COL_AGATHOS), money(-sum.ben/100)], ['Processing fees', money(-sum.fee/100)], ['Net payout', money(sum.net/100), 'total']];
-  var status='';
-  if(!one){
-    if(unpaid.length) rows.push([two('Not paid yet','Agathos pays on '+fmtDate(unpaid[0].date)), money(sum.unpaid/100), 'after']);
-  } else status=payStatus(pos[0].date, e.bank);
+  var pos=shown.map(function(per){ return payout(per, e.id); });
+  var sum={tx:0, ev:0, recv:0, ben:0, fee:0, net:0};
+  pos.forEach(function(x){ x.parts.forEach(function(q){ sum[isEv(PROJECTS[q.id])?'ev':'tx']+=q.t.n; }); sum.recv+=cents(x.t.recv); sum.ben+=cents(x.t.ben); sum.fee+=cents(x.t.fee); sum.net+=cents(x.t.net); });
+  /* no "Not paid yet" row (P5), and no paid tag, bank account or date (P1) */
+  var rows=[[split(COL_AMOUNT)+payoutCnt(sum.tx, sum.ev), money(sum.recv/100)], [split(COL_AGATHOS), money(-sum.ben/100)], ['Processing fees', money(-sum.fee/100)], ['Net payout', money(sum.net/100), 'total']];
   var body=pos.map(function(x){
     var open=one || S.open[x.per];
     var main='<tr class="po'+(open?' open':'')+'">'+
       '<td class="c1"><button type="button" class="exp" data-act="expand" data-per="'+x.per+'" aria-expanded="'+(open?'true':'false')+'">'+I.caret+'<span><b>'+payoutLabel(x.per)+' Payout</b><span>'+kinds(x.ids)+'</span></span></button></td>'+
       '<td class="n">'+num(x.t.recv)+'</td><td class="n">'+num(-x.t.ben)+'</td><td class="n">'+num(-x.t.fee)+'</td><td class="n net">'+num(x.t.net)+'</td>'+
-      '<td>'+(x.paid?'<button type="button" class="lnk" data-act="invoice">Download Invoice</button>':'<span class="na">—</span>')+'</td></tr>';
+      '<td class="dl">'+(x.paid?'<button type="button" class="dl-i" data-act="summaryFile" aria-label="Download '+payoutLabel(x.per)+' payout summary" title="Download">'+I.down+'</button>':'<span class="na">—</span>')+'</td></tr>';
     var subs=open ? x.parts.map(function(y){
       var q=PROJECTS[y.id];
       return '<tr class="sub"><td class="c1"><a href="#/manage/'+q.id+'/'+manageTabs(q)[0][0]+'" data-act="toTx" data-per="'+x.per+'"><b>'+h(q.name)+'</b></a><span>'+(isEv(q)?'Event':'Project')+' · '+countText(q, y.t.n)+'</span></td>'+
@@ -415,17 +412,18 @@ function viewEntityPayouts(e){
     }).join('') : '';
     return main+subs;
   }).join('');
-  var head='<tr><th class="c1">Description</th><th class="n">'+split(COL_AMOUNT)+'</th><th class="n">'+split(COL_AGATHOS)+'</th><th class="n">Processing fees</th><th class="n">Net payout</th><th>Action</th></tr>';
+  /* P6: the column is named for what it does; each row is just the download icon */
+  var head='<tr><th class="c1">Description</th><th class="n">'+split(COL_AMOUNT)+'</th><th class="n">'+split(COL_AGATHOS)+'</th><th class="n">Processing fees</th><th class="n">Net payout</th><th class="dl">Download<span class="l2">payout summary</span></th></tr>';
   var cards=pos.map(function(x){
     return '<div class="fr-item"><div class="r1"><span>'+payoutLabel(x.per)+' Payout</span><b>SGD '+num(x.t.net)+'</b></div>'+
       '<div class="r2"><span class="net">'+kinds(x.ids)+'</span></div>'+
       '<details><summary>By project and event</summary><dl>'+x.parts.map(function(y){ return '<div><dt>'+h(PROJECTS[y.id].name)+'</dt><dd>'+num(y.t.net)+'</dd></div>'; }).join('')+'</dl></details></div>';
   }).join('');
-  return filters+nextBox(pos.map(function(x){ return x.date; }))+summaryBox(bigLeft('Net to you', sum.net/100, status), rows)+
+  /* no Paid out / Balance line under the table: it split the payouts by paid or not (P1, P5) */
+  return filters+nextBox(pos.map(function(x){ return x.date; }))+summaryBox(bigLeft('Net to you', sum.net/100), rows)+
     '<section class="fr-sec'+(S.full?' is-full':'')+'" aria-label="Payout History"><div class="fr-sec-head"><h3>Payout History</h3>'+
       fullBtn()+'</div>'+
-    '<div class="fr-tw has-cards"><table class="fr-t ph"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div><div class="fr-cards">'+cards+'</div>'+
-    payBalance(c2((sum.net-sum.unpaid)/100), sum.unpaid/100)+'</section>';
+    '<div class="fr-tw has-cards"><table class="fr-t ph"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div><div class="fr-cards">'+cards+'</div></section>';
 }
 
 /* ---------- IPC: the charity receives the money from AXS; Agathos invoices its love gifts ---------- */
@@ -482,7 +480,7 @@ function reviewOn(i){
   return i===(p.ipc ? 3 : isEv(p) ? 2 : 1);
 }
 function renderReview(){
-  document.getElementById('fr-review').innerHTML='<span class="t">Financial report</span><span class="ver">Version 3</span>'+
+  document.getElementById('fr-review').innerHTML='<span class="t">Financial report</span><span class="ver">Version 4</span>'+
     '<nav class="fr-rtabs" aria-label="Screens">'+REVIEW.map(function(x,i){ return '<a href="'+x[1]+'"'+(reviewOn(i)?' class="on"':'')+'>'+x[0]+'</a>'; }).join('')+'</nav>'+
     '<span class="note">Sample data · today is '+fmtDate(TODAY)+'</span>'+
     '<button class="fr-notes" type="button" data-act="notes" aria-haspopup="dialog"><span class="c">'+NOTES.length+'</span>Changes from the feedback</button>';
@@ -500,7 +498,7 @@ function toast(msg){ var t=document.getElementById('fr-toast'); t.textContent=ms
 function downloadCSV(){
   var p=cur(), list=filtered(p), t=totals(list);
   var esc=function(s){ s=String(s==null?'':s); return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; };
-  var period=S.per==='all' ? '-' : S.per==='none' ? 'Processing' : p.ipc ? monthLabel(S.per) : payoutLabel(S.per);
+  var period=S.per==='all' ? '-' : S.per==='none' ? 'Unassigned' : p.ipc ? monthLabel(S.per) : payoutLabel(S.per);
   var sum=[[isEv(p)?'Event':'Project', p.name], ['Year', S.year==='all' ? 'All years' : S.year], [p.ipc?'Month':'Payout period', period], ['Currency','SGD']];
   var head, line;
   if(p.ipc){
@@ -509,14 +507,14 @@ function downloadCSV(){
     line=function(r){ return [r.at.replace('T',' '), r.ref, r.method, 'SGD', r.recv.toFixed(2), r.fee.toFixed(2), r.paidAxs.toFixed(2), r.lg.toFixed(2)]; };
   } else {
     sum=sum.concat([['Total '+amountLabel(p), t.recv.toFixed(2)], ['Total '+agathosLabel(p), t.ben.toFixed(2)], ['Total Processing fees (to Payment Service Provider)', t.fee.toFixed(2)], ['Total Net to you', t.net.toFixed(2)],
-      ['Total paid out', t.paid.toFixed(2)], ['Total awaiting pay out', c2(t.await+t.proc).toFixed(2)]]);
+      ['Assigned to payout', c2(t.paid+t.await).toFixed(2)], ['Unassigned transactions', t.proc.toFixed(2)]]);
     head=['Date & time','Reference','Payment method','Currency',amountLabel(p),agathosLabel(p),'Processing fees','Net payout','Payout status'];
-    line=function(r){ return [r.at.replace('T',' '), r.ref, r.method, 'SGD', r.recv.toFixed(2), r.ben.toFixed(2), r.fee.toFixed(2), r.net.toFixed(2), r.st==='proc' ? 'Processing' : payoutLabel(r.per)]; };
+    line=function(r){ return [r.at.replace('T',' '), r.ref, r.method, 'SGD', r.recv.toFixed(2), r.ben.toFixed(2), r.fee.toFixed(2), r.net.toFixed(2), r.st==='proc' ? 'Unassigned' : payoutLabel(r.per)]; };
   }
   var csv=sum.map(function(x){ return x.map(esc).join(','); }).concat(['', head.map(esc).join(',')], list.map(function(r){ return line(r).map(esc).join(','); })).join('\n');
   var a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-  a.download=p.id+'-'+(S.per==='all' ? 'all' : S.per==='none' ? 'processing' : S.per)+'.csv';
+  a.download=p.id+'-'+(S.per==='all' ? 'all' : S.per==='none' ? 'unassigned' : S.per)+'.csv';
   document.body.appendChild(a); a.click(); a.remove();
   toast('CSV downloaded');
 }
@@ -531,7 +529,21 @@ function showTip(x, y, strong, text){
   var w=tipEl.offsetWidth, left=Math.max(8, Math.min(window.innerWidth-w-8, x-w/2));
   tipEl.style.left=left+'px'; tipEl.style.top=(y-tipEl.offsetHeight-10)+'px';
 }
-function hideTip(){ tipEl.classList.remove('show'); }
+function hideTip(){ tipEl.classList.remove('show','info'); }
+/* the ⓘ next to Assigned to payout and Unassigned transactions: on hover, and on keyboard focus or a tap */
+function showInfo(el){
+  var b=el.getBoundingClientRect();
+  tipEl.textContent=INFO[el.getAttribute('data-info')];
+  tipEl.classList.add('show','info');
+  var w=tipEl.offsetWidth;
+  tipEl.style.left=Math.max(8, Math.min(window.innerWidth-w-8, b.left+b.width/2-w/2))+'px';
+  tipEl.style.top=Math.max(8, b.top-tipEl.offsetHeight-8)+'px';
+}
+function infoAt(ev){ return ev.target.closest && ev.target.closest('[data-info]'); }
+document.addEventListener('pointerover', function(ev){ var el=infoAt(ev); if(el) showInfo(el); });
+document.addEventListener('pointerout', function(ev){ if(infoAt(ev) && document.activeElement!==infoAt(ev)) hideTip(); });
+document.addEventListener('focusin', function(ev){ var el=infoAt(ev); if(el) showInfo(el); });
+document.addEventListener('focusout', function(ev){ if(infoAt(ev)) hideTip(); });
 document.addEventListener('pointermove', function(ev){
   var hit=ev.target.closest && ev.target.closest('.hit');
   if(!hit) return;
@@ -565,6 +577,7 @@ var ACT={
   offline:function(){ toast('Opens the Add Offline Transaction form, as today'); },
   tax:function(){ toast('Opens the Tax Deduction Report menu, as today'); },
   invoice:function(){ toast('Sample: no invoice file yet'); },
+  summaryFile:function(){ toast('Sample: no payout summary file yet'); },
   other:function(){ toast('Not part of this prototype'); },
   notes:notesOpen,
   notesClose:notesClose,
@@ -575,12 +588,11 @@ var ACT={
   },
   pick:function(t){ S[t.getAttribute('data-key')]=t.getAttribute('data-v'); S.page=1; closeMenus(); render(); var b=document.getElementById('f-'+t.getAttribute('data-key')); if(b) b.focus(); }
 };
-/* redraw without losing the reader's place: the page, the Manage Pages list (it scrolls on its own) and each table's sideways scroll */
+/* redraw without losing the reader's place: the page and each table's sideways scroll (the Manage Pages tabs scroll with the page, P2) */
 function keepScroll(fn){
-  var y=window.scrollY, list=document.querySelector('.dp-list'), top=list ? list.scrollTop : 0;
+  var y=window.scrollY;
   var left=Array.prototype.map.call(document.querySelectorAll('.fr-tw'), function(e){ return e.scrollLeft; });
   fn();
-  var l2=document.querySelector('.dp-list'); if(l2) l2.scrollTop=top;
   Array.prototype.forEach.call(document.querySelectorAll('.fr-tw'), function(e, i){ if(left[i]){ e.scrollLeft=left[i]; e.classList.add('scrolled'); } });
   window.scrollTo(0, y);
 }
@@ -618,7 +630,7 @@ document.addEventListener('keydown', function(ev){
   }
   if(ev.key==='Escape'){
     var btn=pop && pop.parentNode.querySelector('.ms-btn'), menuOpen=document.querySelector('.mp-dd.open');
-    closeMenus(); notesClose(); if(btn) btn.focus();
+    hideTip(); closeMenus(); notesClose(); if(btn) btn.focus();
     if(S.full && !menuOpen){ ACT.full(); }
   }
 });
