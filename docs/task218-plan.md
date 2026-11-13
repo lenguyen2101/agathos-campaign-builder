@@ -146,7 +146,7 @@ Gửi cho team Agathos (Josias, dev). Chỗ ghi [Image n] là nơi gắn ảnh m
 - Anh chốt giữ câu "First time here?".
 - Đã dựng đủ 7 mockup ở `/task218` (3 file mới).
   - Ảnh của email lấy từ file anh gửi, để trong `assets/img/task218/`.
-  - Chưa commit.
+  - Đã commit trong `4a812da`.
 - Đã kiểm tra:
   - `node --check` không báo lỗi.
   - Script node: 29/29 mục đạt. Có đủ 7 khung và 7 nút tải ảnh, đúng các câu chữ chính, thẻ div đóng mở khớp nhau.
@@ -225,7 +225,7 @@ Cả 3 phương án đều giữ nguyên câu chữ đã duyệt: "First time he
 Phương án C cần thêm 2 khung (bước email, bước mật khẩu), khoảng +0.2 ngày.
 
 ### Nhật ký vòng 2
-- 13/11/2026: Image 6 đã sửa ở `assets/task218.js` và `assets/task218.css`. Đã viết phần plan này. Chưa commit. Đang chờ anh chọn phương án cho Image 1.
+- 13/11/2026: Image 6 đã sửa ở `assets/task218.js` và `assets/task218.css`. Đã viết phần plan này. Anh đã chọn A. Đã commit trong `2ba7e0f`.
 - 13/11/2026: anh duyệt Image 6 ("done") và bảo "Try A cho anh xem".
   - **Đã làm Image 1 theo A:**
     - Thứ tự từ trên xuống: tiêu đề, form (Username or email, Password), Remember me và Forgot Password?, nút Sign In, dòng "or", Facebook và Google.
@@ -239,4 +239,4 @@ Phương án C cần thêm 2 khung (bước email, bước mật khẩu), khoả
     - `node --check` không báo lỗi.
     - Script node: thứ tự 10 thành phần đúng; chỉ có 1 nút đặc; câu chữ D1 giữ nguyên; thẻ đóng mở khớp; không còn style cũ.
     - curl trả về 200.
-  - Chưa xem bằng mắt. Chưa commit.
+  - Chưa xem bằng mắt. Đã commit và push trong `2ba7e0f` (13/11/2026), theo lệnh của anh.
