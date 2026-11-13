@@ -519,10 +519,10 @@ Không sửa 2 trang admin.
   - Không filter: không có thanh. Tab "Earlier", dữ liệu "Old only (ended)" và trang Manage Pages: không có thanh.
   - Thanh không chiếm chỗ, nên trang không bị giật khi thanh hiện. Thanh dừng ở cuối thẻ trắng.
 - **Đã kiểm tra:** `fr5f-check.js` 29/29, gồm nội dung thanh, lúc hiện và ẩn, nút Change, và CSS ở 3 khổ màn hình. `fr5e-check.js` 44/44. Script v4 ở chế độ New only 31/32 (chỉ fail "version 4", như trước). 2 script admin 35/35 và 24/24. curl trả về 200.
-- Chưa xem bằng mắt. Chưa commit.
+- Chưa xem bằng mắt. Đã commit trong `568b17c`.
 - **Em thấy thêm:** nút trang của bảng (1, 2, 3…) cuộn bảng lên sát mép trên màn hình. Mép đó nằm dưới menu trang 80px, nên tiêu đề bảng bị che. Lỗi này có từ trước. Khi thanh mới hiện, phần bị che thành 124px, nên dòng tiêu đề cột cũng bị che.
 
 **13/11/2026, anh bảo "sửa luôn đi".**
 - **Đã làm:** khi bấm số trang, bảng dừng cách menu 16px, tức 96px tính từ mép trên. Khi thanh filter đang hiện, bảng dừng cách thanh 16px, tức 140px (80 + 44 + 16). Áp cho bảng "With payout details" và bảng "Earlier". Bảng "Earlier" không có thanh, nên luôn là 96px. Chế độ toàn màn hình không đổi.
 - **Đã kiểm tra:** `fr5f-check.js` 32/32. `fr5e-check.js` 44/44. Script v4 ở chế độ New only 31/32 (chỉ fail "version 4", như trước). 2 script admin 35/35 và 24/24. curl trả về 200.
-- Chưa xem bằng mắt. Chưa commit.
+- Chưa xem bằng mắt. Đã commit và push trong `568b17c` (13/11/2026), theo lệnh "commit và push" của anh.
