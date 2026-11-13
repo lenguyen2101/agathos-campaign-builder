@@ -52,13 +52,17 @@
 .kc-opts{display:flex;align-items:center;justify-content:space-between;margin-top:16px;font-size:13px;}
 .kc-check{display:inline-flex;align-items:center;gap:7px;color:#333;}
 .kc-check i{width:13px;height:13px;border:1px solid #8A8D90;border-radius:2px;background:#fff;}
-.kc-signup{margin-top:40px;text-align:center;font-size:15px;color:#333;}
-.kc-signup b{font-weight:600;}
-.kc-signup a{margin-left:10px;}
-/* new: first-time box */
-.kc-first{margin-top:20px;padding:12px 14px 14px;border:1px solid #BFE0F7;border-left:3px solid #2A62C8;border-radius:4px;background:#F0F8FE;font-size:13px;line-height:1.5;color:#333;}
-.kc-first b{display:block;font-size:14px;font-weight:600;color:#222;}
-.kc-first .go{display:inline-block;margin-top:10px;padding:6px 14px;border:1px solid #2A62C8;border-radius:3px;background:#fff;font-size:13px;font-weight:600;color:#2A62C8;}
+/* sign in by importance (team review, 13/11/2026): Sign In is the one filled button; Facebook and Google under "or";
+   at the bottom, one box with the two ways in without a password */
+.kc-or{display:flex;align-items:center;gap:12px;margin-top:26px;font-size:12.5px;color:#6B7280;}
+.kc-or::before,.kc-or::after{content:"";flex:1;height:1px;background:#E3E3E3;}
+.kc-or + .kc-social{margin-top:16px;}
+.kc-alt{margin-top:28px;border:1px solid #E3E3E3;border-radius:4px;background:#F8F9FA;text-align:center;font-size:14px;line-height:1.5;color:#333;}
+.kc-alt p{padding:14px 16px;}
+.kc-alt p + p{border-top:1px solid #E3E3E3;}
+.kc-alt b{font-weight:600;}
+.kc-alt a{margin-left:8px;font-weight:600;}
+.kc-alt span{display:block;margin-top:2px;font-size:12.5px;color:#6B7280;}
 /* new: link and check-your-email screens */
 .kc-p{margin-top:10px;text-align:center;font-size:14px;line-height:1.6;color:#555;}
 .kc-p b{font-weight:600;color:#333;}
@@ -136,8 +140,10 @@
 .co-in{display:flex;align-items:center;height:41px;margin-top:6px;padding:0 13px;border:1px solid #767676;border-radius:4px;font-size:13.5px;color:#111;}
 .co-note{margin-top:10px;padding:9px 12px;border-left:3px solid #F5C26B;background:#FDF4E5;font-size:13px;color:#333;}
 .co-note a{color:#354FA2;}
-.co-mk{display:flex;align-items:center;gap:9px;margin-top:12px;font-size:13px;color:#333;}
-.co-mk i{flex:none;width:16px;height:16px;border:1.5px solid #9AA0A6;border-radius:3px;background:#fff;}
+/* the marketing box, inside the account note, ticked by default (team review, 13/11/2026) */
+.co-mk{display:flex;align-items:center;gap:9px;margin-top:8px;font-size:13px;color:#333;}
+.co-mk i{flex:none;display:flex;align-items:center;justify-content:center;width:16px;height:16px;border:1.5px solid #354FA2;border-radius:3px;background:#354FA2;color:#fff;}
+.co-mk i svg{width:11px;height:11px;}
 .co-sum{padding:6px 13px 14px;border-radius:6px;background:#F9FAFB;font-size:13px;}
 .co-li{display:flex;align-items:center;height:28px;color:#333;}
 .co-li b{width:32px;font-weight:500;color:#354FA2;}

@@ -38,15 +38,17 @@ function field(label, val, o){
 }
 function social(){ return '<div class="kc-social">'+I.fb+I.g+'</div>'; }
 
+/* by importance (team review, 13/11/2026): signing in, then Facebook and Google, then the two ways in without a password */
 function signIn(){
   return kc('<h1>Sign in to your account</h1>'+
-    '<div class="kc-first"><b>First time here?</b>If you\'ve bought a ticket or donated, your account is ready.<br><span class="go">Get a sign-in link</span></div>'+
-    '<p class="kc-sub">Using your social media accounts:</p>'+social()+
-    '<p class="kc-sub">or sign in manually</p>'+
     '<div class="kc-form">'+field('Username or email')+field('Password','',{pw:1})+'</div>'+
     '<div class="kc-opts"><span class="kc-check"><i></i>Remember me</span><a>Forgot Password?</a></div>'+
     '<div class="kc-submit">Sign In</div>'+
-    '<p class="kc-signup"><b>Don\'t have an account?</b><a>Create an account</a></p>');
+    '<p class="kc-or">or</p>'+social()+
+    '<div class="kc-alt">'+
+      '<p><b>First time here?</b><a>Get a sign-in link</a><span>If you\'ve bought a ticket or donated, your account is ready.</span></p>'+
+      '<p><b>Don\'t have an account?</b><a>Create an account</a></p>'+
+    '</div>');
 }
 function getLink(){
   return kc('<h1>Get a sign-in link</h1>'+
@@ -131,8 +133,8 @@ function checkout(){
       '<div class="co-h">Billing Information</div>'+
       '<div class="co-info"><span>'+I.person+'Already have an account? Log in to autofill your details.</span><span class="co-login">Login</span></div>'+
       '<div class="co-row"><div><div class="co-l"><em>*</em>Your name</div><div class="co-in">Nguyen Le</div></div><div><div class="co-l"><em>*</em>Email</div><div class="co-in">'+h(EMAIL)+'</div></div></div>'+
-      '<div class="co-note">We\'ll create an Agathos account with these details and send your tickets to <a>'+h(EMAIL)+'</a></div>'+
-      '<div class="co-mk"><i></i>Send me news about events and causes on Agathos</div>'+
+      '<div class="co-note">We\'ll create an Agathos account with these details and send your tickets to <a>'+h(EMAIL)+'</a>'+
+        '<div class="co-mk"><i>'+I.tick+'</i>Send me news about events and causes on Agathos</div></div>'+
       '<div class="co-h gap">Order Summary</div>'+
       '<div class="co-sum">'+
         '<div class="co-li"><b>1x</b>General Admission<em>S$1000</em></div>'+
@@ -150,12 +152,12 @@ function checkout(){
 
 /* ============ PAGE ============ */
 var ITEMS=[
-  {id:'sign-in',        t:'Sign in',                         d:'New: the "First time here?" box under the title. The rest is the live page.', draw:signIn},
+  {id:'sign-in',        t:'Sign in',                         d:'In order of importance: sign in first, then Facebook and Google, then the two ways in without a password: "First time here?" (new) and "Create an account".', draw:signIn},
   {id:'get-link',       t:'Get a sign-in link',              d:'The Forgot Password page, reworded to fit both cases. "Get a sign-in link" and "Forgot Password?" both open it.', draw:getLink},
   {id:'check-email',    t:'Check your email',                d:'Shown after "Send link". It says the same thing whether or not the email has an account.', draw:checkEmail},
   {id:'sign-in-email',  t:'Email: sign-in link',             d:'The reset email that Keycloak sends, in the Agathos email style. The button opens the set-password page, then signs the person in.', draw:linkMail},
   {id:'tickets-email',  t:'Email: tickets and account in one', d:'The tickets email template, for a new account. New: the "Your Agathos account" box and the button "Set Password & View Tickets". Existing accounts keep "View Your Tickets".', draw:ticketMail},
-  {id:'checkout',       t:'Get Tickets, step 3',             d:'From the checkout design "Step checkout - Opt. 2". New: the unticked marketing box under the account line.', draw:checkout},
+  {id:'checkout',       t:'Get Tickets, step 3',             d:'From the checkout design "Step checkout - Opt. 2". New: the marketing box inside the account note, ticked by default.', draw:checkout},
   {id:'register',       t:'Register (#228)',                 d:'The live Register page with the error copy from the sheet.', draw:register}
 ];
 

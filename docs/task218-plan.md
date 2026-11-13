@@ -110,7 +110,7 @@ Gửi cho team Agathos (Josias, dev). Chỗ ghi [Image n] là nơi gắn ảnh m
 > This reuses the "Forgot Password?" flow Keycloak already runs. It adds no new kind of email link, so the concern about tokenised ticket links doesn't apply.
 >
 > 1. **"First time here? Get a sign-in link" on Sign in** (Josias's idea) [Image 1]
->    A box under the title: "If you've bought a ticket or donated, your account is ready."
+>    The page in order of importance: sign in first, then Facebook and Google, then one box at the bottom with the two ways in without a password: "First time here? Get a sign-in link" ("If you've bought a ticket or donated, your account is ready.") and "Don't have an account? Create an account".
 > 2. **The same page as "Forgot Password?", reworded to fit both cases** [Image 2]
 >    Enter your email, and we send a link to set a password and sign in. The next screen says the same thing whether or not the email has an account, as "Forgot Password?" does today. [Image 3]
 >    The buyer opens the email [Image 4], sets a password, and is signed in and back on their tickets.
@@ -118,7 +118,7 @@ Gửi cho team Agathos (Josias, dev). Chỗ ghi [Image n] là nơi gắn ảnh m
 >    The tickets email stays as it is, with a "Your Agathos account" box. New accounts get "Set Password & View Tickets". Existing accounts keep "View Your Tickets".
 >    This email only goes out after payment succeeds, so the "your account is ready" email no longer reaches people whose payment failed (#226).
 > 4. **Checkout asks about marketing emails separately** (Update, point 3) [Image 6]
->    Checkout already says "We'll create an Agathos account with these details…". We add one box under it, unticked: "Send me news about events and causes on Agathos." It goes on step 3, because step 2 (Registration Form) is optional for each event. The donation checkout needs the same box.
+>    Checkout already says "We'll create an Agathos account with these details…". We add a tick box inside that note, ticked by default: "Send me news about events and causes on Agathos." Buyers can untick it. It goes on step 3, because step 2 (Registration Form) is optional for each event. The donation checkout needs the same box.
 >    Singapore's PDPA (s 14(2)–(3)) does not let us make consent beyond what's needed to sell the ticket a condition of buying, so marketing has to stay optional. To confirm with whoever handles legal.
 > 5. **"Email already exists" on sign up links to Log in and Reset password** (#228, Update point 1) [Image 7]
 >
@@ -164,3 +164,79 @@ Gửi cho team Agathos (Josias, dev). Chỗ ghi [Image n] là nơi gắn ảnh m
   - Script node đạt 29/29, có thêm mục kiểm tra không còn nút tải ảnh.
   - Grep không còn `htmlToImage`, `Download`, `data-dl` trong 3 file.
   - Trang trả về 200.
+
+## Vòng 2: feedback của team (13/11/2026)
+
+Anh chuyển lại feedback, viết sau buổi call:
+- **Image 1 (login):** *"As there are now multiple actions that the user can take, it can be quite overwhelming. Please update the design so that the options are clearer for the user in order of importance."*
+- **Image 6 (get ticket):** *"Checkbox should default to ticked. Checkbox feels out of place as well. Try integrating into the yellow box."*
+
+### Image 6: đã làm (không có gì phải chọn)
+- Ô "Send me news about events and causes on Agathos" chuyển vào trong box vàng, ngay dưới câu "We'll create an Agathos account…". Ô được tick sẵn, màu xanh của checkout `#354FA2`.
+- Đã sửa mô tả dưới khung trên trang `/task218`, và đoạn 4 trong bản nháp comment ("ticked by default… Buyers can untick it").
+- **Cần team lưu ý:**
+  - Theo GDPR (châu Âu), ô tick sẵn không được tính là đồng ý nhận marketing.
+  - Với PDPA Singapore em không chắc.
+  - Comment đã ghi "To confirm with whoever handles legal", nên em giữ nguyên câu đó.
+
+### Image 1: cần anh chọn
+Màn hiện tại có 7 lựa chọn, xếp từ trên xuống:
+1. box "First time here?" có nút;
+2. Facebook;
+3. Google;
+4. form và nút Sign In;
+5. Remember me;
+6. Forgot Password?;
+7. Create an account.
+
+Trong đó, box mới nằm trên cùng và tranh chỗ với việc chính của trang là đăng nhập.
+
+Thứ tự em đề xuất theo mức quan trọng:
+1. Đăng nhập bằng email và mật khẩu. Đây là việc của đa số người dùng, nên nút Sign In là nút đặc duy nhất.
+2. Facebook và Google.
+3. Hai lối cho người chưa có mật khẩu: "First time here? Get a sign-in link" và "Create an account".
+
+Email vé mới (Image 5) đã có nút "Set Password & View Tickets". Vì vậy người mua vé ít khi phải tự tìm box "First time here?" nữa.
+
+**Phương án:**
+
+- **A (em đề xuất).** Form lên đầu. Facebook và Google nằm dưới dòng "or". Cuối thẻ là một khung chứa 2 lối cho người chưa có mật khẩu, mỗi lối một dòng: "First time here? Get a sign-in link" kèm câu phụ của D1, và "Don't have an account? Create an account".
+  - Ưu điểm: chỉ còn một nút đặc. Đặt hai lối cạnh nhau thì người dùng thấy ngay chỗ khác nhau: tài khoản đã có sẵn, hay tạo tài khoản mới.
+  - Nhược điểm: box "First time here?" xuống dưới, kém nổi hơn bản trước.
+  - Dev: sửa theme Keycloak (`login.ftl`), đổi thứ tự khối, không đổi luồng.
+- **B.** Như A, nhưng "First time here?" vẫn nằm trên form và thu gọn còn một dòng chữ có link.
+  - Ưu điểm: người mua vé thấy ngay.
+  - Nhược điểm: trên form vẫn còn một lựa chọn, tức là giảm "overwhelming" ít hơn A.
+- **C.** Hỏi email trước, bấm "Continue" rồi mới hiện bước tiếp theo: mật khẩu, gửi link, hoặc tạo tài khoản.
+  - Ưu điểm: mỗi bước chỉ có một lựa chọn chính.
+  - Nhược điểm: Keycloak phải đổi luồng đăng nhập (identity-first) và cần code riêng để quyết định bước sau. Dev tốn nhiều hơn A và B hẳn, và màn này có thể cho người lạ biết một email đã có tài khoản hay chưa.
+
+Cả 3 phương án đều giữ nguyên câu chữ đã duyệt: "First time here? Get a sign-in link" và câu phụ của D1.
+
+**Ước lượng thời gian:**
+
+| Bước | Ngày | Cộng dồn |
+|---|---|---|
+| 1. Image 6: ô tick trong box vàng (đã xong) | 0.05 | 0.05 |
+| 2. Image 1 theo phương án anh chọn (A hoặc B) | 0.15 | 0.2 |
+| 3. Kiểm tra (node, curl), cập nhật mô tả khung và bản nháp comment | 0.05 | 0.25 |
+| 4. Bản nháp trả lời team trên GitLab (tiếng Anh, ngắn) | 0.05 | 0.3 |
+
+Phương án C cần thêm 2 khung (bước email, bước mật khẩu), khoảng +0.2 ngày.
+
+### Nhật ký vòng 2
+- 13/11/2026: Image 6 đã sửa ở `assets/task218.js` và `assets/task218.css`. Đã viết phần plan này. Chưa commit. Đang chờ anh chọn phương án cho Image 1.
+- 13/11/2026: anh duyệt Image 6 ("done") và bảo "Try A cho anh xem".
+  - **Đã làm Image 1 theo A:**
+    - Thứ tự từ trên xuống: tiêu đề, form (Username or email, Password), Remember me và Forgot Password?, nút Sign In, dòng "or", Facebook và Google.
+    - Cuối thẻ là một khung nền xám nhạt có 2 dòng, ngăn bằng một đường kẻ:
+      - "First time here? Get a sign-in link", kèm câu phụ của D1;
+      - "Don't have an account? Create an account".
+    - Sign In là nút đặc duy nhất. Hai câu "Using your social media accounts:" và "or sign in manually" thay bằng một dòng "or", vì form đã lên trước.
+    - Box xanh cũ và style `.kc-first`, `.kc-signup` đã bỏ. Khung Register vẫn giữ chữ như production.
+    - Đã sửa mô tả dưới khung và đoạn 1 trong bản nháp comment.
+  - **Đã kiểm tra:**
+    - `node --check` không báo lỗi.
+    - Script node: thứ tự 10 thành phần đúng; chỉ có 1 nút đặc; câu chữ D1 giữ nguyên; thẻ đóng mở khớp; không còn style cũ.
+    - curl trả về 200.
+  - Chưa xem bằng mắt. Chưa commit.
