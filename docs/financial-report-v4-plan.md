@@ -4,7 +4,7 @@ Nguồn: 7 ảnh anh gửi ngày 12/11/2026 (comment hồng của team trên can
 - trang owner: Manage Project / Manage Event, Manage Pages › Payouts;
 - trang admin: Transaction Report, Summary Payout Report.
 
-Code hiện tại là commit `0e2c422`. Plan này chưa code, đang chờ anh duyệt.
+Plan bắt đầu từ commit `0e2c422`. Phần desktop đã làm xong và đã push lên main trong commit `b94982b` (12/11/2026). Team đang review v4 trên Vercel. Còn lại: O1 mobile (để sau) và các câu hỏi ở mục 5.
 
 ## 1. Feedback (nguyên văn) và cách làm
 
@@ -48,7 +48,7 @@ Cách làm O5:
 | T4 | *Can remove this line* (dòng "Payout Period: All payout periods · All PSPs · …") | Bỏ dòng này. |
 | T5 | *Change copy to 'Total paid out directly to Projects/Events by Stripe (Connect)'* | Đổi tên ô này. Ô này nằm thành dòng phụ dưới "Total disbursed to projects/events", vì nó là một phần của số đó. Đổi luôn tên trong CSV. |
 | T6 | *Can remove the bar* | Bỏ thanh "Where the Total Trx Amt went". |
-| T7 | *Show UI for when transaction doesn't tally* | Ô Tally check có trạng thái lỗi. Hiện: số giao dịch lệch, tổng chênh lệch, nút "Show only these". Bấm nút thì bảng chỉ còn các giao dịch lệch, các dòng lệch tô đỏ nhạt. Dữ liệu mẫu đều khớp, nên trạng thái lỗi xem bằng link demo, xem mục 4. |
+| T7 | *Show UI for when transaction doesn't tally* | **Chưa làm.** Tally check đã bỏ hẳn khỏi trang (anh review lần 2, mục 9). Chờ team định nghĩa Tally check (câu hỏi 3 ở mục 5) rồi mới làm UI cho comment này. |
 | T8 | *Can remove* (ô "Donor love gift to claw back (AXS)") | Bỏ ô này. Phần love gift giờ nằm trong mục thu gọn dưới Final. |
 | T9 | *Collapse into a separate 'Statistics' section with a separate filter. Only expand and fetch when clicked. Include other statistics: Average Donor Love Gift (in %)* | Thêm mục "Statistics", mặc định đóng. Bấm mở thì mới tính số. Mục này có bộ lọc riêng: khoảng payout period và PSP. Bên trong có biểu đồ "By payout period" và số "Average Donor Love Gift" theo %. Bỏ chức năng bấm cột để lọc trang, vì mục đã có lọc riêng. |
 | T10 | *Can remove* (biểu đồ By PSP) | Bỏ. |
@@ -151,7 +151,7 @@ Cách làm O5:
 | Dòng đếm giao dịch (P4) | Chỉ bỏ ở chế độ không chọn tháng, đúng chỗ comment trỏ. Khi chọn tháng vẫn giữ "20 transactions, 20 orders" | Comment ở ảnh chọn Oct 2026 không nhắc dòng này. Nếu anh muốn bỏ ở cả 2 chế độ thì em bỏ. |
 | Mobile (O1) | Chỉ làm trang owner ở 390px:<br>• bảng thành thẻ (đã có một phần);<br>• bộ lọc xếp dọc;<br>• khối payout summary và khung Net to you xếp một cột;<br>• tooltip mở bằng chạm. | Trang admin là console nội bộ, dùng trên máy tính. |
 | Disclaimer mobile | Chỉ hiện khi đang ở chế độ "View full screen" trên điện thoại: "This table is easier to read on a computer." | Ngoài chế độ đó, bảng đã thành thẻ nên đọc được. |
-| Demo cho trạng thái "doesn't tally" (T7) | Mở `finance.html?demo=tally-off`. Trang làm lệch 3 giao dịch mẫu, chỉ trong lần xem đó. | Dữ liệu mẫu 395/395 giao dịch đều khớp. Không đặt nút demo trên trang admin. |
+| Demo cho trạng thái "doesn't tally" (T7) | Đã bỏ cùng Tally check (anh review lần 2). | Trước đó: mở `finance.html?demo=tally-off` để làm lệch 3 giao dịch mẫu. |
 | Average Donor Love Gift (T9) | Tổng donor love gift ÷ tổng Receiving Amount của các khoản donate, không tính vé event, trong khoảng thời gian đang lọc của Statistics. Ghi kèm "on S$… donated". | Event không có donor love gift. |
 | Bộ lọc riêng của Statistics (T9) | Khoảng thời gian: Last 6 payouts (mặc định), Last 12 payouts, All. PSP: All / Stripe / 2c2p / AXS. | Biểu đồ cần nhiều tháng, trong khi bộ lọc chính chỉ có Latest payout. |
 | Các ô khác của Summary Payout | "41 transactions" dưới Total Transactions Amount và dòng "How much to disburse to each PO/EO: see the table below" giữ nguyên. Tên cột bảng By project giữ nguyên. | Team không comment. |
@@ -164,7 +164,7 @@ Cách làm O5:
 3. Còn 5 câu hỏi cũ ở mục 12 của plan v3:
    - E13: cột "Computed PSP Payout to Agathos" có còn cần không;
    - C90: Total to Agathos có tính Platform Fee không (hiện đang tính);
-   - Tally check được định nghĩa thế nào;
+   - Tally check được định nghĩa thế nào (T7 và cột Tally check chờ câu này);
    - AXS trả tiền vào ngày nào;
    - Tax Deduction Report có lọc theo bộ lọc không.
 
@@ -173,14 +173,14 @@ Cách làm O5:
 | File | Việc |
 |---|---|
 | `assets/financial-report.js` | O2–O5, P1, P3–P6, đổi Processing → Unassigned, CSV, pill version |
-| `assets/financial-report.css` | Tooltip ⓘ, khối payout summary dạng tiêu đề, P2 (bỏ cuộn riêng), mobile O1 |
+| `assets/financial-report.css` | Tooltip ⓘ, khối payout summary dạng tiêu đề, P2 (bỏ cuộn riêng). Mobile O1 để sau. |
 | `financial-report.html` | Title "version 4" |
-| `finance.html` | T1–T11, S10 (export vào khung lọc), demo tally-off |
+| `finance.html` | T1–T6, T8–T11, S10 (export vào khung lọc). Bỏ cột Tally check. |
 | `finance-payouts.html` | S1–S11 |
-| `assets/finance-admin.css` | Khung lọc kiểu searchpanel, ô chọn có tìm kiếm, khung bậc thang, mục Statistics đóng/mở, trạng thái tally lỗi |
+| `assets/finance-admin.css` | Khung lọc kiểu searchpanel, ô chọn có tìm kiếm, khung bậc thang, mục Statistics đóng/mở |
 | `docs/financial-report-v4-plan.md` | Plan này và nhật ký |
 
-`assets/finance-data.js` không cần sửa: dữ liệu đã có sẵn các nhóm paid, await, proc và model.
+`assets/finance-data.js`: chỉ bỏ trường `tally` (anh review lần 2). Dữ liệu đã có sẵn các nhóm paid, await, proc và model.
 
 ## 7. Thứ tự làm và nghiệm thu
 
@@ -208,6 +208,8 @@ Cách làm O5:
 | 6. Mobile owner (O1) | 1.0 | 4.1 |
 | 7. Viết lại 3 script kiểm tra, chạy, ghi nhật ký | 0.5 | 4.6 |
 
+Đã làm bước 1–5 và 7. Bước 6 (O1 mobile) để sau.
+
 ## 9. Nhật ký
 
 **12/11/2026:**
@@ -219,7 +221,7 @@ Cách làm O5:
 - Làm hết plan, trừ O1 (mobile) và dòng disclaimer mobile ở mục 4. Hai việc này để sau.
 - Không có lệnh commit.
 
-**12/11/2026: đã làm xong mọi mục desktop. Chưa commit.**
+**12/11/2026: đã làm xong mọi mục desktop.**
 
 Sửa 7 file:
 - `assets/financial-report.js`, `assets/financial-report.css`, `financial-report.html`;
@@ -255,7 +257,7 @@ Sửa 7 file:
 - T3: các khoản xếp bậc thang theo D1. Kỳ Nov 2026: 7,244.10 − 164.01 − 11.88 − 6,538.15 = 530.06.
 - D2: 5 dòng thu gọn dưới Final cộng lại đúng 530.06.
 - T4–T6, T8, T10, T11: đã bỏ.
-- T7: trạng thái lỗi xem ở `finance.html?demo=tally-off`. Có 3 giao dịch lệch, tổng chênh S$0.93. Nút "Show only these" lọc bảng còn 3 dòng, tô đỏ nhạt.
+- T7: trạng thái lỗi xem ở `finance.html?demo=tally-off`. Có 3 giao dịch lệch, tổng chênh S$0.93. Nút "Show only these" lọc bảng còn 3 dòng, tô đỏ nhạt. Sau đó đã bỏ, xem 2 lần review bên dưới.
 - T9: mục Statistics mặc định đóng, mở ra mới tính số. Có bộ lọc riêng (6 / 12 / All payouts, PSP), số Average Donor Love Gift theo %, và biểu đồ "By payout period" kèm bảng. Bấm vào cột không còn lọc trang.
 
 **Đã kiểm tra:**
@@ -288,7 +290,6 @@ Sửa 7 file:
   - Transaction Report 35/35. Script đã sửa theo thay đổi: bỏ phần kiểm tra ô Tally, thêm kiểm tra cột vẫn còn và CSS không còn margin âm.
   - Summary Payout 24/24.
   - Owner 32/32.
-  - Chưa commit.
 
 **12/11/2026, anh review lần 2: bỏ hẳn Tally check.**
 - Anh dặn: "thôi thì remove hẳn ra giúp anh đi, nếu họ cần và họ giải thích được thì mình thêm UI đó vào nhé".
@@ -305,4 +306,11 @@ Sửa 7 file:
   - Transaction Report 35/35: không còn cột, CSV không còn chữ Tally, link demo không còn tác dụng.
   - Summary Payout 24/24, owner 32/32.
   - `node --check` không lỗi, trang trả về 200.
-  - Chưa commit.
+
+**12/11/2026: commit và push.**
+- Anh ra lệnh "Commit và push". Commit `b94982b` "Financial report v4: team feedback on v3" gồm 8 file, đã push lên main, Vercel tự deploy.
+- Team đang review v4 trên Vercel.
+- Còn lại:
+  - O1 mobile và disclaimer mobile: để sau, theo lời anh dặn.
+  - T7 và cột Tally check: chờ team định nghĩa Tally check (câu hỏi 3 ở mục 5).
+  - Câu hỏi 1, 2 và 5 câu cũ ở mục 5: chờ team trả lời.

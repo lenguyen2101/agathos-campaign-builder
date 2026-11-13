@@ -9,12 +9,22 @@
    Sample data: one payout a month, on the 20th of the next month, named after the
    month it is paid in. Today is 29 Oct 2026; the PSP files uploaded so far cover
    up to 25 Oct 2026.
+   Old transactions (v5, team chat of 13/11/2026): nobody uploads the older PSP files
+   again, so a page's transactions before its first one with payout data have none.
+   The owner pages show those in their own section, apart from the new ones.
+   The review bar's Data switch (setCase) puts every page in one of three cases:
+     both  old and new: payout data from 1 Jun 2026 (the concert's from 1 Sep 2026)
+     new   new only: payout data for every transaction (as in v4)
+     old   old only, the page ended before the payout data: none at all
+   The admin pages are unchanged and still read every transaction (v5 plan, D4).
    ============================================================================ */
 var FIN=(function(){
 'use strict';
 
 var TODAY='2026-10-29';
 var UPLOADED='2026-10-25';   /* last day covered by the payment data uploaded so far */
+var RECON_FROM='2026-06-01'; /* first day covered by the payment data (sample); a page's own date in p.recon */
+var CASE='both';             /* the review bar's Data switch */
 var IMG='assets/img/home/';
 
 /* model: how the PSP settles. connect = Stripe pays the owner and Agathos separately;
@@ -22,7 +32,7 @@ var IMG='assets/img/home/';
 var PROJECTS={
   erbil:   {id:'erbil',    ent:'antioch',  name:'Special Needs Centre in Erbil',    kind:'project', psp:'stripe', model:'connect', ben:.05, tip:.6, n:12, from:'2025-11', goal:60000, img:'project-storybook.jpg'},
   outreach:{id:'outreach', ent:'antioch',  name:'Outreach @ displaced families',    kind:'project', psp:'stripe', model:'connect', ben:.05, tip:.5, n:7,  from:'2026-03', goal:20000, img:'project-nepal.jpg'},
-  concert: {id:'concert',  ent:'antioch',  name:'Benefit concert for the unseen',   kind:'event',   psp:'2c2p',   model:'master',  mid:'764764000011923', ben:.03, tip:0,  n:18, from:'2026-08', img:'project-carnival.jpg', when:['2026-11-15T19:00','2026-11-15T22:00'],
+  concert: {id:'concert',  ent:'antioch',  name:'Benefit concert for the unseen',   kind:'event',   psp:'2c2p',   model:'master',  mid:'764764000011923', ben:.03, tip:0,  n:18, from:'2026-08', recon:'2026-09-01', img:'project-carnival.jpg', when:['2026-11-15T19:00','2026-11-15T22:00'],
             tickets:[{name:'Benefit concert for the unseen - Student / NSF', price:35}, {name:'Benefit concert for the unseen - Working Adults', price:60}]},
   care:    {id:'care',     ent:'personal', name:'Care packages for migrant workers', kind:'project', psp:'stripe', model:'master',  ben:.05, tip:.5, n:6,  from:'2026-05', goal:8000,  img:'hero-3.jpg'},
   /* AXS is the Hidden Cause route: no beneficiary love gift there (Intro D5) */
@@ -117,20 +127,57 @@ function buildRows(p, per){
     var row={p:p, per:per, day:day, at:day+'T'+t, ref:ref, method:method, intl:intl, qty:qty, tt:tt, recv:R, tip:tip, ben:ben, fee:fee, net:c2(R-fee-ben)};
     if(p.ipc){ row.paidAxs=c2(R+tip-fee); row.lg=c2(ben+tip); }
     else row.st=status(row);
+    oldFields(row);
     out.push(row);
   }
   return out;
+}
+/* what the production list shows besides the amounts (v5): the giver's account, the Tax Deduction tag of a
+   donation whose giver asked for it (projects), the promotion code of an order (events). Drawn from the PSP
+   reference with their own random numbers, so the amounts above stay as they were (the sample does not
+   take a code's discount off the amount).
+   av: d = the default avatar picture, i = the first letter on grey (both are on production) */
+var USERS=[['marcus88','i'],['priyaraj','d'],['weilingho','d'],['danieltoh','i'],['sitiaminah','d'],['kevinlim','i'],['gracechua','d'],['benjamink','i']];
+var PROMOS=['DISC','EARLYBIRD','FRIENDS'];
+function oldFields(row){
+  var q=rng(hash(row.ref)), u=pick(q, USERS);
+  row.user=u[0]; row.av=u[1];
+  row.tax=row.p.kind==='project' && q()<.3;
+  row.promo=row.p.kind==='event' && q()<.25 ? pick(q, PROMOS) : '';
+}
+/* offline transactions (Add Offline Transaction), projects only: the owner records money that never passed
+   through a PSP, so no fees, no PSP reference and no payout. They count in the amount raised and sit in the
+   lists with an Offline tag, but stay out of every payout total (v5, team answer 13/11/2026). Their own random
+   numbers, so the online amounts stay as they were; the sample gives them no Tax Deduction tag */
+function offlineRows(p, per){
+  if(p.kind!=='project' || p.ipc) return [];
+  var q=rng(hash(p.id+per+'offline'));
+  if(q()>=.35) return [];
+  var last=per===TODAY.slice(0,7) ? d(TODAY).d : monthDays(per), day=per+'-'+String(1+Math.floor(q()*last)).padStart(2,'0');
+  var t=String(10+Math.floor(q()*8)).padStart(2,'0')+':'+String(Math.floor(q()*60)).padStart(2,'0'), u=pick(q, USERS);
+  return [{p:p, per:per, day:day, at:day+'T'+t, ref:'', method:'', intl:false, qty:0, tt:-1, recv:pick(q,[300,500,500,1000,2000]),
+    tip:0, ben:0, fee:0, net:0, offline:true, user:u[0], av:u[1], tax:false, promo:''}];
 }
 function byNewest(a,b){ return a.at<b.at ? 1 : -1; }
 var CACHE={};
 function rowsOf(pid){
   if(CACHE[pid]) return CACHE[pid];
   var p=PROJECTS[pid], out=[];
-  MONTHS.forEach(function(m){ if(m>=p.from) out=out.concat(buildRows(p, m)); });
+  MONTHS.forEach(function(m){ if(m>=p.from) out=out.concat(buildRows(p, m), offlineRows(p, m)); });
   return (CACHE[pid]=out.sort(byNewest));
 }
 /* a payout period shows up once its payment data is uploaded; IPC rows sit in their sales month */
-function inPeriod(r){ return r.p.ipc || r.st!=='proc'; }
+function inPeriod(r){ return !r.offline && (r.p.ipc || r.st!=='proc'); }
+/* old: before the project's first transaction with payout data, so no payout data at all (owner pages only) */
+function isOld(r){ return CASE==='old' ? true : CASE==='new' ? false : r.at<(r.p.recon || RECON_FROM); }
+function setCase(c){ CASE=c==='old' || c==='new' ? c : 'both'; return CASE; }
+function newRowsOf(pid){ return rowsOf(pid).filter(function(r){ return !isOld(r); }); }
+function oldRowsOf(pid){ return rowsOf(pid).filter(isOld); }
+/* the day of the first transaction with payout data, when there are old transactions before it */
+function cutoffOf(pid){
+  var n=newRowsOf(pid);
+  return n.length && oldRowsOf(pid).length ? n[n.length-1].day : null;
+}
 
 /* totals in whole cents so the parts always add up to the whole */
 function totals(list){
@@ -139,6 +186,7 @@ function totals(list){
   list.forEach(function(r){
     ['recv','ben','fee','net','tip'].forEach(function(x){ c[x]+=cents(r[x]); });
     t.qty+=r.qty;
+    if(r.offline) return;   /* raised, but in no payout */
     if(r.p.ipc){ c.paidAxs+=cents(r.paidAxs); c.lg+=cents(r.lg); }
     else c[r.st]+=cents(r.net);
   });
@@ -156,7 +204,7 @@ function ticketSales(p, list){
 
 function pidsOf(eid){ return Object.keys(PROJECTS).filter(function(id){ return PROJECTS[id].ent===eid; }); }
 function yearOk(per, y){ return y==='all' || per.slice(0,4)===y; }
-function periodsOf(ids){ var seen={}; ids.forEach(function(id){ rowsOf(id).forEach(function(r){ if(inPeriod(r)) seen[r.per]=1; }); }); return MONTHS.filter(function(m){ return seen[m]; }); }
+function periodsOf(ids){ var seen={}; ids.forEach(function(id){ newRowsOf(id).forEach(function(r){ if(inPeriod(r)) seen[r.per]=1; }); }); return MONTHS.filter(function(m){ return seen[m]; }); }
 function yearsOf(pers){ var y=[]; pers.forEach(function(m){ var x=m.slice(0,4); if(y.indexOf(x)<0) y.push(x); }); return y; }
 
 /* ---------- words that change between a project and an event ---------- */
@@ -177,16 +225,16 @@ function others(ids, self){
 }
 /* one payout = one payout date for one organisation (or Personal), summed across its projects and events */
 function payout(per, eid){
-  var ids=pidsOf(eid).filter(function(id){ return !PROJECTS[id].ipc && rowsOf(id).some(function(r){ return r.per===per && inPeriod(r); }); });
-  var parts=ids.map(function(id){ return {id:id, t:totals(rowsOf(id).filter(function(r){ return r.per===per && inPeriod(r); }))}; });
-  var all=[]; ids.forEach(function(id){ all=all.concat(rowsOf(id).filter(function(r){ return r.per===per && inPeriod(r); })); });
+  var ids=pidsOf(eid).filter(function(id){ return !PROJECTS[id].ipc && newRowsOf(id).some(function(r){ return r.per===per && inPeriod(r); }); });
+  var parts=ids.map(function(id){ return {id:id, t:totals(newRowsOf(id).filter(function(r){ return r.per===per && inPeriod(r); }))}; });
+  var all=[]; ids.forEach(function(id){ all=all.concat(newRowsOf(id).filter(function(r){ return r.per===per && inPeriod(r); })); });
   var date=payoutDate(per);
   return {per:per, ids:ids, parts:parts, t:totals(all), date:date, paid:date<=TODAY};
 }
 
 /* ---------- admin: one transaction as Agathos Finance sees it ----------
    Only transactions in an uploaded PSP file ("after reconciliation data from PSP file", A2). */
-function reconciled(r){ return r.day<=UPLOADED; }
+function reconciled(r){ return !r.offline && r.day<=UPLOADED; }
 /* Intro A13: Stripe pays on the first business day of the month (for the month before); 2c2p three business days
    after the transaction. AXS has not sent a report yet (Intro D8), so its two business days are a sample */
 function businessDay(iso){ var w=weekday(iso); return w===6 ? addDays(iso,2) : w===0 ? addDays(iso,1) : iso; }
@@ -222,10 +270,11 @@ function otherCharges(list){
   return {active:active/100, volume:volume/100, payout:fee/100, total:(active+volume+fee)/100};
 }
 
-return {TODAY:TODAY, UPLOADED:UPLOADED, IMG:IMG, PROJECTS:PROJECTS, ENTITIES:ENTITIES, ENT_ORDER:ENT_ORDER, MONTHS:MONTHS, PSP_NAME:PSP_NAME, MODEL_NAME:MODEL_NAME,
+return {TODAY:TODAY, UPLOADED:UPLOADED, RECON_FROM:RECON_FROM, IMG:IMG, PROJECTS:PROJECTS, ENTITIES:ENTITIES, ENT_ORDER:ENT_ORDER, MONTHS:MONTHS, PSP_NAME:PSP_NAME, MODEL_NAME:MODEL_NAME,
   h:h, c2:c2, cents:cents, fmt2:fmt2, money:money, num:num, MON:MON, d:d, fmtDate:fmtDate, fmtDMY:fmtDMY, addDays:addDays, weekday:weekday,
   monthLabel:monthLabel, monthDays:monthDays, nextMonth:nextMonth, payoutDate:payoutDate, payoutLabel:payoutLabel, initials:initials,
   procFee:procFee, axsFee:axsFee, pspFee:pspFee, status:status, rowsOf:rowsOf, inPeriod:inPeriod, totals:totals, ticketSales:ticketSales,
+  isOld:isOld, setCase:setCase, newRowsOf:newRowsOf, oldRowsOf:oldRowsOf, cutoffOf:cutoffOf,
   pidsOf:pidsOf, yearOk:yearOk, periodsOf:periodsOf, yearsOf:yearsOf, isEv:isEv, amountLabel:amountLabel, agathosLabel:agathosLabel,
   rowsWord:rowsWord, plural:plural, countText:countText, kinds:kinds, others:others, payout:payout,
   reconciled:reconciled, adminRow:adminRow, otherCharges:otherCharges};

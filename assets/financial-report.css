@@ -17,7 +17,13 @@
 .fr-rtabs a{padding:7px 14px;border-radius:8px;font-size:13.5px;font-weight:700;color:var(--hp-navy);}
 .fr-rtabs a:hover{background:rgba(255,255,255,.55);color:var(--hp-navy);}
 .fr-rtabs a.on{background:#fff;box-shadow:0 2px 8px rgba(18,39,94,.1);}
-.fr-review .note{margin-left:auto;color:var(--hp-muted);}
+/* the Data switch: the three cases of a project or event */
+.fr-rcase{align-items:center;}
+.fr-rcase .lbl{padding:0 6px 0 10px;font-size:12.5px;font-weight:700;color:#8A6D3B;}
+.fr-rcase button{padding:7px 14px;border:0;border-radius:8px;background:none;font:inherit;font-size:13.5px;font-weight:700;color:var(--hp-navy);cursor:pointer;}
+.fr-rcase button:hover{background:rgba(255,255,255,.55);}
+.fr-rcase button.on{background:#fff;box-shadow:0 2px 8px rgba(18,39,94,.1);}
+.fr-review .fr-qs{margin-left:auto;}   /* on the tabs' row, at its right end */
 .fr-notes{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px 0 6px;border:1px solid #E7D3AE;border-radius:999px;background:#fff;font:inherit;font-size:13.5px;font-weight:700;color:var(--hp-navy);cursor:pointer;}
 .fr-notes:hover{border-color:#D9B66E;box-shadow:0 2px 8px rgba(18,39,94,.08);}
 .fr-notes .c{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--hp-gold);font-size:12px;font-weight:800;color:var(--hp-navy);}
@@ -43,8 +49,9 @@ html.fr-lock,html.fr-full-on{overflow:hidden;}
 .fr-nt-rows > div{display:grid;grid-template-columns:110px minmax(0,1fr);gap:12px;padding:6px 0;}
 .fr-nt-rows dt{padding-top:2px;font-size:12.5px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:var(--mp-grey);}
 .fr-nt-rows dd{margin:0;font-size:14px;line-height:1.55;color:var(--mp-ink);}
-.fr-nt-rows q{display:block;padding:6px 10px;border-left:3px solid #F2B8B5;border-radius:0 6px 6px 0;background:#FDF1F0;font-style:italic;color:#5B3A38;quotes:none;}
-.fr-nt-rows q + q{margin-top:6px;}
+.fr-md-foot{margin:0;padding:14px 28px 22px;border-top:1px solid #ECEDEF;font-size:13.5px;line-height:1.5;color:var(--mp-sub);}
+/* the questions button: the notes button with a navy count */
+.fr-qs .c{background:var(--hp-navy);color:#fff;}
 
 /* ---------- signed-in nav (production) ---------- */
 .fr-auth{gap:0;}
@@ -56,7 +63,8 @@ html.fr-lock,html.fr-full-on{overflow:hidden;}
 
 /* ============ MANAGE PROJECT / MANAGE EVENT (production) ============ */
 .mp{padding:39px var(--hp-gutter) 96px;color:var(--mp-ink);}
-.mp-inner{display:grid;grid-template-columns:365px minmax(0,1fr);column-gap:39px;align-items:start;max-width:1216px;margin:0 auto;}
+/* side menu made compact (FE proposal, v5): 265px menu, 39px gap, 912px card (848px inside), from the mockup at 1440px */
+.mp-inner{display:grid;grid-template-columns:265px minmax(0,1fr);column-gap:39px;align-items:start;max-width:1216px;margin:0 auto;}
 .mp-crumb{grid-column:1 / -1;display:flex;align-items:center;gap:9px;height:22px;padding-left:22px;font-size:15px;font-weight:500;color:#484848;}
 .mp-crumb a{display:inline-flex;color:#484848;white-space:nowrap;}
 .mp-crumb a:hover{color:var(--mp-blue);}
@@ -64,16 +72,17 @@ html.fr-lock,html.fr-full-on{overflow:hidden;}
 .mp-crumb > svg{flex:none;width:7px;height:12px;color:#B5B5B5;}
 .mp-side h1{margin:34px 0 0;font-size:32px;font-weight:600;letter-spacing:-.01em;line-height:1.25;color:var(--mp-h);}
 .mp-menu{margin:22px 0 0;padding:0;list-style:none;}
-.mp-menu a{display:flex;align-items:center;gap:18px;height:64px;padding:0 22px;font-size:17px;font-weight:500;color:var(--mp-grey);}
+.mp-menu a{display:flex;align-items:center;gap:12px;height:48px;padding:0 9px;font-size:14px;font-weight:500;color:var(--mp-grey);}
+.mp-menu li + li{margin-top:2px;}
 .mp-menu a > svg:first-child{flex:none;width:20px;height:20px;}
 .mp-menu a span{flex:1;}
-.mp-menu a > svg:last-child{flex:none;width:18px;height:18px;}
+.mp-menu a > svg:last-child{flex:none;width:13px;height:13px;}
 .mp-menu a:hover{color:#3F4350;}
-.mp-menu a.on{background:#F2F8FE;border-right:4px solid #2A64CD;padding-right:18px;font-weight:600;color:#000;}
-.mp-back{display:block;width:100%;height:42px;margin-top:28px;border:1px solid var(--mp-blue);border-radius:4px;background:#fff;font:inherit;font-size:16px;font-weight:500;color:var(--mp-blue);cursor:pointer;}
+.mp-menu a.on{background:#F2F8FE;border-right:3px solid #2A64CD;padding-right:6px;font-weight:600;color:#000;}
+.mp-back{display:block;width:100%;height:42px;margin-top:16px;border:1px solid var(--mp-blue);border-radius:4px;background:#fff;font:inherit;font-size:16px;font-weight:500;color:var(--mp-blue);cursor:pointer;}
 .mp-back:hover{background:#F2F8FE;}
 
-.mp-card{min-width:0;margin-top:14px;padding:38px 40px 48px;border-radius:16px;background:#fff;box-shadow:0 2px 24px rgba(17,24,39,.07);}
+.mp-card{min-width:0;margin-top:14px;padding:38px 32px 48px;border-radius:16px;background:#fff;box-shadow:0 2px 24px rgba(17,24,39,.07);}
 .mp.is-event .mp-card{margin-top:41px;}
 .mp-title{font-size:22px;font-weight:500;line-height:30px;color:var(--mp-h);}
 /* tabs as a segmented control; actions on the same row */
@@ -238,7 +247,7 @@ html.fr-lock,html.fr-full-on{overflow:hidden;}
 /* tables: natural column widths, sideways scroll, the first two columns frozen */
 .fr-tw{position:relative;margin-top:12px;overflow-x:auto;border:1px solid #E6E8EB;border-radius:12px;}
 .fr-t{min-width:100%;width:max-content;border-collapse:separate;border-spacing:0;font-size:13.5px;}
-.fr-t.tx{--c1:172px;}
+.fr-t.tx{--c1:140px;}   /* Account (v5 round 2) */
 .fr-t.ph{--c1:300px;}
 .fr-t.inv{--c1:160px;}
 .fr-t th{padding:12px 16px;background:#F7F8FA;border-bottom:1px solid #E6E8EB;font-size:12.5px;font-weight:600;line-height:1.35;color:var(--mp-sub);text-align:left;vertical-align:bottom;white-space:nowrap;}
@@ -300,6 +309,46 @@ html.fr-lock,html.fr-full-on{overflow:hidden;}
 .fr-pager .gap{min-width:24px;text-align:center;color:var(--mp-grey);}
 .fr-empty{margin-top:12px;padding:28px;border:1px solid #E6E8EB;border-radius:12px;text-align:center;font-size:14.5px;color:var(--mp-grey);}
 .fr-cards{display:none;}
+
+/* ---------- old transactions (v5) ---------- */
+/* old and new in one place: a switch with each list's count, one list at a time (round 3) */
+.fr-seg{display:flex;gap:4px;margin-top:24px;padding:4px;border-radius:10px;background:#F0F2F5;}
+.fr-seg button{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border:0;border-radius:7px;background:none;font:inherit;font-size:14.5px;font-weight:600;color:var(--mp-sub);cursor:pointer;}
+.fr-seg button:hover{color:var(--mp-ink);}
+.fr-seg button.on{background:#fff;color:var(--mp-blue);box-shadow:0 1px 3px rgba(17,24,39,.12);}
+.fr-seg .n{padding:1px 8px;border-radius:999px;background:rgba(17,24,39,.06);font-size:12.5px;font-weight:600;color:var(--mp-sub);}
+.fr-seg button.on .n{background:#EAF1FD;color:var(--mp-blue);}
+/* why there are two lists */
+.fr-split{display:flex;align-items:flex-start;gap:8px;margin-top:24px;padding:12px 16px;border-radius:10px;background:#F7F8FA;font-size:13.5px;line-height:1.55;color:var(--mp-ink);}
+.fr-split svg{flex:none;width:16px;height:16px;margin-top:2px;color:var(--mp-grey);}
+.fr-seg + .fr-split{margin-top:12px;}
+.fr-old{margin-top:24px;}
+/* the old table: the new table's frame, narrow enough to fit the card (5 or 6 columns, no sideways scroll) */
+.fr-t.old{--c1:136px;}
+.fr-t.old th,.fr-t.old td{padding-left:14px;padding-right:14px;}
+/* the giver's account, learnt from the production list: its default picture or the first letter on grey */
+.acct{display:inline-flex;align-items:center;gap:8px;height:24px;vertical-align:top;}
+.acct a{font-weight:500;color:var(--mp-blue);}
+.acct a:hover{color:#163D80;text-decoration:underline;}
+.acct .av{flex:none;display:flex;align-items:center;justify-content:center;width:24px;height:24px;border:1px solid #D3D3D3;border-radius:50%;overflow:hidden;background:#D2D5DA;font-size:11px;font-weight:700;line-height:1;color:#fff;}
+.acct .av.is-d{background:#F4D7E5;}
+.acct .av svg{display:block;width:22px;height:22px;}
+/* tags under the account, measured from production at 1728px and set a size down for the table:
+   Tax Deduction on cream, the promotion code in a pale blue pill with a blue seal */
+.fr-t .tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;}
+/* every row as tall as a tagged one (account 24 + 8 + tag 22, padding 13 + 13, line 1 = 81px), the content
+   in the middle, so the tables keep one rhythm whether a row has a tag or not (round 4) */
+.fr-t.tx td,.fr-t.old td{height:81px;vertical-align:middle;}
+.tag-off{display:inline-flex;align-items:center;height:22px;padding:0 7px;border-radius:4px;background:#ECEDEF;font-size:12px;font-weight:500;line-height:1;color:#000;white-space:nowrap;}   /* offline: grey, black text */
+.tag-tax{display:inline-flex;align-items:center;height:22px;padding:0 7px;border-radius:4px;background:#FDF6E9;font-size:12px;font-weight:500;line-height:1;color:#000;white-space:nowrap;}
+.tag-promo{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px 0 4px;border:1px solid #E7F3FE;border-radius:999px;background:#fff;font-size:12px;font-weight:600;line-height:1;color:var(--mp-blue);white-space:nowrap;}
+.tag-promo svg{flex:none;width:14px;height:14px;}
+/* the old list's total, next to the count */
+.fr-old-total{margin-top:6px;font-size:13.5px;color:var(--mp-sub);}
+.fr-off-total{margin-top:8px;padding:0 4px;font-size:13.5px;color:var(--mp-sub);}
+.fr-off-total b{margin-left:4px;font-weight:600;color:var(--mp-ink);}
+.fr-old-total b{margin-left:6px;font-weight:600;color:var(--mp-ink);}
+.sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;}
 
 /* ============ MANAGE PAGES (production; one Payouts tab added) ============ */
 .dp-wrap{padding:0 0 96px;color:var(--mp-ink);}
@@ -382,7 +431,7 @@ html.fr-lock,html.fr-full-on{overflow:hidden;}
 @media (max-width:1180px) and (min-width:900px){
   .pc{grid-template-columns:120px minmax(0,1fr);gap:16px;}
   .pc-stats{grid-column:1 / -1;}
-  .mp-inner{grid-template-columns:300px minmax(0,1fr);column-gap:28px;}
+  .mp-inner{grid-template-columns:265px minmax(0,1fr);column-gap:28px;}
   .mp-card{padding:34px 28px 40px;}
   .ov{grid-template-columns:1fr;}
 }
@@ -406,7 +455,7 @@ html.fr-lock,html.fr-full-on{overflow:hidden;}
   .pc{grid-template-columns:96px minmax(0,1fr);gap:12px;padding:14px;}
   .pc-img{width:96px;height:96px;}
   .pc-stats{grid-column:1 / -1;}
-  .fr-review .note{margin-left:0;}
+  .fr-review .fr-qs{margin-left:0;}
   .fr-modal{padding:16px;}
   .fr-md-head{padding:20px 18px 14px;}
   .fr-md-head h2{font-size:19px;}

@@ -1,7 +1,12 @@
 /* ============================================================================
-   Agathos — financial report, version 4 (/financial-report).
-   v3 reworked to follow the team's feedback of 12/11/2026 one by one
-   (mapping in docs/financial-report-v4-plan.md; v3 in docs/financial-report-v3-plan.md):
+   Agathos — financial report, version 5 (/financial-report).
+   v4 (team feedback of 12/11/2026, docs/financial-report-v4-plan.md) plus the old
+   transactions of the team chat of 13/11/2026 (docs/financial-report-v5-plan.md):
+   transactions before a page's first one with payout data have no payout data, so
+   they sit in their own table under the new one: the production list's fields in the
+   new table's frame (round 2). A review bar switch puts every page in one of three cases.
+   A page with only old transactions shows only that list.
+   Routes:
      #/pages/<entity>/projects|events|payouts   Manage Pages: Personal or one organisation;
                                                 Payouts sit here, above the project level (F1)
      #/manage/<id>/transactions                 Manage Project › Transactions (no payouts tab, M1)
@@ -18,6 +23,7 @@
 /* sample data, fee rules and totals: assets/finance-data.js (shared with the admin page /finance) */
 var F=FIN;
 var TODAY=F.TODAY, IMG=F.IMG, PROJECTS=F.PROJECTS, ENTITIES=F.ENTITIES, ENT_ORDER=F.ENT_ORDER, MONTHS=F.MONTHS;
+var newRowsOf=F.newRowsOf, oldRowsOf=F.oldRowsOf, cutoffOf=F.cutoffOf;
 var h=F.h, c2=F.c2, cents=F.cents, money=F.money, num=F.num, fmtDate=F.fmtDate, fmtDMY=F.fmtDMY, addDays=F.addDays,
     monthLabel=F.monthLabel, monthDays=F.monthDays, payoutDate=F.payoutDate, payoutLabel=F.payoutLabel, initials=F.initials;
 var rowsOf=F.rowsOf, inPeriod=F.inPeriod, totals=F.totals, ticketSales=F.ticketSales, pidsOf=F.pidsOf, yearOk=F.yearOk, periodsOf=F.periodsOf, yearsOf=F.yearsOf;
@@ -27,27 +33,33 @@ var isEv=F.isEv, amountLabel=F.amountLabel, agathosLabel=F.agathosLabel, rowsWor
 /* ---------- state ---------- */
 /* pper: the payout months picked on Manage Pages › Payouts; none picked means all (P1).
    carry / carryTx: a payout to open after the hash changes (Payouts, or one project's transactions, P4) */
-var S={view:'manage', key:'erbil', tab:'transactions', ctx:'', year:'all', per:'all', pyear:'all', pper:[], page:1, open:{}, chart:'amt', carry:null, carryTx:null, msOpen:false};
+var S={view:'manage', key:'erbil', tab:'transactions', ctx:'', data:'both', seg:'new', year:'all', per:'all', pyear:'all', pper:[], page:1, opage:1, open:{}, chart:'amt', carry:null, carryTx:null, msOpen:false};
 function manageTabs(p){ return p.ipc ? [['transactions','Transactions'],['invoices','Invoices']] : isEv(p) ? [['orders','Orders']] : [['transactions','Transactions']]; }
 function pageTabs(e){ return [['projects','Projects'],['events','Events'], e.ipc ? ['invoices','Invoices'] : ['payouts','Payouts']]; }
 var ALIAS={project:'erbil', event:'concert', ipc:'sunny'};
+/* the review bar's Data switch rides in the hash (#/manage/erbil/transactions?data=old) so a link keeps its case;
+   links without it keep the case already picked */
+function hashPath(){ return location.hash.replace(/^#\/?/,'').split('?')[0]; }
 function route(){
-  var p=location.hash.replace(/^#\/?/,'').split('/'), view, key, tab, tabs;
+  var dm=/(?:^|&)data=(\w+)/.exec(location.hash.split('?')[1]||'');
+  if(dm) S.data=F.setCase(dm[1]);
+  var p=hashPath().split('/'), view, key, tab, tabs;
   if(p[0]==='pages'){
     view='pages'; key=ENTITIES[p[1]] ? p[1] : 'antioch'; tabs=pageTabs(ENTITIES[key]); tab=p[2];
   } else {
     view='manage'; key=p[0]==='manage' ? (PROJECTS[p[1]] ? p[1] : 'erbil') : (ALIAS[p[0]] || 'erbil'); tabs=manageTabs(PROJECTS[key]); tab=p[0]==='manage' ? p[2] : p[1];
   }
   if(!tabs.some(function(t){ return t[0]===tab; })) tab=tabs[0][0];
-  var ctx=view+':'+key;
-  if(ctx!==S.ctx){ S.year='all'; S.per='all'; S.pyear='all'; S.pper=[]; S.page=1; S.open={}; S.msOpen=false; S.full=false; }
+  var ctx=view+':'+key+':'+S.data;
+  if(ctx!==S.ctx){ S.year='all'; S.per='all'; S.pyear='all'; S.pper=[]; S.page=1; S.opage=1; S.seg='new'; S.open={}; S.msOpen=false; S.full=false; }
   if(S.carry){ S.pper=[S.carry]; S.carry=null; }
-  if(S.carryTx){ S.per=S.carryTx; S.carryTx=null; }
+  if(S.carryTx){ S.per=S.carryTx; S.seg='new'; S.carryTx=null; }
   S.view=view; S.key=key; S.tab=tab; S.ctx=ctx;
 }
 function cur(){ return PROJECTS[S.key]; }
+/* the new section: transactions with payout data only (the summary leaves the old ones out, v5 D3) */
 function filtered(p){
-  return rowsOf(p.id).filter(function(r){
+  return newRowsOf(p.id).filter(function(r){
     if(!yearOk(r.per, S.year)) return false;
     if(S.per==='all') return true;
     if(S.per==='none') return r.st==='proc';
@@ -241,18 +253,88 @@ function sel(label, key, opts, val){
 }
 function yearOpts(pers){ return [['all','All years']].concat(yearsOf(pers).map(function(y){ return [y,y]; })); }
 function viewRows(p){
+  /* only old transactions (the page ended before the payout data starts): the old table alone */
+  var olds=oldRowsOf(p.id);
+  if(!newRowsOf(p.id).length) return oldSection(p, olds);
+  /* old and new: one place, one list at a time (v5 round 3); the page opens on the new one */
+  var cut=cutoffOf(p.id), seg=cut ? segBar(p, cut, olds.length) : '';
+  /* what the owner misses on these, and where it shows: the date, the missing details, the totals they stay out of */
+  if(cut && S.seg==='old') return seg+note(rowsWord(p)+' before '+fmtDate(cut)+' have no payout details, such as fees and '+(p.ipc?'the amount paid to you':'net payout')+
+    ', so they are not counted in the totals under “With payout details”.')+oldSection(p, olds);
   var allPers=periodsOf([p.id]), pers=allPers.filter(function(m){ return yearOk(m, S.year); });
-  var hasProc=!p.ipc && rowsOf(p.id).some(function(r){ return r.st==='proc' && yearOk(r.per, S.year); });
+  var hasProc=!p.ipc && newRowsOf(p.id).some(function(r){ return r.st==='proc' && yearOk(r.per, S.year); });
   var opts=[['all','-']].concat(pers.map(function(m){ return [m, p.ipc ? monthLabel(m) : payoutLabel(m)]; }));
   if(hasProc) opts.push(['none','Unassigned']);
   if(!opts.some(function(o){ return o[0]===S.per; })) S.per='all';
   var list=filtered(p);
   /* the CSV follows the filters, so the two sit in one box (E2) */
-  return '<section class="fr-fx" aria-labelledby="fr-fx-t"><h3 class="fr-fx-t" id="fr-fx-t">Filter &amp; export</h3><div class="fr-fx-row">'+
+  return seg+
+    '<section class="fr-fx" aria-labelledby="fr-fx-t"><h3 class="fr-fx-t" id="fr-fx-t">Filter &amp; export</h3><div class="fr-fx-row">'+
       '<div class="fr-filters">'+sel('Year','year',yearOpts(allPers),S.year)+sel(p.ipc?'Month':'Payout period','per',opts,S.per)+'</div>'+
       '<button class="mp-act" type="button" data-act="csv">'+I.down+(isEv(p)?'Export Orders as .csv':'Export as .csv')+'</button>'+
     '</div></section>'+
-    (p.ipc?'':payoutHead(p))+summaryRows(p, list)+stats(p, list)+table(p, list);
+    (p.ipc?'':payoutHead(p))+summaryRows(p, inPayout(list))+offlineLine(list)+stats(p, inPayout(list))+table(p, list);
+}
+/* offline transactions are listed but sit in no payout, so the payout figures leave them out (team answer 2) */
+function inPayout(list){ return list.filter(function(r){ return !r.offline; }); }
+/* under the summary, the offline money of the listed transactions, so the summary and the "Earlier" total
+   add up to the amount raised on the project card (choice (a), 13/11/2026) */
+function offlineLine(list){
+  var off=list.filter(function(r){ return r.offline; });
+  return off.length ? '<p class="fr-off-total">Offline, not in payout: <b>'+money(totals(off).recv)+'</b></p>' : '';
+}
+
+/* ---------- old transactions (v5): before the page's first transaction with payout data ----------
+   The fields of the production list (Manage Project › Transaction, Manage Event › Orders) in a table
+   like the new one: account, date, reference, method, then the amount, or an order's tickets. */
+/* the switch between the two lists, each with its count */
+function segBar(p, cut, nOld){
+  var opts=[['new','With payout details', newRowsOf(p.id).length], ['old','Earlier', nOld]];
+  return '<div class="fr-seg" role="group" aria-label="'+rowsWord(p)+'">'+opts.map(function(o){
+    var on=S.seg===o[0];
+    return '<button type="button" data-act="seg" data-v="'+o[0]+'" aria-pressed="'+on+'"'+(on?' class="on"':'')+'>'+o[1]+'<span class="n">'+o[2]+'</span></button>';
+  }).join('')+'</div>';
+}
+/* why there are two lists */
+function note(text){ return '<p class="fr-split">'+I.info+'<span>'+text+'</span></p>'; }
+var OLD_PER_PAGE=10;
+/* the giver's account, learnt from the production list (v5 round 2): production's default picture for an
+   account without a photo, otherwise the first letter on grey; then the username */
+var AV_DEFAULT='<svg viewBox="0 0 44 44" aria-hidden="true"><rect x="14" y="10" width="16" height="17.5" rx="8" fill="#E07EB0"/><ellipse cx="22" cy="43" rx="13" ry="12" fill="#E07EB0"/></svg>';
+/* production's tags, on a line under the account, in the column that stays in sight: Tax Deduction on a
+   donation whose giver asked for it (projects), the promotion code an order used (events). A tagged row is
+   taller; the line spans the column (108px), which the longest tag needs */
+var PROMO_IC='<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="#60B6F9" d="M8 .6l1.6 1.3 2-.4.8 1.9 1.9.8-.4 2L15.4 8l-1.3 1.6.4 2-1.9.8-.8 1.9-2-.4L8 15.4l-1.6-1.3-2 .4-.8-1.9-1.9-.8.4-2L.6 8l1.3-1.6-.4-2 1.9-.8.8-1.9 2 .4z"/><path d="M5.6 10.4l4.8-4.8" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/><circle cx="5.9" cy="5.9" r="1.1" fill="#fff"/><circle cx="10.1" cy="10.1" r="1.1" fill="#fff"/></svg>';
+function tags(r){
+  return (r.offline ? '<span class="tag-off">Offline</span>' : '')+
+    (r.tax ? '<span class="tag-tax">Tax Deduction</span>' : '')+
+    (r.promo ? '<span class="tag-promo">'+PROMO_IC+'<span class="sr">Promotion code </span>'+h(r.promo)+'</span>' : '');
+}
+function account(r){
+  var av=r.av==='d' ? '<span class="av is-d">'+AV_DEFAULT+'</span>' : '<span class="av" aria-hidden="true">'+h(r.user.charAt(0).toUpperCase())+'</span>';
+  var t=tags(r);
+  return '<span class="acct">'+av+'<a href="#" data-act="other">'+h(r.user)+'</a></span>'+(t ? '<span class="tags">'+t+'</span>' : '');
+}
+/* the old table: the fields of the production list in the frame of the new table, so the two read alike.
+   The amount keeps production's S$ (no Currency column); an order shows its tickets and a link to its details.
+   Narrow enough to fit the card without scrolling sideways */
+function oldColumns(p){
+  return isEv(p) ? [['Account','acct'], ['Date & time','dt'], ['Tickets','qty','q'], ['Payment method','method'], ['Reference','ref','c'], ['<span class="sr">Order details</span>','vd']]
+                 : [['Account','acct'], ['Date & time','dt'], [amountLabel(p),'recv','sg'], ['Payment method','method'], ['Reference','ref','c']];
+}
+function right(c){ return c[2]==='n' || c[2]==='sg' || c[2]==='q'; }
+function oldSection(p, list){
+  var ev=isEv(p), word=rowsWord(p), cols=oldColumns(p), pages=Math.max(1, Math.ceil(list.length/OLD_PER_PAGE));
+  if(S.opage>pages) S.opage=pages;
+  var start=(S.opage-1)*OLD_PER_PAGE, slice=list.slice(start, start+OLD_PER_PAGE);
+  var head='<tr>'+cols.map(function(c,i){ return '<th class="'+cls(fz(i), right(c)&&'n')+'">'+thText(c[0])+'</th>'; }).join('')+'</tr>';
+  var body=slice.map(function(r){ return '<tr>'+cols.map(function(c,i){ return '<td class="'+cls(fz(i), right(c)&&'n')+'">'+cell(c,r)+'</td>'; }).join('')+'</tr>'; }).join('');
+  return '<section class="fr-sec fr-old" aria-labelledby="fr-old-t"><div class="fr-sec-head">'+
+      '<h3 id="fr-old-t">'+word+' <span class="n">'+list.length+'</span></h3>'+
+      '<button class="mp-act" type="button" data-act="oldCsv">'+I.down+(ev?'Export Orders as .csv':'Export as .csv')+'</button></div>'+
+    (list.length ? '<p class="fr-old-total">Total '+amountLabel(p)+' <b>'+money(totals(list).recv)+'</b></p>' : '')+
+    (list.length ? '<div class="fr-tw"><table class="fr-t old"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>'+pager(list.length, start, slice.length, pages, S.opage, 'opage')
+                 : '<div class="fr-empty">No '+word.toLowerCase()+' here.</div>')+'</section>';
 }
 
 /* statistics in one line graph (M2): amount collected per day, or number of donations (orders for an event) per day,
@@ -297,18 +379,35 @@ function chartSvg(idx, c){
 }
 
 var PER_PAGE=10;
+/* Account first, learnt from the production list (v5 round 2) */
+/* the owner's order (team answer 4): who and when, the amount, what reaches the owner and when, then the
+   deductions, then the technical columns. An order also shows its tickets and a link to its details, as the
+   production list does */
 function columns(p){
   if(p.ipc) return [
-    ['Date & time','dt'], ['Reference','ref','c'], ['Payment method','method'], ['Currency','cur'], ['Funding Amount','recv','n'],
-    ['Processing fees','fee','n','neg'], ['Paid to you','paidAxs','n','net'], ['Love gift to Agathos','lg','n']];
+    ['Account','acct'], ['Date & time','dt'], ['Funding Amount','recv','n'], ['Paid to you','paidAxs','n','net'],
+    ['Processing fees','fee','n','neg'], ['Love gift to Agathos','lg','n'], ['Payment method','method'], ['Currency','cur'], ['Reference','ref','c']];
+  if(isEv(p)) return [
+    ['Account','acct'], ['Date & time','dt'], ['Tickets','qty','q'], [amountLabel(p),'recv','n'], ['Net payout','net','n','net'], ['Payout status','st'],
+    [agathosLabel(p),'ben','n','neg'], ['Processing fees','fee','n','neg'], ['Payment method','method'], ['Currency','cur'], ['Reference','ref','c'], ['<span class="sr">Order details</span>','vd']];
   return [
-    ['Date & time','dt'], ['Reference','ref','c'], ['Payment method','method'], ['Currency','cur'], [amountLabel(p),'recv','n'],
-    [agathosLabel(p),'ben','n','neg'], ['Processing fees','fee','n','neg'], ['Net payout','net','n','net'], ['Payout status','st']];
+    ['Account','acct'], ['Date & time','dt'], [amountLabel(p),'recv','n'], ['Net payout','net','n','net'], ['Payout status','st'],
+    [agathosLabel(p),'ben','n','neg'], ['Processing fees','fee','n','neg'], ['Payment method','method'], ['Currency','cur'], ['Reference','ref','c']];
 }
+/* a long column title takes two lines, so the column is as wide as its numbers, not its title (round 6) */
+var TH_BREAK={'Funding Amount':'Funding<br>Amount', 'Ticket Sales Amount':'Ticket Sales<br>Amount', 'Beneficiary Love Gift to Agathos':'Beneficiary Love<br>Gift to Agathos',
+  'Agathos Platform fee':'Agathos<br>Platform fee', 'Processing fees':'Processing<br>fees', 'Payment method':'Payment<br>method', 'Love gift to Agathos':'Love gift<br>to Agathos'};
+function thText(label){ return TH_BREAK[label] || label; }
 function stTag(st, text){ return '<span class="st st-'+st+'"><i></i>'+text+'</span>'; }
 /* two statuses (E7): Unassigned until the PSP file has it (the "Unassigned transactions" of O2), then the payout it is in */
 function txStatus(r){ return r.st==='proc' ? stTag('proc','Unassigned') : stTag('in', payoutLabel(r.per)); }
+var NO_PAYOUT={ref:1, method:1, ben:1, fee:1, net:1, st:1, paidAxs:1, lg:1};
 function cell(c, r){
+  if(c[1]==='acct') return account(r);
+  if(r.offline && NO_PAYOUT[c[1]]) return '<span class="na">—</span>';
+  if(c[1]==='vd') return '<a class="lnk" href="#" data-act="orderDetails">Details</a>';
+  if(c[2]==='sg') return 'S$'+num(r.recv);
+  if(c[2]==='q') return String(r.qty);
   if(c[1]==='dt') return fmtDate(r.at)+', '+r.at.slice(11,16);
   if(c[1]==='cur') return 'SGD';
   if(c[1]==='st') return txStatus(r);
@@ -331,14 +430,16 @@ function pageList(c, n){
   out.push(n);
   return out;
 }
-function pager(total, start, count, pages){
+/* cur / act: the page shown and its action, the new table's (S.page, "page") unless given */
+function pager(total, start, count, pages, cur, act){
   if(pages<2) return '';
+  cur=cur || S.page; act=act || 'page';
   return '<nav class="fr-pager" aria-label="Pages"><span>'+(start+1)+'–'+(start+count)+' of '+total+'</span><div class="pg">'+
-    '<button type="button" class="arw" data-act="page" data-p="'+(S.page-1)+'"'+(S.page<=1?' disabled':'')+' aria-label="Previous page">'+svg('<path d="M14.5 6.5L9 12l5.5 5.5"/>')+'</button>'+
-    pageList(S.page, pages).map(function(x){
-      return x==='…' ? '<span class="gap">…</span>' : '<button type="button" data-act="page" data-p="'+x+'"'+(x===S.page?' class="on" aria-current="page"':'')+'>'+x+'</button>';
+    '<button type="button" class="arw" data-act="'+act+'" data-p="'+(cur-1)+'"'+(cur<=1?' disabled':'')+' aria-label="Previous page">'+svg('<path d="M14.5 6.5L9 12l5.5 5.5"/>')+'</button>'+
+    pageList(cur, pages).map(function(x){
+      return x==='…' ? '<span class="gap">…</span>' : '<button type="button" data-act="'+act+'" data-p="'+x+'"'+(x===cur?' class="on" aria-current="page"':'')+'>'+x+'</button>';
     }).join('')+
-    '<button type="button" class="arw" data-act="page" data-p="'+(S.page+1)+'"'+(S.page>=pages?' disabled':'')+' aria-label="Next page">'+svg('<path d="M9.5 6.5L15 12l-5.5 5.5"/>')+'</button></div></nav>';
+    '<button type="button" class="arw" data-act="'+act+'" data-p="'+(cur+1)+'"'+(cur>=pages?' disabled':'')+' aria-label="Next page">'+svg('<path d="M9.5 6.5L15 12l-5.5 5.5"/>')+'</button></div></nav>';
 }
 /* a table over the whole screen, so every column fits without scrolling sideways */
 function fullBtn(){ return '<button class="fr-full" type="button" data-act="full" aria-pressed="'+!!S.full+'">'+(S.full ? I.shrink+'Exit full screen' : I.expand+'View full screen')+'</button>'; }
@@ -346,12 +447,12 @@ function table(p, list){
   var cols=columns(p), pages=Math.max(1, Math.ceil(list.length/PER_PAGE));
   if(S.page>pages) S.page=pages;
   var start=(S.page-1)*PER_PAGE, slice=list.slice(start, start+PER_PAGE);
-  var head='<tr>'+cols.map(function(c,i){ return '<th class="'+cls(fz(i), c[2]==='n'&&'n')+'">'+c[0]+'</th>'; }).join('')+'</tr>';
-  var body=slice.map(function(r){ return '<tr>'+cols.map(function(c,i){ return '<td class="'+cls(fz(i), c[2]==='n'&&'n', c[3]==='net'&&'net')+'">'+cell(c,r)+'</td>'; }).join('')+'</tr>'; }).join('');
+  var head='<tr>'+cols.map(function(c,i){ return '<th class="'+cls(fz(i), right(c)&&'n')+'">'+thText(c[0])+'</th>'; }).join('')+'</tr>';
+  var body=slice.map(function(r){ return '<tr>'+cols.map(function(c,i){ return '<td class="'+cls(fz(i), right(c)&&'n', c[3]==='net'&&'net')+'">'+cell(c,r)+'</td>'; }).join('')+'</tr>'; }).join('');
   var netCol=cols.filter(function(c){ return c[3]==='net'; })[0];
   var cards=slice.map(function(r){
     return '<div class="fr-item"><div class="r1"><span>'+fmtDate(r.at)+', '+r.at.slice(11,16)+'</span><b>SGD '+num(r.recv)+'</b></div>'+
-      '<div class="r2">'+(r.st?txStatus(r):'<span>'+h(r.method)+'</span>')+'<span class="net">'+netCol[0]+' '+num(r[netCol[1]])+'</span></div>'+
+      '<div class="r2">'+(r.offline ? '<span>Offline</span>' : r.st ? txStatus(r) : '<span>'+h(r.method)+'</span>')+'<span class="net">'+netCol[0]+' '+(r.offline ? '—' : num(r[netCol[1]]))+'</span></div>'+
       '<details><summary>Details</summary><dl>'+cols.map(function(c){ return '<div><dt>'+c[0]+'</dt><dd>'+cell(c,r)+'</dd></div>'; }).join('')+'</dl></details></div>';
   }).join('');
   return '<section class="fr-sec fr-list'+(S.full?' is-full':'')+'" aria-label="'+rowsWord(p)+'"><div class="fr-sec-head"><h3>'+rowsWord(p)+' <span class="n">'+list.length+'</span></h3>'+(list.length?fullBtn():'')+'</div>'+
@@ -440,27 +541,34 @@ function viewInvoices(ids){
     '<div class="fr-tw"><table class="fr-t inv"><thead><tr><th class="c1">Invoice</th><th class="c2">Month</th><th class="n">Donor love gifts</th><th class="n">Amount</th><th>Action</th></tr></thead><tbody>'+inv+'</tbody></table></div></section>';
 }
 
-/* ---------- review notes: the comments this version does not follow ---------- */
-var NOTES=[
-  {t:'A payout is named after the month it is paid in',
-   fb:["Label payout as just 'Oct 2026'. Remove date range from title"],
-   now:'The payout card for October sales says "Nov 2026", the month Agathos pays it.',
-   why:'Two other comments name a payout by the month it is paid in: "Nov 2026 Payout" for the payout of 20 Nov 2026, and the "Nov 2026" transaction status. One name everywhere keeps one payout from being Oct 2026 in one place and Nov 2026 in another. Decided by the product lead on 6 Nov 2026.'}
+/* ---------- review: questions for the team ---------- */
+/* open points the team decides, and what the prototype shows meanwhile (v5) */
+var QUESTIONS=[
+  {t:'Payouts before the cut-off',
+   q:'Should Manage Pages › Payouts list the payouts made before a page has payout details, or say that they are not listed?',
+   why:'Payouts are built from the PSP files, which start at the cut-off (1 Jun 2026 in the sample). Erbil has taken donations since Nov 2025, but its payouts start at Jul 2026, so an owner may think money is missing.',
+   now:'Only the payouts with payout details are listed, with no line about the earlier ones.'},
+  {t:'Earlier transactions in the summary',
+   q:'Should the summary leave the earlier transactions out, or show them in one line such as "previous disbursed" (Rachel\'s idea)? If the line, were all of them paid out?',
+   why:'The summary counts only transactions with payout details. "Disbursed" is right only if every earlier transaction was paid out.',
+   now:'The summary leaves them out. The "Earlier" list shows their own total.'}
 ];
-function notesHtml(){
+function questionsHtml(){
   var x=svg('<path d="M6 6l12 12M18 6L6 18"/>');
   return '<div class="fr-md" role="dialog" aria-modal="true" aria-labelledby="fr-md-t">'+
-    '<div class="fr-md-head"><div><h2 id="fr-md-t">Changes from the feedback</h2><p>Every other comment is built as written. '+(NOTES.length===1?'This one is':'These '+NOTES.length+' are')+' not, and why.</p></div>'+
+    '<div class="fr-md-head"><div><h2 id="fr-md-t">Questions for the team</h2><p>Open points in this version. Under each one is what the prototype shows for now.</p></div>'+
     '<button class="fr-md-x" type="button" data-act="notesClose" aria-label="Close">'+x+'</button></div>'+
-    '<ol class="fr-md-list">'+NOTES.map(function(o, i){
+    '<ol class="fr-md-list">'+QUESTIONS.map(function(o, i){
       return '<li class="fr-nt"><div class="fr-nt-h"><span class="no">'+(i+1)+'</span><h3>'+h(o.t)+'</h3></div>'+
-        '<dl class="fr-nt-rows"><div><dt>Feedback</dt><dd>'+o.fb.map(function(q){ return '<q>'+h(q)+'</q>'; }).join('')+'</dd></div>'+
-        '<div><dt>This version</dt><dd>'+h(o.now)+'</dd></div><div><dt>Why</dt><dd>'+h(o.why)+'</dd></div></dl></li>';
-    }).join('')+'</ol></div>';
+        '<dl class="fr-nt-rows"><div><dt>Question</dt><dd>'+h(o.q)+'</dd></div><div><dt>Why we ask</dt><dd>'+h(o.why)+'</dd></div>'+
+        '<div><dt>For now</dt><dd>'+h(o.now)+'</dd></div></dl></li>';
+    }).join('')+'</ol>'+
+    '<p class="fr-md-foot">Not in this prototype: the CSV files do not carry the Tax Deduction tag or the promotion code.</p></div>';
 }
+/* the questions window; closing it returns to its button */
 function notesOpen(){
   var m=document.getElementById('fr-modal');
-  m.innerHTML=notesHtml(); m.hidden=false;
+  m.innerHTML=questionsHtml(); m.hidden=false;
   document.documentElement.classList.add('fr-lock');
   m.querySelector('.fr-md-x').focus();
 }
@@ -469,21 +577,26 @@ function notesClose(){
   if(m.hidden) return;
   m.hidden=true; m.innerHTML='';
   document.documentElement.classList.remove('fr-lock');
-  var b=document.querySelector('.fr-notes'); if(b) b.focus();
+  var b=document.querySelector('.fr-qs'); if(b) b.focus();
 }
 
 /* ---------- page ---------- */
 var REVIEW=[['Manage Pages','#/pages/antioch/projects'],['Manage Project','#/manage/erbil/transactions'],['Manage Event','#/manage/concert/orders'],['IPC charity (AXS)','#/manage/sunny/transactions']];
+/* the three cases a project or event can be in (v5 round 2); every screen follows the one picked */
+var CASES=[['both','Old and new'],['new','New only'],['old','Old only (ended)']];
 function reviewOn(i){
   if(S.view==='pages') return i===0;
   var p=cur();
   return i===(p.ipc ? 3 : isEv(p) ? 2 : 1);
 }
 function renderReview(){
-  document.getElementById('fr-review').innerHTML='<span class="t">Financial report</span><span class="ver">Version 4</span>'+
+  document.getElementById('fr-review').innerHTML='<span class="t">Financial report</span><span class="ver">Version 5</span>'+
     '<nav class="fr-rtabs" aria-label="Screens">'+REVIEW.map(function(x,i){ return '<a href="'+x[1]+'"'+(reviewOn(i)?' class="on"':'')+'>'+x[0]+'</a>'; }).join('')+'</nav>'+
-    '<span class="note">Sample data · today is '+fmtDate(TODAY)+'</span>'+
-    '<button class="fr-notes" type="button" data-act="notes" aria-haspopup="dialog"><span class="c">'+NOTES.length+'</span>Changes from the feedback</button>';
+    '<div class="fr-rtabs fr-rcase" role="group" aria-label="Data"><span class="lbl">Data</span>'+CASES.map(function(c){
+      var on=S.data===c[0];
+      return '<button type="button" data-act="data" data-v="'+c[0]+'" aria-pressed="'+on+'"'+(on?' class="on"':'')+'>'+c[1]+'</button>';
+    }).join('')+'</div>'+
+    '<button class="fr-notes fr-qs" type="button" data-act="questions" aria-haspopup="dialog"><span class="c">'+QUESTIONS.length+'</span>Questions for the team</button>';
 }
 function render(){
   route(); renderReview(); hideTip();
@@ -496,20 +609,20 @@ function toast(msg){ var t=document.getElementById('fr-toast'); t.textContent=ms
 
 /* CSV: the summary numbers first (the filters included), then one line per transaction, as filtered */
 function downloadCSV(){
-  var p=cur(), list=filtered(p), t=totals(list);
+  var p=cur(), list=inPayout(filtered(p)), t=totals(list);
   var esc=function(s){ s=String(s==null?'':s); return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; };
   var period=S.per==='all' ? '-' : S.per==='none' ? 'Unassigned' : p.ipc ? monthLabel(S.per) : payoutLabel(S.per);
   var sum=[[isEv(p)?'Event':'Project', p.name], ['Year', S.year==='all' ? 'All years' : S.year], [p.ipc?'Month':'Payout period', period], ['Currency','SGD']];
   var head, line;
   if(p.ipc){
     sum=sum.concat([['Total Funding Amount', t.recv.toFixed(2)], ['Donor love gifts', t.tip.toFixed(2)], ['Processing fees (to Payment Service Provider)', t.fee.toFixed(2)], ['Paid to you by AXS', t.paidAxs.toFixed(2)], ['Love gifts to Agathos (invoiced)', t.lg.toFixed(2)]]);
-    head=['Date & time','Reference','Payment method','Currency','Funding Amount','Processing fees','Paid to you','Love gift to Agathos'];
-    line=function(r){ return [r.at.replace('T',' '), r.ref, r.method, 'SGD', r.recv.toFixed(2), r.fee.toFixed(2), r.paidAxs.toFixed(2), r.lg.toFixed(2)]; };
+    head=['Account','Date & time','Reference','Payment method','Currency','Funding Amount','Processing fees','Paid to you','Love gift to Agathos'];
+    line=function(r){ return [r.user, r.at.replace('T',' '), r.ref, r.method, 'SGD', r.recv.toFixed(2), r.fee.toFixed(2), r.paidAxs.toFixed(2), r.lg.toFixed(2)]; };
   } else {
     sum=sum.concat([['Total '+amountLabel(p), t.recv.toFixed(2)], ['Total '+agathosLabel(p), t.ben.toFixed(2)], ['Total Processing fees (to Payment Service Provider)', t.fee.toFixed(2)], ['Total Net to you', t.net.toFixed(2)],
       ['Assigned to payout', c2(t.paid+t.await).toFixed(2)], ['Unassigned transactions', t.proc.toFixed(2)]]);
-    head=['Date & time','Reference','Payment method','Currency',amountLabel(p),agathosLabel(p),'Processing fees','Net payout','Payout status'];
-    line=function(r){ return [r.at.replace('T',' '), r.ref, r.method, 'SGD', r.recv.toFixed(2), r.ben.toFixed(2), r.fee.toFixed(2), r.net.toFixed(2), r.st==='proc' ? 'Unassigned' : payoutLabel(r.per)]; };
+    head=['Account','Date & time','Reference','Payment method','Currency',amountLabel(p),agathosLabel(p),'Processing fees','Net payout','Payout status'];
+    line=function(r){ return [r.user, r.at.replace('T',' '), r.ref, r.method, 'SGD', r.recv.toFixed(2), r.ben.toFixed(2), r.fee.toFixed(2), r.net.toFixed(2), r.st==='proc' ? 'Unassigned' : payoutLabel(r.per)]; };
   }
   var csv=sum.map(function(x){ return x.map(esc).join(','); }).concat(['', head.map(esc).join(',')], list.map(function(r){ return line(r).map(esc).join(','); })).join('\n');
   var a=document.createElement('a');
@@ -564,6 +677,19 @@ var ACT={
     if(S.full) l.scrollTop=0; else l.scrollIntoView({block:'start'});
   },
   csv:downloadCSV,
+  opage:function(t){
+    S.opage=+t.getAttribute('data-p'); render();
+    var o=document.querySelector('.fr-old'); if(o) o.scrollIntoView({block:'start'});
+  },
+  /* the old list exports through the CSV template the backend has today */
+  oldCsv:function(){ toast('Exports in the current .csv format'); },
+  seg:function(t){
+    S.seg=t.getAttribute('data-v'); S.opage=1; keepScroll(render);
+    var b=document.querySelector('.fr-seg [data-v="'+S.seg+'"]'); if(b) b.focus({preventScroll:true});
+  },
+  /* the review bar's Data switch: same screen, another case */
+  data:function(t){ location.hash='#/'+hashPath()+'?data='+t.getAttribute('data-v'); },
+  orderDetails:function(){ toast('Opens the order details, as today'); },
   expand:function(t){
     var per=t.getAttribute('data-per');
     S.open[per]=!S.open[per];
@@ -579,14 +705,14 @@ var ACT={
   invoice:function(){ toast('Sample: no invoice file yet'); },
   summaryFile:function(){ toast('Sample: no payout summary file yet'); },
   other:function(){ toast('Not part of this prototype'); },
-  notes:notesOpen,
+  questions:notesOpen,
   notesClose:notesClose,
   menu:function(t){
     var dd=t.closest('.mp-dd'), open=!dd.classList.contains('open'); closeMenus(); dd.classList.toggle('open', open); t.setAttribute('aria-expanded', open?'true':'false');
     if(dd.classList.contains('ms')) S.msOpen=open;
     if(open && dd.classList.contains('dd')){ var on=dd.querySelector('[aria-selected="true"]'); if(on) on.focus(); }
   },
-  pick:function(t){ S[t.getAttribute('data-key')]=t.getAttribute('data-v'); S.page=1; closeMenus(); render(); var b=document.getElementById('f-'+t.getAttribute('data-key')); if(b) b.focus(); }
+  pick:function(t){ S[t.getAttribute('data-key')]=t.getAttribute('data-v'); S.page=1; S.opage=1; closeMenus(); render(); var b=document.getElementById('f-'+t.getAttribute('data-key')); if(b) b.focus(); }
 };
 /* redraw without losing the reader's place: the page and each table's sideways scroll (the Manage Pages tabs scroll with the page, P2) */
 function keepScroll(fn){
@@ -639,7 +765,7 @@ document.addEventListener('scroll', function(ev){
   var el=ev.target;
   if(el.classList && el.classList.contains('fr-tw')) el.classList.toggle('scrolled', el.scrollLeft>0);
 }, true);
-window.addEventListener('hashchange', function(){ S.page=1; render(); window.scrollTo(0,0); });
+window.addEventListener('hashchange', function(){ S.page=1; S.opage=1; render(); window.scrollTo(0,0); });
 
 /* nav (same behaviour as the homepage) */
 (function(){
