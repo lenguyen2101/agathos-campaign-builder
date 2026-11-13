@@ -272,8 +272,23 @@ function viewRows(p){
     '<section class="fr-fx" aria-labelledby="fr-fx-t"><h3 class="fr-fx-t" id="fr-fx-t">Filter &amp; export</h3><div class="fr-fx-row">'+
       '<div class="fr-filters">'+sel('Year','year',yearOpts(allPers),S.year)+sel(p.ipc?'Month':'Payout period','per',opts,S.per)+'</div>'+
       '<button class="mp-act" type="button" data-act="csv">'+I.down+(isEv(p)?'Export Orders as .csv':'Export as .csv')+'</button>'+
-    '</div></section>'+
+    '</div></section>'+pinBar(p, opts)+
     (p.ipc?'':payoutHead(p))+summaryRows(p, inPayout(list))+offlineLine(list)+stats(p, inPayout(list))+table(p, list);
+}
+/* while a filter is on and the filter box has scrolled away: a thin bar under the site menu keeps the choice in sight
+   (13/11/2026). A period says its year, so the year shows only when it is the one filter. */
+var pinOn=false;
+function pinBar(p, opts){
+  if(S.year==='all' && S.per==='all') return '';
+  var by=S.per!=='all' ? [p.ipc?'Month':'Payout period', opts.filter(function(o){ return o[0]===S.per; })[0][1]] : ['Year', S.year];
+  return '<div class="fr-pin'+(pinOn?' on':'')+'"><div class="fr-pin-bar"><span class="k">'+by[0]+':</span><b>'+h(by[1])+'</b>'+
+    '<button type="button" data-act="pinChange" aria-label="Change filters">Change</button></div></div>';
+}
+/* the bar sits right under the box until it sticks under the menu, so a gap between them means the box is out of sight */
+function pinUpdate(){
+  var pin=document.querySelector('.fr-pin'), fx=document.querySelector('.fr-fx');
+  pinOn=!!(pin && fx) && pin.getBoundingClientRect().top-fx.getBoundingClientRect().bottom>0.5;
+  if(pin) pin.classList.toggle('on', pinOn);
 }
 /* offline transactions are listed but sit in no payout, so the payout figures leave them out (team answer 2) */
 function inPayout(list){ return list.filter(function(r){ return !r.offline; }); }
@@ -602,6 +617,7 @@ function render(){
   route(); renderReview(); hideTip();
   document.documentElement.classList.toggle('fr-full-on', !!S.full);
   document.getElementById('fr').innerHTML=S.view==='pages' ? pagesView(ENTITIES[S.key]) : managePage(cur());
+  pinUpdate();
 }
 
 var toastT;
@@ -690,6 +706,12 @@ var ACT={
   /* the review bar's Data switch: same screen, another case */
   data:function(t){ location.hash='#/'+hashPath()+'?data='+t.getAttribute('data-v'); },
   orderDetails:function(){ toast('Opens the order details, as today'); },
+  /* back up to the filter box, on the dropdown the bar was showing */
+  pinChange:function(){
+    var fx=document.querySelector('.fr-fx'); if(!fx) return;
+    fx.scrollIntoView({block:'start', behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
+    var b=document.getElementById(S.per!=='all' ? 'f-per' : 'f-year'); if(b) b.focus({preventScroll:true});
+  },
   expand:function(t){
     var per=t.getAttribute('data-per');
     S.open[per]=!S.open[per];
@@ -766,6 +788,8 @@ document.addEventListener('scroll', function(ev){
   if(el.classList && el.classList.contains('fr-tw')) el.classList.toggle('scrolled', el.scrollLeft>0);
 }, true);
 window.addEventListener('hashchange', function(){ S.page=1; S.opage=1; render(); window.scrollTo(0,0); });
+window.addEventListener('scroll', pinUpdate, {passive:true});
+window.addEventListener('resize', pinUpdate);
 
 /* nav (same behaviour as the homepage) */
 (function(){

@@ -5,7 +5,7 @@ Nguồn: 6 ảnh chụp đoạn chat của team (Elaine, Yen Jui Hung, Josias), 
 - Việc còn thiếu: cách hiển thị giao dịch cũ của các project/event đang chạy.
 - Anh dặn: chỉ đọc và viết plan, chưa code.
 
-Code hiện tại là commit `b94982b` (v4), đang được team review trên Vercel.
+Plan bắt đầu từ commit `b94982b` (v4). v5 đã push lên main trong commit `5093476` (13/11/2026). Còn chờ team: câu hỏi 1 và 3 trong hộp "Questions for the team".
 
 ## 1. Vấn đề và kết luận của team
 
@@ -190,7 +190,7 @@ Nếu team chọn dòng "previous disbursed" (D3): thêm 0.1 ngày.
 - Làm hết plan theo D1–D4 và các mặc định ở mục 6.
 - Không có lệnh commit hay push.
 
-**13/11/2026: đã làm xong. Chưa commit.**
+**13/11/2026: đã làm xong.**
 
 Sửa 5 file:
 - `assets/finance-data.js`
@@ -298,7 +298,7 @@ Không sửa 2 trang admin.
   - "Cùng khung bảng": bảng cũ dùng khung của bảng mới, và bảng mới thêm cột Account học từ UI cũ.
   - "Thêm 1 công tắc Data" trên thanh review.
 
-**13/11/2026: đã làm xong vòng chỉnh này. Chưa commit.**
+**13/11/2026: đã làm xong vòng chỉnh này.**
 
 **Bảng cũ cùng khung với bảng mới:**
 - Bỏ danh sách production pixel perfect (dòng 119px). Bảng cũ giờ cùng khung với bảng mới: hàng tiêu đề, dòng cao như bảng mới, cùng kiểu phân trang "1–10 of 89". Phần cũ ngắn còn khoảng một nửa.
@@ -334,7 +334,7 @@ Không sửa 2 trang admin.
 - Em đề xuất đặt segment ở đầu tab và nêu rủi ro: giống phương án "2 tabs" mà Josias đã hỏi.
 - Anh trả lời: "Ok try đi".
 
-**13/11/2026: đã làm xong segment. Chưa commit.**
+**13/11/2026: đã làm xong segment.**
 - **Segment ở đầu tab:** khi project/event có cả giao dịch cũ lẫn mới, ngay dưới tiêu đề Transactions/Orders có một segment chia đôi chiều ngang, mỗi nửa kèm số đếm. Ví dụ Erbil: "From 2 Jun 2026 · 64" và "Before 2 Jun 2026 · 89".
   - Trang mở ở "From …". Phần này có dòng giải thích *"Payout details start from 2 Jun 2026. Earlier transactions are under "Before 2 Jun 2026"."*, rồi tới khung lọc, payout summary, tóm tắt, Statistics và bảng mới, như cũ.
   - "Before …" có dòng giải thích *"These were made before payout details were available, so they show fewer details and are not in the summary."*, rồi bảng cũ "Transactions 89" kèm nút Export as .csv. Không có khung lọc hay tóm tắt.
@@ -369,7 +369,7 @@ Không sửa 2 trang admin.
 
 **Anh duyệt:** *"Mình thiếu cái badge "Tax Deduction" … ở PROJECT. Mình thiếu badge "PROMOTION CODE" … ở EVENT. Làm chung với mục 1,3,4. Sau đó audit lại 1 lần nữa và gửi anh báo cáo"*. Anh gửi kèm 2 ảnh production của 2 badge.
 
-**13/11/2026: đã làm xong. Chưa commit.**
+**13/11/2026: đã làm xong.**
 - **Badge, lấy từ production:**
   - **Tax Deduction** (project và IPC): nền #FDF6E9, chữ đen, bo góc 4px.
   - **Mã khuyến mãi** (event): viên thuốc viền #E7F3FE, chữ #2254AC, icon con dấu xanh #60B6F9 có dấu %. Ví dụ "DISC".
@@ -404,7 +404,7 @@ Không sửa 2 trang admin.
 - (3) *"Tại sao bảng mới ko có, nên có chứ em, làm cho giống thông tin UI cũ"*
 - Dặn thêm trong lúc em làm: *"remove cái text này, vô nghĩa"* (dòng "Sample data · today is 29 Oct 2026" trên thanh review).
 
-**13/11/2026: đã làm xong. Chưa commit.**
+**13/11/2026: đã làm xong.**
 - **Nút "Questions for the team"** nằm ngay sau "Changes from the feedback", có số đếm 6 trên nền navy. Bấm vào mở một hộp cùng kiểu với hộp ghi chú. Mỗi câu có 3 dòng: Question / Why we ask / For now. 6 câu:
   1. Payouts before the cut-off.
   2. Offline transactions.
@@ -444,7 +444,7 @@ Không sửa 2 trang admin.
   5. Làm sau, vì Kế toán trưởng đang review admin; bỏ câu hỏi.
   6. Giữ theo feedback; bỏ câu hỏi.
 
-**13/11/2026: đã làm xong. Chưa commit.**
+**13/11/2026: đã làm xong.**
 
 **Side menu, đo trên ảnh:**
 - Ảnh vẽ ở màn 1440px. 2 khung xanh có ghi số cho cùng một tỉ lệ: 0.986 px ảnh = 1 CSS px. Vì vậy số đo chính xác khoảng ±1px.
@@ -501,3 +501,28 @@ Không sửa 2 trang admin.
   - Dòng chỉ hiện khi danh sách có giao dịch offline. Chọn một kỳ payout hoặc Unassigned thì dòng ẩn, vì lúc đó danh sách không có offline. Event và project không có offline thì cũng không có dòng.
   - Erbil: 13,700 (tóm tắt) + 1,600 (offline) + 19,740 (Earlier) = 35,040, khớp thẻ project.
 - **Đã kiểm tra:** `fr5e-check.js` 44/44, gồm phép cộng ở trên. Script v4 ở chế độ New only 31/32. 2 script admin 35/35 và 24/24. curl trả về 200.
+
+**13/11/2026: commit và push.**
+- Anh ra lệnh "Commit và push".
+- Commit `5093476` "Financial report v5: older transactions without payout data, compact side menu" gồm 6 file, đã push lên main, Vercel tự deploy.
+- Còn lại:
+  - câu hỏi 1 (payout trước mốc) và câu hỏi 3 (giao dịch cũ trong tóm tắt): chờ team;
+  - câu hỏi 5 (trang admin): làm sau khi Kế toán trưởng review xong v4;
+  - mobile: để sau.
+
+**13/11/2026, thanh filter ghim khi cuộn (anh chọn cách 1).**
+- Anh hỏi: khi đang filter (ví dụ Sep 2026) mà cuộn xuống thì có nên ghim filter không. Em đưa 3 cách, anh chọn cách 1: thanh mỏng chỉ có chữ và nút Change.
+- **Đã làm:**
+  - Khi có filter (Year hoặc Payout period khác mặc định) và khung "Filter & export" đã cuộn khuất dưới menu trang (80px), một thanh cao 44px hiện ngay dưới menu, rộng bằng thẻ trắng.
+  - Nội dung: *"Payout period: Sep 2026"* và nút *Change*. Đã chọn kỳ thì chỉ ghi kỳ, vì kỳ đã có năm. Chỉ chọn năm thì ghi *"Year: 2026"*. IPC ghi *"Month: …"*. Unassigned ghi *"Payout period: Unassigned"*.
+  - Bấm Change: trang cuộn lên khung filter (cách menu 16px) và đặt focus vào ô Payout period, hoặc ô Year nếu chỉ chọn năm. Máy bật giảm chuyển động thì cuộn ngay, không trượt.
+  - Không filter: không có thanh. Tab "Earlier", dữ liệu "Old only (ended)" và trang Manage Pages: không có thanh.
+  - Thanh không chiếm chỗ, nên trang không bị giật khi thanh hiện. Thanh dừng ở cuối thẻ trắng.
+- **Đã kiểm tra:** `fr5f-check.js` 29/29, gồm nội dung thanh, lúc hiện và ẩn, nút Change, và CSS ở 3 khổ màn hình. `fr5e-check.js` 44/44. Script v4 ở chế độ New only 31/32 (chỉ fail "version 4", như trước). 2 script admin 35/35 và 24/24. curl trả về 200.
+- Chưa xem bằng mắt. Chưa commit.
+- **Em thấy thêm:** nút trang của bảng (1, 2, 3…) cuộn bảng lên sát mép trên màn hình. Mép đó nằm dưới menu trang 80px, nên tiêu đề bảng bị che. Lỗi này có từ trước. Khi thanh mới hiện, phần bị che thành 124px, nên dòng tiêu đề cột cũng bị che.
+
+**13/11/2026, anh bảo "sửa luôn đi".**
+- **Đã làm:** khi bấm số trang, bảng dừng cách menu 16px, tức 96px tính từ mép trên. Khi thanh filter đang hiện, bảng dừng cách thanh 16px, tức 140px (80 + 44 + 16). Áp cho bảng "With payout details" và bảng "Earlier". Bảng "Earlier" không có thanh, nên luôn là 96px. Chế độ toàn màn hình không đổi.
+- **Đã kiểm tra:** `fr5f-check.js` 32/32. `fr5e-check.js` 44/44. Script v4 ở chế độ New only 31/32 (chỉ fail "version 4", như trước). 2 script admin 35/35 và 24/24. curl trả về 200.
+- Chưa xem bằng mắt. Chưa commit.

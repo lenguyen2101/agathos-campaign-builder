@@ -137,6 +137,21 @@ html.fr-lock,html.fr-full-on{overflow:hidden;}
 .fr-fx-row{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 16px;}
 .fr-fx .fr-filters{margin-top:0;}
 .fr-fx .mp-act{height:42px;padding:0 16px;}
+/* a filter on and the box scrolled away: the choice stays in sight under the site menu (80px), across the card.
+   The holder takes no room, so the page does not move when the bar shows (13/11/2026). */
+.fr-fx{scroll-margin-top:96px;}
+/* the table pagers scroll the table to the top: keep its title clear of the menu, and of the bar when it shows (80 + 44 + 16) */
+.fr-list,.fr-old{scroll-margin-top:96px;}
+.fr-pin ~ .fr-list{scroll-margin-top:140px;}
+.fr-pin{position:sticky;top:80px;z-index:15;height:0;}
+.fr-pin-bar{position:absolute;top:0;left:-32px;right:-32px;display:flex;align-items:center;gap:6px;height:44px;padding:0 32px;border-bottom:1px solid #E6E8EB;background:#fff;box-shadow:0 4px 12px rgba(17,24,39,.06);font-size:14px;color:var(--mp-ink);white-space:nowrap;visibility:hidden;opacity:0;transform:translateY(-6px);transition:opacity .15s,transform .15s,visibility 0s .15s;}
+.fr-pin.on .fr-pin-bar{visibility:visible;opacity:1;transform:none;transition:opacity .15s,transform .15s;}
+.fr-pin-bar .k{color:var(--mp-sub);}
+.fr-pin-bar b{font-weight:600;}
+.fr-pin-bar button{margin-left:6px;padding:4px 6px;border:0;border-radius:4px;background:none;font:inherit;font-weight:600;color:var(--mp-blue);cursor:pointer;}
+.fr-pin-bar button:hover{text-decoration:underline;}
+.fr-pin-bar button:focus-visible{outline:2px solid rgba(34,84,172,.35);outline-offset:1px;}
+@media (prefers-reduced-motion:reduce){ .fr-pin-bar,.fr-pin.on .fr-pin-bar{transform:none;transition:none;} }
 
 /* summary: left side, and the summary table on the right */
 .ov{display:grid;grid-template-columns:256px minmax(0,1fr);gap:20px 36px;margin-top:20px;padding:24px;border:1px solid #DADDE2;border-radius:16px;}
@@ -433,6 +448,7 @@ html.fr-lock,html.fr-full-on{overflow:hidden;}
   .pc-stats{grid-column:1 / -1;}
   .mp-inner{grid-template-columns:265px minmax(0,1fr);column-gap:28px;}
   .mp-card{padding:34px 28px 40px;}
+  .fr-pin-bar{left:-28px;right:-28px;padding:0 28px;}
   .ov{grid-template-columns:1fr;}
 }
 @media (max-width:899px){
@@ -472,6 +488,7 @@ html.fr-lock,html.fr-full-on{overflow:hidden;}
   .mp-menu a{height:52px;font-size:16px;}
   .mp-back{margin-top:16px;}
   .mp-card,.mp.is-event .mp-card{margin-top:24px;padding:24px 18px 32px;}
+  .fr-pin-bar{left:-18px;right:-18px;padding:0 18px;}
   .mp-bar{align-items:stretch;}
   .mp-seg{display:flex;width:100%;}
   .mp-seg a{flex:1;}
