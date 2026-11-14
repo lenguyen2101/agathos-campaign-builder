@@ -635,6 +635,39 @@ Anh báo: UI/UX cho Project/Event Owner đã ổn, còn một số comment cần
   - **Đã kiểm tra:** `fr5g-check.js` 67/67. `fr5f-check.js` 32/32. Chưa xem bằng mắt. Đã commit và push (14/11/2026).
 - 14/11/2026: anh ra lệnh "commit và push". Vòng review của team (13 mục) và 5 lần chỉnh sau đó được commit và push lên main trong cùng một commit với file này.
   - **Còn lại:**
-    - 2 câu hỏi cũ (payout trước mốc, giao dịch cũ trong tóm tắt): chờ team.
+    - ~~2 câu hỏi cũ (payout trước mốc, giao dịch cũ trong tóm tắt): chờ team.~~ Ngày 14/11 anh báo đã xong, không cần trả lời (xem bên dưới).
     - Có đổi tên trang admin thành "Recon Overview" không: chờ anh.
     - Nút "Export as .csv" có làm full width trên điện thoại không: chờ anh.
+- 14/11/2026, anh dặn: *"Remove IPC Charity (AXS) giúp anh nha. Ẩn trong giai đoạn này, chưa làm tới"*.
+  - **Đã làm:** thanh review ở trên cùng bỏ tab "IPC charity (AXS)", còn 3 tab: Manage Pages, Manage Project, Manage Event. Trang IPC vẫn mở được bằng link `#/manage/sunny/transactions`, nhưng không còn lối vào trên thanh review.
+  - Tổ chức IPC "Sunshine Care Society" (tab Invoices) vẫn còn trong danh sách bên trái của Manage Pages. Em chưa ẩn, đang chờ anh.
+  - **Đã kiểm tra:** `node --check` không báo lỗi. Script node: thanh review còn 3 tab và đánh dấu đúng tab đang mở. `fr5g-check.js` 67/67. `fr5f-check.js` 32/32. Chưa xem bằng mắt. Đã commit và push (14/11/2026).
+- 14/11/2026, anh dặn: *"sửa tên thành version 6 nha"*.
+  - **Đã làm:**
+    - Nhãn trên thanh review đổi thành "Version 6".
+    - Tiêu đề tab trình duyệt đổi thành "Agathos — Financial report (version 6)".
+    - Dòng đầu của `assets/financial-report.js` ghi version 6 = version 5 cộng vòng review của team ngày 14/11.
+  - Plan vẫn nằm trong file này. Em không tạo file plan v6.
+  - **Đã kiểm tra:** `node --check` không báo lỗi. Script node thấy "Version 6" trên thanh review. curl thấy tiêu đề mới. Đã commit và push (14/11/2026).
+- 14/11/2026, anh dặn: *"remove cái này luôn, clear hết rồi, ko cần trả lời"* (nút "Questions for the team").
+  - **Đã làm:** bỏ nút "Questions for the team" trên thanh review. Bỏ luôn cửa sổ câu hỏi và mọi phần đi kèm:
+    - JS: danh sách 2 câu hỏi, hàm mở và đóng cửa sổ, 2 thao tác, phần bắt click nền mờ, lệnh đóng cửa sổ khi bấm Escape;
+    - HTML: thẻ `#fr-modal`;
+    - CSS: style của nút, cửa sổ, bản cho điện thoại, và class `html.fr-lock`. Giữ lại `html.fr-full-on`, vì chế độ xem bảng toàn màn hình vẫn dùng.
+  - 2 câu hỏi (payout trước mốc, giao dịch cũ trong tóm tắt) coi như đã xong.
+  - **Đã kiểm tra:**
+    - `node --check` không báo lỗi. Grep không còn tên nào của phần đã bỏ.
+    - 8 màn × 3 case dữ liệu vẫn hiện đủ, không có NaN.
+    - Phím Escape vẫn đóng menu và thoát chế độ toàn màn hình.
+    - `fr5g-check.js` 67/67. `fr5f-check.js` 32/32. curl trả về 200.
+    - Đã commit và push (14/11/2026).
+- 14/11/2026, anh dặn: *"ẩn tổ chức "Sunshine Care Society" vì liên quan tới AXS"*.
+  - **Đã làm:**
+    - Danh sách tổ chức bên trái của Manage Pages bỏ các tổ chức IPC (AXS), nên giờ chỉ còn Personal và Antioch 21.
+    - Trang của Sunshine Care Society vẫn mở được bằng link `#/pages/sunshine/invoices`, giống trang IPC.
+    - `finance-data.js` không đổi, vì trang admin dùng chung file này.
+  - **Đã kiểm tra:**
+    - `node --check` không báo lỗi.
+    - Script node: 3 tab Projects, Events, Payouts đều chỉ còn 2 tổ chức. Link riêng vẫn mở được. File dữ liệu không đổi.
+    - `fr5g-check.js` 67/67. `fr5f-check.js` 32/32.
+    - Đã commit và push (14/11/2026).

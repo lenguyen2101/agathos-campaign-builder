@@ -1,5 +1,5 @@
 /* ============================================================================
-   Agathos — financial report, version 5 (/financial-report).
+   Agathos — financial report, version 6 (/financial-report): version 5 plus the team review of 14/11/2026.
    v4 (team feedback of 12/11/2026, docs/financial-report-v4-plan.md) plus the old
    transactions of the team chat of 13/11/2026 (docs/financial-report-v5-plan.md):
    transactions before a page's first one with payout data have no payout data, so
@@ -128,7 +128,8 @@ function eventCard(p){
 }
 function pagesView(e){
   var nav='<nav class="dn" aria-label="Account">'+DASH_TABS.map(function(t,i){ var on=i===DASH_TABS.length-1; return '<a href="#"'+(on?' class="on" aria-current="page"':' data-act="other"')+'><b>'+t[0]+'</b><span>'+t[1]+'</span></a>'; }).join('')+'</nav>';
-  var side='<aside class="dp-side"><div class="dp-ents">'+ENT_ORDER.map(function(id){ var x=ENTITIES[id];
+  /* AXS (IPC) organisations are hidden for this phase, like the IPC review tab (14/11/2026); their pages still open by link */
+  var side='<aside class="dp-side"><div class="dp-ents">'+ENT_ORDER.filter(function(id){ return !ENTITIES[id].ipc; }).map(function(id){ var x=ENTITIES[id];
     return '<a class="dp-ent'+(id===e.id?' on':'')+'" href="#/pages/'+id+'/'+(S.tab==='events'?'events':'projects')+'">'+entAvatar(x)+'<span class="t"><span>'+x.label+'</span><b>'+h(x.name)+'</b></span></a>';
   }).join('')+'</div><button class="dp-create" type="button" data-act="other">'+I.plus+'Create Organization</button></aside>';
   var head=e.role ? '<div class="dp-head"><div><h2>'+h(e.name)+'</h2><span class="dp-role">'+e.role+'</span></div>'+
@@ -617,47 +618,10 @@ function viewInvoices(ids){
     '<div class="fr-tw"><table class="fr-t inv"><thead><tr><th class="c1">Invoice</th><th class="c2">Month</th><th class="n">Donor love gifts</th><th class="n">Amount</th><th>Action</th></tr></thead><tbody>'+inv+'</tbody></table></div></section>';
 }
 
-/* ---------- review: questions for the team ---------- */
-/* open points the team decides, and what the prototype shows meanwhile (v5) */
-var QUESTIONS=[
-  {t:'Payouts before the cut-off',
-   q:'Should Manage Pages › Payouts list the payouts made before a page has payout details, or say that they are not listed?',
-   why:'Payouts are built from the PSP files, which start at the cut-off (1 Jun 2026 in the sample). Erbil has taken donations since Nov 2025, but its payouts start at Jul 2026, so an owner may think money is missing.',
-   now:'Only the payouts with payout details are listed, with no line about the earlier ones.'},
-  {t:'Previous transactions in the summary',
-   q:'Should the summary leave the earlier transactions out, or show them in one line such as "previous disbursed" (Rachel\'s idea)? If the line, were all of them paid out?',
-   why:'The summary counts only transactions with payout details. "Disbursed" is right only if every earlier transaction was paid out.',
-   now:'The summary leaves them out. The "Previous Transactions" tab shows their own total.'}
-];
-function questionsHtml(){
-  var x=svg('<path d="M6 6l12 12M18 6L6 18"/>');
-  return '<div class="fr-md" role="dialog" aria-modal="true" aria-labelledby="fr-md-t">'+
-    '<div class="fr-md-head"><div><h2 id="fr-md-t">Questions for the team</h2><p>Open points in this version. Under each one is what the prototype shows for now.</p></div>'+
-    '<button class="fr-md-x" type="button" data-act="notesClose" aria-label="Close">'+x+'</button></div>'+
-    '<ol class="fr-md-list">'+QUESTIONS.map(function(o, i){
-      return '<li class="fr-nt"><div class="fr-nt-h"><span class="no">'+(i+1)+'</span><h3>'+h(o.t)+'</h3></div>'+
-        '<dl class="fr-nt-rows"><div><dt>Question</dt><dd>'+h(o.q)+'</dd></div><div><dt>Why we ask</dt><dd>'+h(o.why)+'</dd></div>'+
-        '<div><dt>For now</dt><dd>'+h(o.now)+'</dd></div></dl></li>';
-    }).join('')+'</ol>'+
-    '<p class="fr-md-foot">Not in this prototype: the CSV files do not carry the Tax Deduction tag or the promotion code.</p></div>';
-}
-/* the questions window; closing it returns to its button */
-function notesOpen(){
-  var m=document.getElementById('fr-modal');
-  m.innerHTML=questionsHtml(); m.hidden=false;
-  document.documentElement.classList.add('fr-lock');
-  m.querySelector('.fr-md-x').focus();
-}
-function notesClose(){
-  var m=document.getElementById('fr-modal');
-  if(m.hidden) return;
-  m.hidden=true; m.innerHTML='';
-  document.documentElement.classList.remove('fr-lock');
-  var b=document.querySelector('.fr-qs'); if(b) b.focus();
-}
-
 /* ---------- page ---------- */
-var REVIEW=[['Manage Pages','#/pages/antioch/projects'],['Manage Project','#/manage/erbil/transactions'],['Manage Event','#/manage/concert/orders'],['IPC charity (AXS)','#/manage/sunny/transactions']];
+/* "IPC charity (AXS)" is hidden for this phase (14/11/2026); its page still opens at #/manage/sunny/transactions,
+   and reviewOn's index 3 stays free for it */
+var REVIEW=[['Manage Pages','#/pages/antioch/projects'],['Manage Project','#/manage/erbil/transactions'],['Manage Event','#/manage/concert/orders']];
 /* the three cases a project or event can be in (v5 round 2); every screen follows the one picked */
 var CASES=[['both','Old and new'],['new','New only'],['old','Old only (ended)']];
 function reviewOn(i){
@@ -666,13 +630,12 @@ function reviewOn(i){
   return i===(p.ipc ? 3 : isEv(p) ? 2 : 1);
 }
 function renderReview(){
-  document.getElementById('fr-review').innerHTML='<span class="t">Financial report</span><span class="ver">Version 5</span>'+
+  document.getElementById('fr-review').innerHTML='<span class="t">Financial report</span><span class="ver">Version 6</span>'+
     '<nav class="fr-rtabs" aria-label="Screens">'+REVIEW.map(function(x,i){ return '<a href="'+x[1]+'"'+(reviewOn(i)?' class="on"':'')+'>'+x[0]+'</a>'; }).join('')+'</nav>'+
     '<div class="fr-rtabs fr-rcase" role="group" aria-label="Data"><span class="lbl">Data</span>'+CASES.map(function(c){
       var on=S.data===c[0];
       return '<button type="button" data-act="data" data-v="'+c[0]+'" aria-pressed="'+on+'"'+(on?' class="on"':'')+'>'+c[1]+'</button>';
-    }).join('')+'</div>'+
-    '<button class="fr-notes fr-qs" type="button" data-act="questions" aria-haspopup="dialog"><span class="c">'+QUESTIONS.length+'</span>Questions for the team</button>';
+    }).join('')+'</div>';
 }
 function render(){
   route(); renderReview(); hideTip();
@@ -800,8 +763,6 @@ var ACT={
   invoice:function(){ toast('Sample: no invoice file yet'); },
   summaryFile:function(){ toast('Sample: no payout summary file yet'); },
   other:function(){ toast('Not part of this prototype'); },
-  questions:notesOpen,
-  notesClose:notesClose,
   menu:function(t){
     var dd=t.closest('.mp-dd'), open=!dd.classList.contains('open'); closeMenus(); dd.classList.toggle('open', open); t.setAttribute('aria-expanded', open?'true':'false');
     if(dd.classList.contains('ms')) S.msOpen=open;
@@ -826,7 +787,6 @@ function closeMenus(){
   document.querySelectorAll('.mp-dd.open').forEach(function(dd){ dd.classList.remove('open'); dd.querySelector('[data-act="menu"]').setAttribute('aria-expanded','false'); });
 }
 document.addEventListener('click', function(ev){
-  if(ev.target.id==='fr-modal'){ notesClose(); return; }
   var t=ev.target.closest('[data-act]');
   /* picking months keeps the payout period picker open */
   if(!ev.target.closest('.pp-pop') && (!t || t.getAttribute('data-act')!=='menu')) closeMenus();
@@ -846,7 +806,7 @@ document.addEventListener('keydown', function(ev){
   if(ev.key==='Escape'){
     var box=pop || (ev.target.closest && ev.target.closest('.pp-pop'));
     var btn=box && box.parentNode.querySelector('.ms-btn'), menuOpen=document.querySelector('.mp-dd.open');
-    hideTip(); closeMenus(); notesClose(); if(btn) btn.focus();
+    hideTip(); closeMenus(); if(btn) btn.focus();
     if(S.full && !menuOpen){ ACT.full(); }
   }
 });
