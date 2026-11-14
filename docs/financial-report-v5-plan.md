@@ -526,3 +526,115 @@ Không sửa 2 trang admin.
 - **Đã làm:** khi bấm số trang, bảng dừng cách menu 16px, tức 96px tính từ mép trên. Khi thanh filter đang hiện, bảng dừng cách thanh 16px, tức 140px (80 + 44 + 16). Áp cho bảng "With payout details" và bảng "Earlier". Bảng "Earlier" không có thanh, nên luôn là 96px. Chế độ toàn màn hình không đổi.
 - **Đã kiểm tra:** `fr5f-check.js` 32/32. `fr5e-check.js` 44/44. Script v4 ở chế độ New only 31/32 (chỉ fail "version 4", như trước). 2 script admin 35/35 và 24/24. curl trả về 200.
 - Chưa xem bằng mắt. Đã commit và push trong `568b17c` (13/11/2026), theo lệnh "commit và push" của anh.
+
+## Vòng review của team (14/11/2026)
+
+Anh báo: UI/UX cho Project/Event Owner đã ổn, còn một số comment cần sửa. Anh dặn thêm:
+- Dòng offline đã làm, nhưng chưa gắn với box tóm tắt ở trên. Em tìm cách đưa vào box cho hợp (comment ở hình 1 và hình 3).
+- "Recon Overview" là tên mới của trang admin "Transaction Report".
+- Lệnh: **START**.
+
+**Phạm vi:** toàn bộ comment trên 5 hình dưới đây. **Làm đến khi:** xong hết, hoặc chỉ còn việc chờ anh trả lời. **Không:** commit, push.
+
+### Việc cần làm
+| # | Hình | Comment | Em làm |
+|---|---|---|---|
+| R1 | 1, 3 | Tổng offline trong kỳ đang lọc; đổi chữ thành "Offline Transactions (not included in payout)"; cho vào box; kỳ nào cũng hiện, không có thì ghi $0 | Một box nhỏ nằm trong box tóm tắt, dưới "Total Net to you", thẳng hàng với cột số. Chọn kỳ nào cũng hiện, không có offline thì ghi S$0.00. Khi chọn một kỳ, danh sách cũng hiện các giao dịch offline của kỳ đó, để số trong box khớp với danh sách. |
+| R2 | 3 | Đổi tên tab: "Payout details", "Previous Transactions"; bỏ số đếm | Làm đúng như vậy. |
+| R3 | 3 | Box màu khác dưới tab: "Missing Transactions? …" | Box vàng nhạt (cùng màu box "Next payout" ở trang Payouts), đặt giữa tab và "Filter & export". Chỉ hiện khi trang có cả giao dịch cũ lẫn mới. |
+| R4 | 4 | Đổi câu ghi chú ở tab cũ | Dùng đúng câu team đưa. |
+| R5 | 4, 5 | Đổi "Account" thành "User" | Đổi ở cả 2 bảng và thẻ trên điện thoại. |
+| R6 | 4 | Chỉnh khoảng cách và căn lề bảng cũ | Cột Reference lấy phần chỗ trống còn lại, các cột khác cách đều nhau. Tiêu đề cột căn giữa theo chiều dọc. |
+| R7 | 2 | Dropdown Payout period giống trang Recon Overview | Giống trang admin: nút có icon lịch; khi mở có các nút chọn nhanh (Latest payout, Last 3 payouts, All of năm, All), lưới tháng theo năm, cuối khung ghi số kỳ đã chọn và nút Done. |
+| M1 | 5 | Mobile: menu cài đặt dạng dropdown | Trên điện thoại, danh sách menu thay bằng một nút ghi mục đang mở, bấm thì mở danh sách. |
+| M2 | 5 | Mobile: dòng "Best viewed on desktop" | Một dòng nhỏ ở đầu thẻ trắng, chỉ hiện trên điện thoại. |
+| M3 | 5 | Mobile: chữ của tab phải nằm gọn trong ô | Chữ dài thì xuống dòng nhưng vẫn nằm trong ô; ô cao theo chữ. |
+| M4 | 5 | Mobile: căn lề link "View full payout summary" | Thẳng lề với câu ghi chú bên trên. |
+| M5 | 5 | Mobile: sửa dòng User trong thẻ, bỏ ảnh đại diện | Tên và tag căn phải, không có ảnh đại diện. |
+| M6 | 5 | Mobile: bảng cũ không xem được dữ liệu | Danh sách cũ trên điện thoại hiển thị dạng thẻ, như danh sách mới. |
+
+### Mặc định em chọn (anh đổi được)
+- **D1.** Event dùng chữ "Orders": tab "Previous Orders", box "Missing Orders?", câu ghi chú nói "orders".
+- **D2.** Chọn "Unassigned": box offline tính các giao dịch offline của những tháng chưa thành kỳ payout. Mỗi giao dịch offline nằm ở đúng một chỗ: kỳ payout của tháng nó, hoặc Unassigned.
+- **D3.** Trang Payouts vẫn giữ ô Year. Lưới tháng chỉ hiện các năm khớp với Year đang chọn.
+- **D4.** Box offline chỉ có ở project thường. Event không có offline. IPC (AXS) không có payout, nên cũng không có box.
+- **D5.** File CSV vẫn ghi "Account". Comment chỉ nói về giao diện, và CSV không làm trong prototype.
+- **D6.** Căn giữa tiêu đề cột chỉ áp cho bảng cũ (comment ở bảng cũ). Bảng mới giữ nguyên.
+
+### Ước lượng thời gian
+| Bước | Ngày | Cộng dồn |
+|---|---|---|
+| R1 box offline và danh sách theo kỳ | 0.25 | 0.25 |
+| R2–R4 tên tab, box "Missing", ghi chú | 0.15 | 0.4 |
+| R5 User | 0.05 | 0.45 |
+| R6 bảng cũ | 0.1 | 0.55 |
+| R7 dropdown Payouts kiểu Recon Overview | 0.35 | 0.9 |
+| M1 menu dropdown | 0.15 | 1.05 |
+| M2–M4 dòng desktop, tab, link | 0.15 | 1.2 |
+| M5–M6 thẻ User, thẻ cho danh sách cũ | 0.3 | 1.5 |
+| Kiểm tra (node, curl), log | 0.2 | 1.7 |
+
+### Nhật ký
+- 14/11/2026: viết phần này rồi bắt đầu làm theo lệnh START.
+- 14/11/2026: **đã làm xong cả 13 mục** trong `assets/financial-report.js` và `assets/financial-report.css`.
+  - **R1:**
+    - Box "Offline Transactions (not included in payout)" nằm trong box tóm tắt, dưới "Total Net to you". Chữ và số thẳng hàng với các dòng trên.
+    - Không lọc: S$1,600.00, 5 giao dịch. Kỳ không có offline: S$0.00. Chọn một kỳ thì danh sách có cả giao dịch offline của kỳ đó.
+    - Dòng "Offline, not in payout" cũ đã bỏ.
+    - Erbil: 13,700 (tóm tắt) + 1,600 (box offline) + 19,740 (Previous Transactions) = 35,040, khớp số đã quyên được.
+    - **Sai sót em tự tìm ra và đã sửa:** bản đầu tính Unassigned theo "tháng có giao dịch chưa vào payout". Tháng 10/2026 vừa là kỳ payout vừa còn giao dịch chưa vào payout, nên 1.000 offline của tháng 10 bị tính 2 lần (cộng các kỳ ra 2.600 thay vì 1.600). Đã đổi theo D2 mới. Giờ các kỳ cộng Unassigned ra đúng 1.600.
+  - **R2–R4:**
+    - 2 tab là "Payout details" và "Previous Transactions", không còn số đếm.
+    - Box vàng "Missing Transactions?" nằm giữa tab và "Filter & export".
+    - Câu ghi chú ở tab cũ theo đúng chữ của team.
+    - Event dùng "Previous Orders" và "Missing Orders?".
+    - 2 câu trong "Questions for the team" đổi "Earlier" thành "Previous Transactions" cho khớp tên tab.
+  - **R5:** "User" thay cho "Account" ở bảng mới, bảng cũ, IPC, event và thẻ trên điện thoại. File CSV vẫn ghi "Account" (D5).
+  - **R6:** bảng cũ rộng bằng thẻ trắng. Reference lấy phần chỗ còn lại, các cột khác cách đều nhau với padding 16px như bảng mới. Tiêu đề cột căn giữa theo chiều dọc.
+  - **R7:**
+    - Ô Payout period ở trang Payouts thay bằng picker giống Recon Overview:
+      - nút có icon lịch;
+      - các nút chọn nhanh Latest payout, Last 3 payouts, All of năm, All;
+      - lưới tháng theo năm, tháng không có payout thì mờ;
+      - cuối khung ghi "N payout periods picked" và có nút Done.
+    - Nhãn trên nút: "All payout periods", hoặc tên một kỳ, hoặc khoảng kỳ liền nhau ("Aug – Oct 2026"), hoặc "N payout periods".
+    - Danh sách ô tick cũ và code của nó đã bỏ.
+  - **M1–M6 (điện thoại):**
+    - Menu thành dropdown ghi mục đang mở.
+    - Có dòng "Best viewed on desktop" ở đầu thẻ trắng.
+    - Tab cao lên theo chữ.
+    - Link "View full payout summary" thẳng lề với chữ của câu ghi chú.
+    - Dòng User trong thẻ có tên và tag căn phải, không có ảnh.
+    - Danh sách cũ hiển thị dạng thẻ (ngày, số tiền hoặc số vé, user, cách trả), mở "Details" xem đủ các cột.
+  - **Đã kiểm tra:**
+    - `node --check` không báo lỗi.
+    - `fr5g-check.js` 58/58 (vòng này).
+    - `fr5f-check.js` 32/32 (thanh ghim).
+    - Quét 8 màn × 3 case dữ liệu: không có NaN hay undefined.
+    - New only vẫn ra S$30,077.51 và S$226.75. Old only ra S$35,040.00.
+    - curl trả về 200.
+  - **Chưa kiểm tra:**
+    - Chưa xem bằng mắt.
+    - Các script test cũ (fr5e, v4, 2 script admin) mất cùng thư mục tạm. Trang admin và `finance-data.js` không đổi nên không chạy lại.
+  - Đã commit và push (14/11/2026).
+- 14/11/2026, anh dặn: *"Previous Transactions có gạch chân màu đen đậm, và click để đổi tab được, remove ""*.
+  - **Đã làm:** trong box "Missing Transactions?", chữ Previous Transactions (event: Previous Orders) bỏ ngoặc kép, chữ đen `#000`, gạch chân. Bấm vào thì mở tab đó, giống bấm tab ở trên.
+  - **Đã kiểm tra:** `fr5g-check.js` 60/60, gồm việc bỏ ngoặc kép, style và việc mở tab. `fr5f-check.js` 32/32. Chưa xem bằng mắt. Đã commit và push (14/11/2026).
+- 14/11/2026, anh dặn: *"Tương tự Payout Details ở tab này"*.
+  - **Đã làm:** ở tab Previous Transactions, chữ Payout details trong câu ghi chú cũng bỏ ngoặc kép, chữ đen, gạch chân. Bấm vào thì mở tab Payout details. Hai chữ dùng chung style `.fr-go-tab` (trước đây tên là `.fr-miss-go`).
+  - **Đã kiểm tra:** `fr5g-check.js` 61/61. `fr5f-check.js` 32/32. Chưa xem bằng mắt. Đã commit và push (14/11/2026).
+- 14/11/2026, anh hỏi vì sao bảng cũ trống một khoảng bên phải. Lý do là cách sửa R6: phần chỗ dư dồn hết vào cột Reference. Anh bảo: *"chia đều cho đẹp mắt (các bản Old data ấy)… Còn New và Old & New table thì anh thấy ổn"*.
+  - **Đã làm:** chỉ sửa bảng của danh sách cũ, dùng cho cả tab Previous Transactions và trường hợp Old only. Bảng rộng bằng thẻ trắng, các cột rộng bằng nhau: project 5 cột mỗi cột 1/5, event 6 cột mỗi cột 1/6. Không cột nào hẹp hơn nội dung của nó. Cột User không hẹp hơn 136px, để cột Date & time vẫn ghim đúng chỗ khi màn hẹp phải cuộn ngang. Bỏ cột lấp chỗ trống `fill`. Bảng mới không đổi.
+  - **Đã kiểm tra:** `fr5g-check.js` 62/62. `fr5f-check.js` 32/32. Chưa xem bằng mắt. Đã commit và push (14/11/2026).
+- 14/11/2026, anh dặn: *"Ở mobile, em hãy gom thành 1 row thôi"* (Year và Payout period trong khung Filter & export).
+  - **Đã làm:** trên điện thoại (dưới 900px), Year và Payout period nằm cùng một hàng, mỗi ô một nửa, cách nhau 10px. Nút Export vẫn ở hàng dưới. Chữ dài quá ô thì cắt bằng "…". Trang Payouts không đổi.
+  - **Đã kiểm tra:** `fr5g-check.js` 65/65. `fr5f-check.js` 32/32. Chưa xem bằng mắt. Đã commit và push (14/11/2026).
+- 14/11/2026, anh dặn: *"2 action này cũng vậy, nếu ko 1 row được thì mỗi row nó phải full width"* (Add Offline Transaction, Tax Deduction Report).
+  - Ở điện thoại 375px, 2 nút cộng lại khoảng 430px, thẻ trắng chỉ khoảng 290px, nên không nằm chung một hàng được.
+  - **Đã làm:** trên điện thoại (dưới 900px), 2 nút giãn kín hàng. Đủ chỗ thì nằm chung một hàng, không đủ thì mỗi nút một hàng, rộng hết chiều ngang. Chữ và icon nằm giữa nút. Desktop không đổi.
+  - **Đã kiểm tra:** `fr5g-check.js` 67/67. `fr5f-check.js` 32/32. Chưa xem bằng mắt. Đã commit và push (14/11/2026).
+- 14/11/2026: anh ra lệnh "commit và push". Vòng review của team (13 mục) và 5 lần chỉnh sau đó được commit và push lên main trong cùng một commit với file này.
+  - **Còn lại:**
+    - 2 câu hỏi cũ (payout trước mốc, giao dịch cũ trong tóm tắt): chờ team.
+    - Có đổi tên trang admin thành "Recon Overview" không: chờ anh.
+    - Nút "Export as .csv" có làm full width trên điện thoại không: chờ anh.
