@@ -1,8 +1,9 @@
 /* ============================================================================
-   Agathos Admin — Finance pages, shared styles: Transaction Report (finance.html)
-   and Summary Payout Report (finance-payouts.html). Sits on top of app.css.
+   Agathos Admin — Recon pages, shared styles: Recon Overview (finance.html)
+   and Disbursement Report (finance-payouts.html). Sits on top of app.css.
    Version 4 (docs/financial-report-v4-plan.md): filters first, then Show report;
-   the summary as a cascade; statistics closed until opened.
+   the summary as a cascade; statistics closed until opened. Version 6
+   (docs/financial-report-admin-v6-plan.md): the team's cascades and columns, Tally check.
    ============================================================================ */
   /* One colour per part of the money on the chart (validated: blue, orange, aqua on #fff;
      aqua is under 3:1, so the chart has a legend, a tooltip and a table view) */
@@ -21,9 +22,17 @@
   .fin-lock svg{width:12px;height:12px;}
   .fin-panel-foot{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:16px -18px 0;padding:12px 18px;border-top:1px solid var(--split);}
   .fin-panel-foot .sp{flex:1;}
-  .fin-stale{font-size:13px;color:#AD6800;}
-  #fin-body{transition:opacity .15s;}
-  #fin-body.is-stale{opacity:.45;}
+  /* while loading: an overlay over the whole report blurs the old numbers and blocks clicks; its card says "Loading data…"
+     and stays in view below the top bar while scrolling. Empty, it lets every click through */
+  .fin-stage{position:relative;}
+  #fin-body{transition:filter .15s;}
+  #fin-body.is-loading{filter:blur(6px);user-select:none;}
+  .fin-load{position:absolute;inset:0;z-index:6;display:flex;justify-content:center;align-items:flex-start;padding-top:48px;border-radius:12px;background:rgba(245,245,245,.55);}
+  .fin-load:empty{background:none;pointer-events:none;}
+  .fin-load-card{position:sticky;top:calc(var(--topbar-h) + 120px);display:inline-flex;align-items:center;gap:12px;padding:16px 26px;border-radius:12px;background:#fff;box-shadow:0 6px 16px rgba(0,0,0,.1),0 3px 6px -4px rgba(0,0,0,.14),0 9px 28px 8px rgba(0,0,0,.06);font-size:16px;font-weight:600;color:var(--ink);}
+  .fin-spin{width:20px;height:20px;border:2.5px solid var(--blue-bg);border-top-color:var(--link);border-radius:50%;animation:fin-spin .7s linear infinite;}
+  @keyframes fin-spin{to{transform:rotate(360deg);}}
+  @media (prefers-reduced-motion: reduce){ .fin-spin{animation-duration:2s;} }
   .fin-wait{display:flex;align-items:center;justify-content:center;gap:10px;padding:64px 16px;font-size:14px;color:var(--muted);}
   .fin-wait svg{color:var(--hint);}
 
@@ -87,7 +96,7 @@
   .fin-mo[disabled]{border-color:transparent;background:#FAFAFA;color:var(--hint);cursor:default;}
   .fin-popfoot{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-top:1px solid var(--split);font-size:12.5px;color:var(--muted);}
 
-  /* ---------- the summary as a cascade, in the order and sizes the team set (T3, S11) ---------- */
+  /* ---------- the summary as a cascade, as the team's table (admin review 14/11/2026) ---------- */
   .fin-cas{padding:4px 22px;margin-bottom:16px;}
   .fin-cas-meta{display:flex;flex-wrap:wrap;gap:8px 48px;padding:14px 0;border-bottom:1px solid var(--split);font-size:12.5px;color:var(--muted);}
   .fin-cas-meta b{display:block;margin-top:2px;font-size:16px;font-weight:600;color:var(--ink);}
@@ -96,22 +105,20 @@
   .fin-r .op{flex:none;width:16px;font-style:normal;font-weight:600;color:var(--muted);text-align:center;}
   .fin-r .nm{flex:1;min-width:0;color:var(--ink-2);}
   .fin-r .nm small{display:block;margin-top:2px;font-size:12.5px;font-weight:400;color:var(--muted);}
+  .fin-r .nm small span{display:block;}   /* the words in brackets, then the count */
   .fin-r .v{flex:none;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap;}
-  .fin-r.l .nm{font-size:15px;font-weight:600;color:var(--ink);}
-  .fin-r.l .v{font-size:32px;letter-spacing:-.02em;}
-  .fin-r.m .nm{font-size:14px;}
-  .fin-r.m .v{font-size:20px;}
-  .fin-r.s .nm{font-size:13px;}
-  .fin-r.s .v{font-size:15px;font-weight:500;}
-  /* Total PSP payout to Agathos sits in the order the team set but is not part of the sum (D1) */
-  .fin-r.info .nm,.fin-r.info .v{color:var(--muted);}
+  /* two sizes only, and each amount in the font of its label: the bold, coloured lines large, the rest small */
+  .fin-r.l .nm,.fin-r.l .v{font-size:16px;font-weight:600;color:var(--ink);}
+  .fin-r.s .nm,.fin-r.s .v{font-size:13px;}
+  .fin-r.s .v{font-weight:500;}
   /* a row and the line or list that belongs to it read as one block: one rule under the block, none in between */
   .fin-r.joined{padding-bottom:4px;border-bottom:0;}
-  .fin-r.end{border-bottom:0;}
-  .fin-r.part{padding:0 0 12px;}
-  .fin-r.part .nm,.fin-r.part .v{font-size:12.5px;font-weight:400;color:var(--muted);}
-  /* the amount Finance acts on stays highlighted (S11) */
-  .fin-r.key{margin:0 -22px;padding:16px 22px;border-bottom:0;border-radius:0 0 10px 10px;background:var(--blue-bg);}
+  /* the bold, coloured lines of the team's table, across the card */
+  .fin-r.key{margin:0 -22px;padding:14px 22px;border-bottom:0;background:var(--blue-bg);}
+  .fin-r.key.first{margin-top:-4px;border-radius:10px 10px 0 0;}
+  .fin-r.key.last{margin-bottom:-4px;border-radius:0 0 10px 10px;}
+  .fin-r.key.last.joined{margin-bottom:0;border-radius:0;}
+  .fin-sub.in-key{margin:0 -22px -4px;padding:4px 22px 14px 50px;border-bottom:0;border-radius:0 0 10px 10px;background:var(--blue-bg);}
   .fin-fold{display:inline-flex;align-items:center;gap:4px;padding:0;border:0;background:none;font:inherit;color:inherit;text-align:left;cursor:pointer;}
   .fin-fold svg{flex:none;color:var(--link);transform:rotate(-90deg);transition:transform .15s;}
   .fin-fold[aria-expanded="true"] svg{transform:none;}
@@ -172,6 +179,13 @@
   .fin-tip .r i{width:12px;height:2px;border-radius:1px;}
   .fin-tip .r b{margin-left:auto;padding-left:12px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;}
 
+  /* review only (admin review 14/11/2026): a switch to see the Tally check when transactions don't tally */
+  .fin-review{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0 0 14px;padding:8px 14px;border:1px dashed #E2C99A;border-radius:8px;background:#FBF6EC;font-size:12.5px;color:#7A6340;}
+  .fin-review b{font-weight:700;color:#5C4A2E;}
+  .fin-review .lbl{margin-left:auto;font-weight:600;}
+  .fin-review .fin-seg{height:32px;}
+  .fin-review .fin-seg button{height:26px;padding:0 12px;font-size:12.5px;}
+
   /* ---------- transactions ---------- */
   .fin-tx{padding:16px 18px 18px;}
   .fin-tx.full{position:fixed;inset:0;z-index:70;border-radius:0;overflow:auto;padding:20px 28px;}
@@ -192,6 +206,30 @@
   table.ct.fin-t .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;color:var(--ink-2);}
   table.ct.fin-t .na{color:var(--hint);}
   table.ct.fin-t .sub{display:block;font-size:12px;color:var(--muted);}
+  /* the team's columns (admin review 14/11/2026): long amount titles on two or three lines, three columns bold,
+     a line after Transaction Amount, Net to Merchant and Total to Agathos tinted in their chart colours */
+  table.ct.fin-t th{vertical-align:bottom;}
+  table.ct.fin-t th.r{width:124px;white-space:normal;line-height:1.35;}
+  table.ct.fin-t .b{font-weight:600;}
+  table.ct.fin-t .vline{border-right:2px solid #D9D9D9;}
+  table.ct.fin-t th.c-net{background:#E3EEFB;}
+  table.ct.fin-t td.c-net{background:#F0F6FD;}
+  table.ct.fin-t th.c-ag{background:#FCE7DB;}
+  table.ct.fin-t td.c-ag{background:#FEF4EE;}
+  /* Tally check: OK in green; a row that doesn't tally in red, the whole row tinted */
+  table.ct.fin-t .ok{display:inline-flex;align-items:center;gap:4px;font-weight:500;color:#389E0D;}
+  /* a transaction that doesn't tally: no row colour; an orange badge with the amount off, and an orange edge on the name */
+  table.ct.fin-t .t-off{display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border:1px solid #FFD591;border-radius:999px;background:#FFF7E6;font-weight:600;color:#AD4E00;}
+  table.ct.fin-t .t-off svg{width:13px;height:13px;color:#FA8C16;}
+  table.ct.fin-t tr.is-off td:first-child{box-shadow:inset 3px 0 0 #FA8C16,inset -1px 0 0 var(--split);}
+  .fin-tally{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:0 0 12px;padding:9px 14px;border-radius:8px;font-size:13px;color:var(--ink-2);}
+  .fin-tally > svg{flex:none;}
+  .fin-tally span{flex:1;min-width:0;}
+  .fin-tally b{margin-right:8px;font-weight:600;color:var(--ink);}
+  .fin-tally.ok{border:1px solid var(--green-line);background:var(--green-bg);}
+  .fin-tally.ok > svg{color:#389E0D;}
+  .fin-tally.off{border:1px solid #FFE58F;background:#FFFBE6;}
+  .fin-tally.off > svg{color:#D48806;}
   .fin-empty{padding:40px 16px;text-align:center;color:var(--muted);}
   html.fin-lock{overflow:hidden;}
 
@@ -202,5 +240,4 @@
     .fin-combo .fin-search,.fin-f.period .fin-trig{width:100%;}
     .fin-f.scope,.fin-f.period{flex:1 1 100%;}
     .fin-tx-head .fin-search{width:100%;}
-    .fin-r.l .v{font-size:26px;}
   }

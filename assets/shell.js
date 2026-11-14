@@ -31,6 +31,7 @@ var ICON = {
   inbox:    '<path d="M4 13h4l1.5 3h5L16 13h4"/><path d="M4 13L6.5 5h11L20 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/>',
   doc:      '<path d="M5 3h9l5 5v13H5z"/><path d="M14 3v5h5"/><path d="M8 8h3M8 11.5h3"/><circle cx="15" cy="16" r="3.2"/><path d="M13.7 16l1 1 1.8-2"/>',
   finance:  '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><path d="M7 15h3M14 15h3"/><path d="M7 6V4.5M17 6V4.5"/>',
+  cash:     '<rect x="2.5" y="6.5" width="19" height="11" rx="1.5"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5v5M18 9.5v5"/>',
   grip:     '<circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="18" r="1.4"/>'
 };
 
@@ -57,7 +58,7 @@ function navSub(label, kids, open){
 }
 
 /* activeKey: which leaf is highlighted — 'project', 'campaign',
-   'homepage-hero', 'other-slides', 'finance' (Transaction Report) or 'finance-payouts' (Summary Payout Report). The Requests screen hangs off the Project
+   'homepage-hero', 'other-slides', 'finance' (Recon Overview) or 'finance-payouts' (Disbursement Report). The Requests screen hangs off the Project
    list, so it keeps Project highlighted. */
 function mountShell(activeKey){
   var collapsed = localStorage.getItem(SHELL_KEY) === '1';
@@ -80,6 +81,18 @@ function mountShell(activeKey){
     +   '<span class="lbl">Application</span><span class="chev">' + icon('chev', 14) + '</span></button>'
     +   '<div class="kids">' + appKids + '</div>'
     + '</div>'
+    /* production's Financials tab, then the reconciliation pages right below it (admin review 14/11/2026) */
+    + '<div class="grp">'
+    +   '<button type="button" onclick="toggleNavGroup(this)"><span>' + icon('cash') + '</span>'
+    +   '<span class="lbl">Financials</span><span class="chev">' + icon('chev', 14) + '</span></button>'
+    +   '<div class="kids"></div>'
+    + '</div>'
+    + '<div class="grp' + (/^finance/.test(activeKey || '') ? ' open' : '') + '">'
+    +   '<button type="button" onclick="toggleNavGroup(this)"><span>' + icon('doc') + '</span>'
+    +   '<span class="lbl">Recon</span><span class="chev">' + icon('chev', 14) + '</span></button>'
+    +   '<div class="kids">' + navLeaf('Recon Overview', 'finance.html', activeKey === 'finance')
+    +     navLeaf('Disbursement Report', 'finance-payouts.html', activeKey === 'finance-payouts') + '</div>'
+    + '</div>'
     + '<div class="grp">'
     +   '<button type="button" onclick="toggleNavGroup(this)"><span>' + icon('users') + '</span>'
     +   '<span class="lbl">User Management</span><span class="chev">' + icon('chev', 14) + '</span></button>'
@@ -89,12 +102,6 @@ function mountShell(activeKey){
     +   '<button type="button" onclick="toggleNavGroup(this)"><span>' + icon('users') + '</span>'
     +   '<span class="lbl">Org Management</span><span class="chev">' + icon('chev', 14) + '</span></button>'
     +   '<div class="kids">' + navLeaf('Organization') + '</div>'
-    + '</div>'
-    + '<div class="grp' + (/^finance/.test(activeKey || '') ? ' open' : '') + '">'
-    +   '<button type="button" onclick="toggleNavGroup(this)"><span>' + icon('finance') + '</span>'
-    +   '<span class="lbl">Finance</span><span class="chev">' + icon('chev', 14) + '</span></button>'
-    +   '<div class="kids">' + navLeaf('Transaction Report', 'finance.html', activeKey === 'finance')
-    +     navLeaf('Summary Payout Report', 'finance-payouts.html', activeKey === 'finance-payouts') + '</div>'
     + '</div>'
     + '<a href="#" onclick="return false"><span>' + icon('heart') + '</span><span class="lbl">Health</span></a>'
     + '<a href="#" onclick="return false"><span>' + icon('settings') + '</span><span class="lbl">Configuration</span></a>'

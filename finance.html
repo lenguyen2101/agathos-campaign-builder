@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Agathos Admin — Transaction Report</title>
+<title>Agathos Admin — Recon Overview</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -37,7 +37,8 @@
     shrink: SVG('<path d="M13.5 5.5v5h5M10.5 18.5v-5h-5M13.5 10.5l6-6M10.5 13.5l-6 6"/>', 15),
     dl: SVG('<path d="M12 4v11M7.5 11l4.5 4.5 4.5-4.5M5 20h14"/>', 15),
     x: SVG('<path d="M7 7l10 10M17 7L7 17"/>', 14), lock: SVG('<rect x="5" y="11" width="14" height="9.5" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>', 12),
-    filter: SVG('<path d="M4 5h16l-6.5 7.5V19l-3 1.5v-8z"/>', 20)
+    filter: SVG('<path d="M4 5h16l-6.5 7.5V19l-3 1.5v-8z"/>', 20),
+    warn: SVG('<path d="M12 3.5l9 16H3z"/><path d="M12 10v4.5M12 17.2h.01"/>', 16)
   };
 
   /* ---------- data ---------- */
@@ -47,13 +48,30 @@
   var PERIODS = F.MONTHS.filter(function(m){ return ALL.some(function(a){ return a.r.per === m; }); });
   var LATEST = PERIODS[PERIODS.length - 1];
   var PSPS = [['','All'],['stripe','Stripe'],['2c2p','2c2p'],['axs','AXS']];
+  /* the "doesn't tally" case, for review only (admin review 14/11/2026): three transactions of the latest payout,
+     S$0.93 off in all, as a PSP file whose amounts do not add up would show them */
+  var OFF = {}, latest = ALL.filter(function(a){ return a.r.per === LATEST; });
+  [[2, -0.25], [7, 0.30], [13, -0.38]].forEach(function(x){ if(latest[x[0]]) OFF[latest[x[0]].r.ref] = x[1]; });
+  function tallyOf(a){ return V.tally === 'off' && OFF[a.r.ref] ? OFF[a.r.ref] : a.tally; }
+  function isOff(a){ return C(tallyOf(a)) !== 0; }
 
-  /* f: the filters as picked; shown: the filters of the numbers on screen. Nothing shows before Show report (T2, D3).
+  /* f: the filters as picked; shown: the filters of the numbers on screen. Nothing shows before Show report (T2).
+     After that, each filter change loads the report by itself, behind a "Loading data…" overlay (admin review 14/11/2026).
      Defaults, in this order: the latest payout, every PSP, any project or event (optional) */
   function defaults(){ return { pers:[LATEST], psp:'', pid:'' }; }
   var V = { f:defaults(), shown:null, sq:'', open:null, q:'', page:1, pageSize:20, full:false, fold:{}, table:{},
-            stats:{ open:false, range:'6', psp:'' } };
+            tally:'ok', onlyOff:false, stats:{ open:false, pers:PERIODS.slice(-6), psp:'' } };
   function stale(){ return !!V.shown && JSON.stringify(V.f) !== JSON.stringify(V.shown); }
+  /* the load waits 1 s after the last change, as a call to the server would, so picking 3 months is one load */
+  var LOAD_MS = 1000, loadT = null;
+  function busy(){ return loadT !== null; }
+  function load(){
+    clearTimeout(loadT);
+    loadT = setTimeout(function(){ loadT = null; V.shown = JSON.parse(JSON.stringify(V.f)); V.page = 1; renderBody(); markBusy(); }, LOAD_MS);
+    markBusy();
+  }
+  /* a filter change: nothing loads before the first Show report */
+  function changed(){ if(V.shown && (busy() || stale())) load(); }
 
   function inScope(a, f){
     if(f.pid && a.r.p.id !== f.pid) return false;
@@ -62,19 +80,23 @@
     return true;
   }
   function slice(){ return V.shown ? ALL.filter(function(a){ return inScope(a, V.shown); }) : []; }
-  /* the 3.0 summary (C69–C76), in whole cents */
+  /* the summary in whole cents, worked out as the team's table (admin review 14/11/2026):
+     Total Transactions Amount − PSP fees − Other PSP charges − paid out directly (Connect) = Total PSP payout to Agathos;
+     − Total disbursed to Projects/Events = Final amount to Agathos */
   function sum(list){
-    var c = {gross:0, fee:0, net:0, ag:0, payout:0, disbursed:0, paidOut:0, final:0, gift:0, fgift:0, bene:0, plat:0, margin:0};
+    var c = {gross:0, fee:0, net:0, ag:0, disbursed:0, paidOut:0, gift:0, fgift:0, bene:0, plat:0, margin:0, off:0, offAmt:0};
     list.forEach(function(a){
       c.gross += C(a.gross); c.fee += C(a.fees) + C(a.feeGift); c.net += C(a.net); c.ag += C(a.toAgathos);
-      c.payout += C(a.pspPayout); c.disbursed += C(a.disbursed); c.paidOut += C(a.paidOut); c.final += C(a.final);
+      c.disbursed += C(a.disbursed); c.paidOut += C(a.paidOut);
       c.gift += C(a.gift); c.fgift += C(a.finalGift); c.bene += C(a.bene); c.plat += C(a.platform); c.margin += C(a.margin);
+      if(isOff(a)){ c.off++; c.offAmt += Math.abs(C(tallyOf(a))); }
     });
     /* Stripe's monthly charges come off what Stripe pays Agathos */
     var o = F.otherCharges(list), oc = C(o.total), x = function(v){ return v / 100; };
+    var payout = c.gross - c.fee - oc - c.paidOut, final = payout - c.disbursed;
     return {n:list.length, gross:x(c.gross), fee:x(c.fee), net:x(c.net), ag:x(c.ag), other:o,
-      payout:x(c.payout - oc), disbursed:x(c.disbursed), paidOut:x(c.paidOut), final:x(c.final - oc),
-      gift:x(c.gift), fgift:x(c.fgift), bene:x(c.bene), plat:x(c.plat), margin:x(c.margin)};
+      payout:x(payout), disbursed:x(c.disbursed), paidOut:x(c.paidOut), final:x(final),
+      gift:x(c.gift), fgift:x(c.fgift), bene:x(c.bene), plat:x(c.plat), margin:x(c.margin), off:c.off, offAmt:x(c.offAmt)};
   }
   function groupBy(list, key){
     var g = {}, order = [];
@@ -109,9 +131,8 @@
       + seg('psp', PSPS, V.f.psp, 'l-psp', p ? p.psp : undefined);
   }
   function foot(){
-    var st = stale(), canCsv = V.shown && !st;
+    var canCsv = V.shown && !busy();
     return '<button class="btn" type="button" data-act="csv"' + (canCsv ? '' : ' disabled') + '>' + IC.dl + 'Export .csv</button><span class="sp"></span>'
-      + (st ? '<span class="fin-stale">Filters changed. Show report to update.</span>' : '')
       + '<button class="btn" type="button" data-act="reset">Reset</button>'
       + '<button class="btn primary" type="button" data-act="show">' + IC.search + 'Show report</button>';
   }
@@ -121,7 +142,7 @@
       + '<div class="fin-f period"><span class="lbl" id="l-per">Payout period</span><div class="fin-anchor">'
       +   '<button class="fin-trig" type="button" data-act="openPeriod" aria-haspopup="dialog" aria-expanded="' + (V.open === 'period') + '" aria-labelledby="l-per">'
       +     '<span class="ic">' + IC.cal + '</span><span class="v">' + h(periodLabel(V.f.pers)) + '</span><span class="ic">' + IC.down + '</span></button>'
-      +   '<div class="fin-pop period" id="pop-period"' + (V.open === 'period' ? '' : ' hidden') + '>' + periodPicker() + '</div>'
+      +   '<div class="fin-pop period" id="pop-period"' + (V.open === 'period' ? '' : ' hidden') + '>' + periodPicker(V.f.pers, [['last','Latest payout'],['last3','Last 3 payouts']], {preset:'preset', month:'month', done:'closePop'}) + '</div>'
       + '</div></div>'
       + '<div class="fin-f" id="f-psp">' + pspField() + '</div>'
       + '<div class="fin-f scope"><label class="lbl" for="scope-q">Project / Event <span class="opt">Optional</span></label>'
@@ -152,15 +173,21 @@
       }).join('');
     }).join('');
   }
-  function periodPicker(){
-    var years = {}, order = [], pers = V.f.pers;
+  /* a preset's payout periods: none (every period), the latest, the last n, or a year's */
+  function presetPers(v){
+    return v === 'all' ? [] : v === 'last' ? [LATEST] : /^last\d+$/.test(v) ? PERIODS.slice(-(+v.slice(4)))
+      : PERIODS.filter(function(m){ return F.payoutLabel(m).slice(-4) === v.slice(1); });
+  }
+  /* the payout period picker of the filters, also used by Statistics (admin review 14/11/2026: "allow custom period"):
+     quick picks, then each year's months; act names the actions of this copy */
+  function periodPicker(pers, quick, act){
+    var years = {}, order = [];
     PERIODS.forEach(function(m){ var y = F.payoutLabel(m).slice(-4); if(!years[y]){ years[y] = []; order.push(y); } years[y].push(m); });
-    var last3 = PERIODS.slice(-3);
     var same = function(a){ return a.length === pers.length && a.every(function(m){ return pers.indexOf(m) >= 0; }); };
-    var presets = [['last','Latest payout', same([LATEST])], ['last3','Last 3 payouts', same(last3)]]
+    var presets = quick.map(function(q){ return [q[0], q[1], same(presetPers(q[0]))]; })
       .concat(order.map(function(y){ return ['y' + y, 'All of ' + y, same(years[y])]; })).concat([['all','All', !pers.length]]);
     return '<div class="fin-presets">' + presets.map(function(p){
-        return '<button type="button" class="fin-chip' + (p[2] ? ' on' : '') + '" data-act="preset" data-v="' + p[0] + '" aria-pressed="' + p[2] + '">' + p[1] + '</button>';
+        return '<button type="button" class="fin-chip' + (p[2] ? ' on' : '') + '" data-act="' + act.preset + '" data-v="' + p[0] + '" aria-pressed="' + p[2] + '">' + p[1] + '</button>';
       }).join('') + '</div>'
       + '<div class="fin-years">' + order.map(function(y){
         var mine = years[y];
@@ -168,15 +195,14 @@
           var per = mine.filter(function(m){ return F.payoutLabel(m).slice(0, 3) === mo; })[0];
           if(!per) return '<button type="button" class="fin-mo" disabled>' + mo + '</button>';
           var on = pers.indexOf(per) >= 0;
-          return '<button type="button" class="fin-mo' + (on ? ' on' : '') + '" data-act="month" data-v="' + per + '" aria-pressed="' + on + '" aria-label="' + F.payoutLabel(per) + ' payout">' + mo + '</button>';
+          return '<button type="button" class="fin-mo' + (on ? ' on' : '') + '" data-act="' + act.month + '" data-v="' + per + '" aria-pressed="' + on + '" aria-label="' + F.payoutLabel(per) + ' payout">' + mo + '</button>';
         }).join('') + '</div></div>';
       }).join('') + '</div>'
-      + '<div class="fin-popfoot"><span>' + (pers.length ? plural(pers.length, 'payout period') + ' picked' : 'All payout periods') + '</span><button class="btn sm" type="button" data-act="closePop">Done</button></div>';
+      + '<div class="fin-popfoot"><span>' + (pers.length ? plural(pers.length, 'payout period') + ' picked' : 'All payout periods') + '</span><button class="btn sm" type="button" data-act="' + act.done + '">Done</button></div>';
   }
 
-  /* ---------- summary as a cascade, in the order and sizes the team set (T3):
-     Total Transactions Amount − PSP fees − Other PSP charges − Total disbursed = Final amount to Agathos.
-     Total PSP payout to Agathos is in the order the team set but not in that sum, so it has no sign (D1) ---------- */
+  /* ---------- summary as a cascade, as the team's table (admin review 14/11/2026). Two sizes only: the three bold,
+     coloured lines are large, the rest small; each amount in the font of its label. The two folds stay ---------- */
   function row(cls, op, label, value, sub){
     return '<div class="fin-r ' + cls + '"><i class="op" aria-hidden="true">' + op + '</i><span class="nm">' + label + (sub ? '<small>' + sub + '</small>' : '') + '</span><span class="v">' + value + '</span></div>';
   }
@@ -184,16 +210,16 @@
   function cascade(s){
     var o = s.other, m = F.money;
     return '<section class="card fin-cas" aria-labelledby="cas-t"><h2 class="sr" id="cas-t">Summary</h2>'
-      + row('l', '', 'Total Transactions Amount', m(s.gross), plural(s.n, 'transaction'))
+      + row('l key first', '', 'Total Transactions Amount', m(s.gross), '<span>(including amounts paid directly to Projects/Events by Stripe Connect model)</span><span>' + plural(s.n, 'transaction') + '</span>')
       + row('s', '−', 'Total PSP transactions fees', m(s.fee))
       + row('s' + (V.fold.other ? ' joined' : ''), '−', fold('other', 'Other PSP charges'), m(o.total))
       + '<ul class="fin-sub" id="fold-other"' + (V.fold.other ? '' : ' hidden') + '><li><span>Account Volume Billing</span><b>' + m(o.volume) + '</b></li><li><span>Active Account Billing</span><b>' + m(o.active) + '</b></li><li><span>Payout Fee</span><b>' + m(o.payout) + '</b></li></ul>'
-      + row('m info', '', 'Total PSP payout to Agathos', m(s.payout), 'What the PSPs paid Agathos')
-      + row('m joined', '−', 'Total disbursed to projects/events', m(s.disbursed))
-      + row('part', '', 'Total paid out directly to Projects/Events by Stripe (Connect)', m(s.paidOut))
-      + row('l end' + (V.fold.final ? ' joined' : ''), '=', fold('final', 'Final amount to Agathos'), m(s.final))
-      /* the three lines the team asked for, plus the margin and the other charges, so the lines add up to the Final amount (D2) */
-      + '<ul class="fin-sub" id="fold-final"' + (V.fold.final ? '' : ' hidden') + '>'
+      + row('s', '−', 'Total paid out directly to Projects/Events by Stripe (Connect)', m(s.paidOut))
+      + row('l key', '=', 'Total PSP payout to Agathos', m(s.payout), 'What the PSPs paid Agathos')
+      + row('s', '−', 'Total disbursed to projects/events', m(s.disbursed))
+      + row('l key last' + (V.fold.final ? ' joined' : ''), '=', fold('final', 'Final amount to Agathos'), m(s.final))
+      /* the same lines as before; with the other charges they add up to the Final amount */
+      + '<ul class="fin-sub in-key" id="fold-final"' + (V.fold.final ? '' : ' hidden') + '>'
       +   '<li><span>Total finalized donor love gift <em>(Total donor love gift)</em></span><b>' + m(s.fgift) + ' <em>(' + m(s.gift) + ')</em></b></li>'
       +   '<li><span>Total beneficiary love gift</span><b>' + m(s.bene) + '</b></li>'
       +   '<li><span>Total Agathos platform fee</span><b>' + m(s.plat) + '</b></li>'
@@ -203,21 +229,25 @@
   }
 
   /* ---------- statistics: closed until opened, worked out only then, with filters of its own (T9) ---------- */
-  var RANGES = [['6','Last 6 payouts'],['12','Last 12 payouts'],['all','All']];
+  /* its payout periods are picked like the filters' (admin review 14/11/2026: "allow custom period"); none picked = all */
   function statsList(){
-    var st = V.stats, pers = st.range === 'all' ? PERIODS : PERIODS.slice(-(+st.range));
-    return ALL.filter(function(a){ return pers.indexOf(a.r.per) >= 0 && (!st.psp || a.r.p.psp === st.psp); });
+    var st = V.stats;
+    return ALL.filter(function(a){ return (!st.pers.length || st.pers.indexOf(a.r.per) >= 0) && (!st.psp || a.r.p.psp === st.psp); });
   }
   function statsSection(){
     var st = V.stats;
-    var head = '<button class="fin-stats-head" type="button" data-act="stats" aria-expanded="' + st.open + '"' + (st.open ? ' aria-controls="fin-stats-body"' : '') + '><span><b>Statistics</b><small>By payout period, and the average donor love gift</small></span>'
+    var head = '<button class="fin-stats-head" type="button" data-act="stats" aria-expanded="' + st.open + '"' + (st.open ? ' aria-controls="fin-stats-body"' : '') + '><span><b>Transaction and average donor love gift trends</b><small>By payout period, and the average donor love gift</small></span>'
       + '<span class="go">' + (st.open ? 'Hide' : 'Show') + IC.down + '</span></button>';
     if(!st.open) return '<section class="card fin-stats">' + head + '</section>';
     var list = statsList(), g = 0, d = 0;
     /* average donor love gift: donor love gifts over the amounts donated; event tickets have no donor love gift */
     list.forEach(function(a){ if(!F.isEv(a.r.p)){ g += C(a.gift); d += C(a.r.recv); } });
     return '<section class="card fin-stats open">' + head + '<div id="fin-stats-body">'
-      + '<div class="fin-stats-bar"><div class="fin-f"><span class="lbl" id="l-srange">Payout periods</span>' + seg('srange', RANGES, st.range, 'l-srange') + '</div>'
+      + '<div class="fin-stats-bar"><div class="fin-f period"><span class="lbl" id="l-sper">Payout periods</span><div class="fin-anchor">'
+      +     '<button class="fin-trig" type="button" data-act="sOpen" aria-haspopup="dialog" aria-expanded="' + (V.open === 'speriod') + '" aria-labelledby="l-sper">'
+      +       '<span class="ic">' + IC.cal + '</span><span class="v">' + h(periodLabel(st.pers)) + '</span><span class="ic">' + IC.down + '</span></button>'
+      +     '<div class="fin-pop period" id="pop-speriod"' + (V.open === 'speriod' ? '' : ' hidden') + '>' + periodPicker(st.pers, [['last6','Last 6 payouts'],['last12','Last 12 payouts']], {preset:'sPreset', month:'sMonth', done:'sDone'}) + '</div>'
+      +   '</div></div>'
       +   '<div class="fin-f"><span class="lbl" id="l-spsp">PSP</span>' + seg('spsp', PSPS, st.psp, 'l-spsp') + '</div></div>'
       + '<div class="fin-stats-grid"><div class="fin-kpi"><span class="lbl">Average Donor Love Gift</span><b>' + (d ? (g / d * 100).toFixed(1) + '%' : '—') + '</b>'
       +   '<small>' + F.money(g / 100) + ' in donor love gifts on ' + F.money(d / 100) + ' donated</small></div>'
@@ -264,37 +294,53 @@
       + (asTable ? table : chart) + '</div>';
   }
 
-  /* ---------- transactions: the columns of 3.0 (C77–C94). Agathos Payout Date left out (D96). Tally check (C95) left out
-     until the team defines it: the sheet names the column only ---------- */
+  /* ---------- transactions: the columns of 3.0 (C77–C95), the amounts as the team set them (admin review 14/11/2026):
+     Transaction Amount, a line, then the funding side up to Net to Merchant, then the donor love gift side up to
+     Total to Agathos. Three columns bold; Net to Merchant and Total to Agathos tinted like their parts in the chart.
+     Agathos Payout Date left out (D96). Tally check back at the end ---------- */
   var COLS = [
     ['Project / Event Name'], ['Transaction Date & Time'], ['Transaction Reference'], ['Payment Method'], ['Receiving Currency'],
-    ['Receiving Amount','r'], ['Fees (PSP charges)','r'], ['Agathos Margin from PSP fees','r'], ['Beneficiary Love Gift Amount','r'],
-    ['Agathos Platform Fee','r'], ['Net to Merchant','r','Receiving Amount minus Fees, Agathos Margin, Bene Love Gift, Agathos Platform Fee'],
-    ['Donor Love Gift Amount','r'], ['Finalized Donor Love Gift Amount','r'], ['Total to Agathos','r','Bene Love Gift + Finalized Donor Love Gift + Agathos Margin'],
-    ['PSP Payout Date'], ['PSP name'], ['PSP merchant id'], ['PSP model']
+    ['Transaction Amount','r b vline','Funding Amount + Donor Love Gift Amount'], ['Funding Amount','r b'], ['PSP Fees applied on Funding Amount','r'],
+    ['Beneficiary Love Gift Amount (Projects)','r'], ['Agathos Platform Fee (Events)','r'],
+    ['Net to Merchant','r c-net','Funding Amount minus PSP fees, Agathos Margin, Bene Love Gift, Agathos Platform Fee'],
+    ['Donor Love Gift Amount','r b'], ['PSP Fees applied on Donor Love Gift Amount','r'], ['Finalized Donor Love Gift Amount','r'], ['Agathos Margin from PSP fees','r'],
+    ['Total to Agathos','r c-ag','Bene Love Gift + Finalized Donor Love Gift + Agathos Margin'],
+    ['PSP Payout Date'], ['PSP name'], ['PSP merchant id'], ['PSP model'],
+    ['Tally check','','Transaction Amount minus both PSP fees, Net to Merchant and Total to Agathos: 0 when it tallies']
   ];
+  function tallyCell(a){
+    var t = tallyOf(a);
+    return C(t) === 0 ? '<span class="ok">' + IC.check + 'OK</span>' : '<span class="t-off">' + IC.warn + (t > 0 ? '+' : '−') + F.num(Math.abs(t)) + '</span>';
+  }
   function cells(a){
     var r = a.r, p = r.p, ev = F.isEv(p), na = '<span class="na">—</span>', n = F.num;
     return [
       '<span class="tname">' + h(p.name) + '</span><span class="sub">' + h(F.ENTITIES[p.ent].name) + '</span>',
       F.fmtDMY(r.day) + ' ' + r.at.slice(11, 16), '<span class="mono">' + h(r.ref) + '</span>',
       h(r.method) + (r.intl ? '<span class="sub">International</span>' : ''), 'SGD',
-      n(r.recv), n(a.fees), n(a.margin), ev ? na : n(a.bene), ev ? n(a.platform) : na, n(a.net),
-      ev ? na : n(a.gift), ev ? na : n(a.finalGift), n(a.toAgathos), F.fmtDMY(a.payDate), a.psp,
-      a.mid ? '<span class="mono">' + h(a.mid) + '</span>' : na, a.model
+      n(a.gross), n(r.recv), n(a.fees), ev ? na : n(a.bene), ev ? n(a.platform) : na, n(a.net),
+      ev ? na : n(a.gift), ev ? na : n(a.feeGift), ev ? na : n(a.finalGift), n(a.margin), n(a.toAgathos),
+      F.fmtDMY(a.payDate), a.psp, a.mid ? '<span class="mono">' + h(a.mid) + '</span>' : na, a.model, tallyCell(a)
     ];
   }
   function tableList(){
     var list = slice(), q = V.q.trim().toLowerCase();
+    if(V.onlyOff) list = list.filter(isOff);
     if(!q) return list;
     return list.filter(function(a){ return (a.r.p.name + ' ' + F.ENTITIES[a.r.p.ent].name + ' ' + a.r.ref).toLowerCase().indexOf(q) >= 0; });
   }
-  function txCard(){
+  /* the Tally check module (back on 14/11/2026): every transaction of the report, OK or off, above the table */
+  function tallyBox(s){
+    if(!s.off) return '<div class="fin-tally ok">' + IC.check + '<span><b>Tally check</b>All ' + plural(s.n, 'transaction') + ' tally.</span></div>';
+    return '<div class="fin-tally off">' + IC.warn + '<span><b>Tally check</b>' + s.off + ' of ' + plural(s.n, 'transaction') + ' don\'t tally · ' + F.money(s.offAmt) + ' off</span>'
+      + '<button class="btn sm" type="button" data-act="onlyOff" aria-pressed="' + V.onlyOff + '">' + (V.onlyOff ? 'Show all' : 'Show only these') + '</button></div>';
+  }
+  function txCard(s){
     return '<section class="card fin-tx' + (V.full ? ' full' : '') + '" aria-labelledby="tx-t"><div class="fin-tx-head"><h2 id="tx-t">Transactions</h2><span class="n" id="tx-n"></span>'
       + '<span class="sp"></span>'
       + '<label class="fin-search">' + IC.search + '<input id="tx-q" type="search" placeholder="Search reference, project, event or organisation" autocomplete="off" value="' + h(V.q) + '"></label>'
       + '<button class="btn" type="button" data-act="full" aria-pressed="' + V.full + '">' + (V.full ? IC.shrink + 'Exit full screen' : IC.expand + 'View full screen') + '</button></div>'
-      + '<div id="tx-body"></div></section>';
+      + tallyBox(s) + '<div id="tx-body"></div></section>';
   }
   function renderTable(){
     var list = tableList(), pages = Math.max(1, Math.ceil(list.length / V.pageSize));
@@ -304,7 +350,7 @@
     CONTENT.querySelector('#tx-n').textContent = list.length;
     CONTENT.querySelector('#tx-body').innerHTML = list.length
       ? '<div class="tablewrap"><table class="ct fin-t"><thead><tr>' + COLS.map(function(c){ return '<th class="' + (c[1] || '') + '"' + (c[2] ? ' title="' + h(c[2]) + '"' : '') + '>' + h(c[0]) + '</th>'; }).join('') + '</tr></thead><tbody>'
-        + rows.map(function(a){ return '<tr>' + cells(a).map(function(v, i){ return '<td class="num ' + (COLS[i][1] || '') + '">' + v + '</td>'; }).join('') + '</tr>'; }).join('')
+        + rows.map(function(a){ return '<tr' + (isOff(a) ? ' class="is-off"' : '') + '>' + cells(a).map(function(v, i){ return '<td class="num ' + (COLS[i][1] || '') + '">' + v + '</td>'; }).join('') + '</tr>'; }).join('')
         + '</tbody></table></div><div class="tfoot"><div class="left">Showing ' + (start + 1) + '–' + (start + rows.length) + ' of ' + list.length + ' transactions</div>' + pager(pages) + '</div>'
       : '<div class="tablewrap"><div class="fin-empty">' + (V.q ? 'No transaction matches “' + h(V.q) + '”.' : 'No transactions match these filters.') + '</div></div>';
     var w2 = CONTENT.querySelector('#tx-body .tablewrap'); if(w2 && left) w2.scrollLeft = left;
@@ -333,49 +379,59 @@
 
   /* ---------- CSV of the report on screen, summary first ---------- */
   function exportCSV(){
-    if(!V.shown || stale()) return;
+    if(!V.shown || busy()) return;
     var f = V.shown, list = slice(), s = sum(list), esc = function(v){ v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    /* the summary in the order of the page, then one line per transaction in the columns of the table */
     var head = [['Payout Period', periodLabel(f.pers)], ['PSP', f.psp ? F.PSP_NAME[f.psp] : 'All'], ['Project / Event', f.pid ? F.PROJECTS[f.pid].name : 'All projects and events'],
-      ['Total Transactions Amount', s.gross.toFixed(2)], ['Total PSP transactions fees', s.fee.toFixed(2)], ['Other PSP charges', s.other.total.toFixed(2)],
-      ['Total PSP payout to Agathos', s.payout.toFixed(2)], ['Total disbursed to projects/events', s.disbursed.toFixed(2)],
-      ['Total paid out directly to Projects/Events by Stripe (Connect)', s.paidOut.toFixed(2)], ['Final amount to Agathos', s.final.toFixed(2)],
+      ['Total Transactions Amount (including amounts paid directly to Projects/Events by Stripe Connect model)', s.gross.toFixed(2)],
+      ['Total PSP transactions fees', s.fee.toFixed(2)], ['Other PSP charges', s.other.total.toFixed(2)],
+      ['Total paid out directly to Projects/Events by Stripe (Connect)', s.paidOut.toFixed(2)], ['Total PSP payout to Agathos', s.payout.toFixed(2)],
+      ['Total disbursed to projects/events', s.disbursed.toFixed(2)], ['Final amount to Agathos', s.final.toFixed(2)],
       ['Total finalized donor love gift', s.fgift.toFixed(2)], ['Total donor love gift', s.gift.toFixed(2)], ['Total beneficiary love gift', s.bene.toFixed(2)],
-      ['Total Agathos platform fee', s.plat.toFixed(2)], ['Agathos margin from PSP fees', s.margin.toFixed(2)]];
-    var lines = list.map(function(a){ var r = a.r;
-      return [r.p.name, r.at.replace('T', ' '), r.ref, r.method + (r.intl ? ' (international)' : ''), 'SGD', r.recv.toFixed(2), a.fees.toFixed(2), a.margin.toFixed(2), a.bene.toFixed(2), a.platform.toFixed(2),
-        a.net.toFixed(2), a.gift.toFixed(2), a.finalGift.toFixed(2), a.toAgathos.toFixed(2), a.payDate, a.psp, a.mid, a.model]; });
+      ['Total Agathos platform fee', s.plat.toFixed(2)], ['Agathos margin from PSP fees', s.margin.toFixed(2)],
+      ['Tally check', s.off ? s.off + ' of ' + s.n + ' transactions do not tally (' + s.offAmt.toFixed(2) + ' off)' : 'All ' + s.n + ' transactions tally']];
+    var lines = list.map(function(a){ var r = a.r, t = tallyOf(a);
+      return [r.p.name, r.at.replace('T', ' '), r.ref, r.method + (r.intl ? ' (international)' : ''), 'SGD', a.gross.toFixed(2), r.recv.toFixed(2), a.fees.toFixed(2),
+        a.bene.toFixed(2), a.platform.toFixed(2), a.net.toFixed(2), a.gift.toFixed(2), a.feeGift.toFixed(2), a.finalGift.toFixed(2), a.margin.toFixed(2), a.toAgathos.toFixed(2),
+        a.payDate, a.psp, a.mid, a.model, C(t) === 0 ? 'OK' : t.toFixed(2)]; });
     var csv = head.map(function(x){ return x.map(esc).join(','); }).concat(['', COLS.map(function(c){ return esc(c[0]); }).join(',')], lines.map(function(x){ return x.map(esc).join(','); })).join('\n');
     var link = document.createElement('a');
     link.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
-    link.download = 'agathos-transaction-report.csv';
+    link.download = 'agathos-recon-overview.csv';
     document.body.appendChild(link); link.click(); link.remove();
   }
 
   /* ---------- page ---------- */
   function render(){
-    CONTENT.innerHTML = '<div class="fin">'
-      + '<div class="pagehead"><h1>Transaction Report</h1><span class="spacer"></span><span class="meta">PSP files uploaded up to ' + F.fmtDate(F.UPLOADED) + '</span></div>'
-      + '<div id="fin-panel">' + panel() + '</div><div id="fin-body"></div></div>';
-    renderBody();
+    CONTENT.innerHTML = '<div class="fin">' + reviewBar()
+      + '<div class="pagehead"><h1>Recon Overview</h1><span class="spacer"></span><span class="meta">PSP files uploaded up to ' + F.fmtDate(F.UPLOADED) + '</span></div>'
+      + '<div id="fin-panel">' + panel() + '</div><div class="fin-stage"><div id="fin-body"></div><div class="fin-load" id="fin-load" role="status" aria-live="polite"></div></div></div>';
+    renderBody(); markBusy();
   }
-  function renderPanel(){ CONTENT.querySelector('#fin-panel').innerHTML = panel(); markStale(); }
+  /* review only, not part of the design: shows the Tally check when transactions don't tally (admin review 14/11/2026) */
+  function reviewBar(){
+    return '<div class="fin-review"><b>Review</b><span>Not part of the design.</span><span class="lbl" id="l-rv">Tally check</span>'
+      + seg('tally', [['ok','All tally'],['off','Some don\'t tally']], V.tally, 'l-rv') + '</div>';
+  }
+  function renderPanel(){ CONTENT.querySelector('#fin-panel').innerHTML = panel(); markBusy(); }
   /* the parts of the panel that follow the Project / Event box, redrawn without touching the box, so typing keeps its caret and accents */
   function renderPanelParts(){
     CONTENT.querySelector('#f-psp').innerHTML = pspField();
     CONTENT.querySelector('#scope-list').innerHTML = scopeOptions();
     var clr = CONTENT.querySelector('.fin-clear'); if(clr) clr.hidden = !(V.f.pid || V.sq);
-    markStale();
+    markBusy();
   }
-  function markStale(){
+  function markBusy(){
     CONTENT.querySelector('#fin-foot').innerHTML = foot();
-    CONTENT.querySelector('#fin-body').classList.toggle('is-stale', stale());
+    CONTENT.querySelector('#fin-load').innerHTML = busy() ? '<div class="fin-load-card"><i class="fin-spin" aria-hidden="true"></i>Loading data…</div>' : '';
+    CONTENT.querySelector('#fin-body').classList.toggle('is-loading', busy());
   }
   function renderBody(){
     var body = CONTENT.querySelector('#fin-body');
     if(!V.shown){ body.innerHTML = '<div class="card fin-wait">' + IC.filter + 'Pick the filters, then Show report.</div>'; document.documentElement.classList.remove('fin-lock'); return; }
     var s = sum(slice());
-    body.innerHTML = cascade(s) + statsSection() + txCard();
-    body.classList.toggle('is-stale', stale());
+    body.innerHTML = cascade(s) + statsSection() + txCard(s);
+    body.classList.toggle('is-loading', busy());
     renderTable();
     document.documentElement.classList.toggle('fin-lock', V.full);
   }
@@ -396,36 +452,44 @@
     if(pop) pop.hidden = !open;
     if(trig) trig.setAttribute('aria-expanded', open);
   }
+  function setSPeriodOpen(open){
+    V.open = open ? 'speriod' : (V.open === 'speriod' ? null : V.open);
+    var pop = CONTENT.querySelector('#pop-speriod'), trig = CONTENT.querySelector('[data-act="sOpen"]');
+    if(pop) pop.hidden = !open;
+    if(trig) trig.setAttribute('aria-expanded', open);
+  }
   function scopeTyped(value){
     V.sq = value;
     /* typing again after a pick starts a new search: the pick, and the PSP lock with it, are let go */
     if(V.f.pid){ V.f.pid = ''; }
-    renderPanelParts(); setScopeOpen(true);
+    renderPanelParts(); setScopeOpen(true); changed();
   }
 
   var ACT = {
     openPeriod: function(){ var open = V.open !== 'period'; if(V.open === 'scope') setScopeOpen(false); setPeriodOpen(open); },
     closePop: function(){ V.open = null; renderPanel(); focusSoon('[data-act="openPeriod"]'); },
-    preset: function(t){
-      var v = t.getAttribute('data-v');
-      V.f.pers = v === 'all' ? [] : v === 'last' ? [LATEST] : v === 'last3' ? PERIODS.slice(-3) : PERIODS.filter(function(m){ return F.payoutLabel(m).slice(-4) === v.slice(1); });
-      renderPanel();
-    },
-    month: function(t){ var m = t.getAttribute('data-v'), p = V.f.pers; V.f.pers = p.indexOf(m) >= 0 ? p.filter(function(x){ return x !== m; }) : p.concat([m]).sort(); renderPanel(); },
-    psp: function(t){ V.f.psp = t.getAttribute('data-v'); renderPanelParts(); },
+    preset: function(t){ V.f.pers = presetPers(t.getAttribute('data-v')); renderPanel(); changed(); },
+    month: function(t){ var m = t.getAttribute('data-v'), p = V.f.pers; V.f.pers = p.indexOf(m) >= 0 ? p.filter(function(x){ return x !== m; }) : p.concat([m]).sort(); renderPanel(); changed(); },
+    psp: function(t){ V.f.psp = t.getAttribute('data-v'); renderPanelParts(); changed(); },
     /* picking a project or event sets the PSP to its own and locks it there (T1) */
-    pickScope: function(t){ var p = F.PROJECTS[t.getAttribute('data-v')]; V.f.pid = p.id; V.f.psp = p.psp; V.sq = ''; V.open = null; renderPanel(); focusSoon('#scope-q'); },
-    clearScope: function(){ V.f.pid = ''; V.sq = ''; V.open = null; renderPanel(); focusSoon('#scope-q'); },
+    pickScope: function(t){ var p = F.PROJECTS[t.getAttribute('data-v')]; V.f.pid = p.id; V.f.psp = p.psp; V.sq = ''; V.open = null; renderPanel(); focusSoon('#scope-q'); changed(); },
+    clearScope: function(){ V.f.pid = ''; V.sq = ''; V.open = null; renderPanel(); focusSoon('#scope-q'); changed(); },
     toggleScope: function(){ setScopeOpen(V.open !== 'scope'); focusSoon('#scope-q'); },
-    reset: function(){ V.f = defaults(); V.sq = ''; V.open = null; renderPanel(); },
-    show: function(){ V.shown = JSON.parse(JSON.stringify(V.f)); V.open = null; V.page = 1; renderPanel(); renderBody(); },
+    reset: function(){ V.f = defaults(); V.sq = ''; V.open = null; renderPanel(); changed(); },
+    show: function(){ V.open = null; renderPanel(); load(); },
     fold: function(t){
       var id = t.getAttribute('data-v'), open = !V.fold[id], list = CONTENT.querySelector('#fold-' + id);
       V.fold[id] = open; t.setAttribute('aria-expanded', open); if(list) list.hidden = !open;
       var r = t.closest('.fin-r'); if(r) r.classList.toggle('joined', open);
     },
     stats: function(){ V.stats.open = !V.stats.open; renderBody(); focusSoon('[data-act="stats"]'); },
-    srange: function(t){ V.stats.range = t.getAttribute('data-v'); renderBody(); },
+    /* the Statistics period picker: stays open while picking, Done closes it */
+    sOpen: function(){ if(V.open === 'period') setPeriodOpen(false); setSPeriodOpen(V.open !== 'speriod'); },
+    sPreset: function(t){ V.stats.pers = presetPers(t.getAttribute('data-v')); V.open = 'speriod'; renderBody(); },
+    sMonth: function(t){ var m = t.getAttribute('data-v'), p = V.stats.pers; V.stats.pers = p.indexOf(m) >= 0 ? p.filter(function(x){ return x !== m; }) : p.concat([m]).sort(); V.open = 'speriod'; renderBody(); },
+    sDone: function(){ V.open = null; renderBody(); focusSoon('[data-act="sOpen"]'); },
+    tally: function(t){ V.tally = t.getAttribute('data-v'); V.onlyOff = false; render(); },
+    onlyOff: function(){ V.onlyOff = !V.onlyOff; V.page = 1; renderBody(); },
     spsp: function(t){ V.stats.psp = t.getAttribute('data-v'); renderBody(); },
     view: function(t){ var id = t.getAttribute('data-v'); V.table[id] = !V.table[id]; renderBody(); },
     page: function(t){ V.page = +t.getAttribute('data-v'); renderTable(); },
@@ -468,6 +532,7 @@
     var t = ev.target.closest('[data-act]');
     /* a click outside an open list closes it */
     if(V.open === 'period' && !ev.target.closest('#pop-period') && !(t && t.getAttribute('data-act') === 'openPeriod')) setPeriodOpen(false);
+    if(V.open === 'speriod' && !ev.target.closest('#pop-speriod') && !(t && t.getAttribute('data-act') === 'sOpen')) setSPeriodOpen(false);
     if(V.open === 'scope' && !ev.target.closest('.fin-combo')) setScopeOpen(false);
     if(ev.target.id === 'scope-q'){ setScopeOpen(true); return; }
     if(t && CONTENT.contains(t) && ACT[t.getAttribute('data-act')]) ACT[t.getAttribute('data-act')](t);
@@ -490,6 +555,7 @@
     if(ev.key === 'Escape'){
       if(V.open === 'scope'){ setScopeOpen(false); focusSoon('#scope-q'); return; }
       if(V.open === 'period'){ ACT.closePop(); return; }
+      if(V.open === 'speriod'){ ACT.sDone(); return; }
       if(V.full){ ACT.full(); }
     }
     if(ev.key === 'Enter' && ev.target.id === 'scope-q'){

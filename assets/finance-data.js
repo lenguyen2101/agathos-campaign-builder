@@ -27,16 +27,17 @@ var RECON_FROM='2026-06-01'; /* first day covered by the payment data (sample); 
 var CASE='both';             /* the review bar's Data switch */
 var IMG='assets/img/home/';
 
-/* model: how the PSP settles. connect = Stripe pays the owner and Agathos separately;
-   master = the PSP pays Agathos, Agathos pays the owner; direct = AXS pays the charity */
+/* model: how the PSP settles. connect = the PSP pays the owner directly (Stripe Connect; AXS pays the charity);
+   master = the PSP pays Agathos, Agathos pays the owner */
 var PROJECTS={
   erbil:   {id:'erbil',    ent:'antioch',  name:'Special Needs Centre in Erbil',    kind:'project', psp:'stripe', model:'connect', ben:.05, tip:.6, n:12, from:'2025-11', goal:60000, img:'project-storybook.jpg'},
   outreach:{id:'outreach', ent:'antioch',  name:'Outreach @ displaced families',    kind:'project', psp:'stripe', model:'connect', ben:.05, tip:.5, n:7,  from:'2026-03', goal:20000, img:'project-nepal.jpg'},
   concert: {id:'concert',  ent:'antioch',  name:'Benefit concert for the unseen',   kind:'event',   psp:'2c2p',   model:'master',  mid:'764764000011923', ben:.03, tip:0,  n:18, from:'2026-08', recon:'2026-09-01', img:'project-carnival.jpg', when:['2026-11-15T19:00','2026-11-15T22:00'],
             tickets:[{name:'Benefit concert for the unseen - Student / NSF', price:35}, {name:'Benefit concert for the unseen - Working Adults', price:60}]},
   care:    {id:'care',     ent:'personal', name:'Care packages for migrant workers', kind:'project', psp:'stripe', model:'master',  ben:.05, tip:.5, n:6,  from:'2026-05', goal:8000,  img:'hero-3.jpg'},
-  /* AXS is the Hidden Cause route: no beneficiary love gift there (Intro D5) */
-  sunny:   {id:'sunny',    ent:'sunshine', name:'Sunny Days for Seniors',           kind:'project', psp:'axs',    model:'direct',  mid:'30019871', ipc:true, ben:0,   tip:.4, n:10, from:'2026-01', goal:40000, img:'hero-2.jpg'}
+  /* AXS is the Hidden Cause route: no beneficiary love gift there (Intro D5). Model: Connect, since AXS pays the charity
+     directly and "connect is already direct" (admin review 14/11/2026) */
+  sunny:   {id:'sunny',    ent:'sunshine', name:'Sunny Days for Seniors',           kind:'project', psp:'axs',    model:'connect',  mid:'30019871', ipc:true, ben:0,   tip:.4, n:10, from:'2026-01', goal:40000, img:'hero-2.jpg'}
 };
 /* Manage Pages: the account's own pages and the organisations it belongs to.
    Agathos pays each one with one transfer per payout date, to that one's bank account.
@@ -48,7 +49,8 @@ var ENTITIES={
 };
 var ENT_ORDER=['personal','antioch','sunshine'];
 var PSP_NAME={stripe:'Stripe', '2c2p':'2c2p', axs:'AXS'};
-var MODEL_NAME={connect:'Connect', master:'Master', direct:'Direct'};
+/* no Direct model: "We don't have such an arrangement" (admin review 14/11/2026) */
+var MODEL_NAME={connect:'Connect', master:'Master'};
 
 var MONTHS=(function(){ var out=[], y=2025, m=11; while(y*100+m<=202610){ out.push(y+'-'+String(m).padStart(2,'0')); if(++m>12){ m=1; y++; } } return out; })();
 
@@ -246,23 +248,26 @@ function adminRow(r){
   if(p.psp==='axs'){ fees=C(pspFee('axs', r.method, r.intl, r.recv+r.tip)); feeGift=0; finalGift=C(r.tip); }   /* AXS: the gift is clawed back whole (E89) */
   else { feeGift=r.tip ? C(pspFeeOnGift(p.psp, r.method, r.intl, r.tip)) : 0; fees=C(pspFee(p.psp, r.method, r.intl, r.recv)); finalGift=C(r.tip)-feeGift; }
   var margin=C(r.fee)-fees, net=C(r.net), toAgathos=C(r.ben)+finalGift+margin;
-  var toAgathosFromPsp = p.model==='direct' ? margin : p.model==='connect' ? gross-fees-feeGift-net : gross-fees-feeGift;
-  /* Elaine's table (B103): Total Disbursed is the total net to merchant for every model, Connect included;
-     Total Paid Out (Connect) is the Connect part of it */
-  var disbursed = net, paidOut = p.model==='connect' ? net : 0;
-  var final = p.model==='connect' ? toAgathosFromPsp : p.model==='master' ? toAgathosFromPsp-disbursed : toAgathosFromPsp+finalGift;
+  /* the team's table (admin review 14/11/2026): Transaction Amount − PSP fees − paid out directly (Connect) = PSP payout
+     to Agathos; − disbursed to Projects/Events = Final amount to Agathos. Connect pays the merchant directly; Agathos
+     disburses the Master model's net itself */
+  var paidOut = p.model==='connect' ? net : 0, disbursed = p.model==='master' ? net : 0;
+  var toAgathosFromPsp = gross-fees-feeGift-paidOut, final = toAgathosFromPsp-disbursed;
   var x=function(v){ return v/100; };
   return {r:r, gross:x(gross), fees:x(fees), margin:x(margin), bene:isEv(p)?0:r.ben, platform:isEv(p)?r.ben:0, net:r.net,
     gift:r.tip, finalGift:x(finalGift), feeGift:x(feeGift), toAgathos:x(toAgathos),
     pspPayout:x(toAgathosFromPsp), disbursed:x(disbursed), paidOut:x(paidOut), final:x(final),
+    /* Tally check (back on 14/11/2026): Transaction Amount − both PSP fees − Net to Merchant − Total to Agathos, 0 when it tallies */
+    tally:x(gross-fees-feeGift-net-toAgathos),
     payDate:pspPayoutDate(r), psp:PSP_NAME[p.psp], mid:merchantId(p), model:MODEL_NAME[p.model]};
 }
 /* Stripe's monthly charges on Connect (sheet D48), sample rates: S$2.00 per active connected account,
-   0.25% of the volume paid out to connected accounts, S$0.25 per payout to a connected account */
+   0.25% of the volume paid out to connected accounts, S$0.25 per payout to a connected account. Stripe's only:
+   AXS is on Connect too but has no connected account at Stripe */
 function otherCharges(list){
   var accts={}, vol=0, payouts={};
   list.forEach(function(a){
-    if(a.r.p.model!=='connect') return;
+    if(a.r.p.model!=='connect' || a.r.p.psp!=='stripe') return;
     var acct=ENTITIES[a.r.p.ent].acct;
     accts[acct+'|'+a.r.per]=1; payouts[acct+'|'+a.payDate]=1; vol+=cents(a.net);
   });
