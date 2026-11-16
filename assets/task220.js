@@ -56,6 +56,7 @@ function fresh(){
     last:{username:0, firstName:0, lastName:0},
     vals:{username:'lenguyen2101', firstName:'Nguyen', lastName:'Le'},
     edit:null, draft:'', err:'', modal:null,
+    out:false,  /* after a username change: signed out, on the Sign in page */
     other:{gender:'male', bio:'Christian. Vietnamese. Product Designer.', news:true, dirty:false},
     su:{v:{first:'', last:'', email:'', username:'', pw:'', pw2:''}, e:{}, show:{}, done:false}
   };
@@ -76,6 +77,7 @@ var I={
   lock:ic('<rect x="4.5" y="8.5" width="11" height="8" rx="1.8"/><path d="M7 8.5V6.5a3 3 0 0 1 6 0v2"/>'),
   info:ic('<circle cx="10" cy="10" r="7.5"/><path d="M10 9v4.5M10 6.4v.1"/>'),
   clock:ic('<circle cx="10" cy="10" r="7.5"/><path d="M10 5.8V10l2.8 1.8"/>'),
+  out:ic('<path d="M8 3.5H5A1.5 1.5 0 0 0 3.5 5v10A1.5 1.5 0 0 0 5 16.5h3"/><path d="M12.5 6.5L16 10l-3.5 3.5M16 10H8"/>'),
   err:'<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.5" fill="currentColor"/><path d="M10 5.8v5.4" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="10" cy="14.1" r="1.2" fill="#fff"/></svg>',
   down:ic('<path d="M5 7.5l5 5 5-5"/>',' stroke-width="1.8"'),
   tick:'<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="#111"/><path d="M6 10.3l2.7 2.6L14 7.5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
@@ -98,7 +100,9 @@ function limited(f, cls){
     : '<input class="as-in" id="as-'+f+'" value="'+h(S.vals[f])+'" disabled>';
   var notes=(!ed && lock ? '<p class="as-note lock">'+I.lock+'<span>Change again after '+when(lock)+'</span></p>' : '')+
     (f==='username' ? '<p class="as-note pub">'+I.info+'<span>'+PUBLIC+'</span></p>' : '')+
-    (ed ? '<p class="as-note">'+I.clock+'<span>You can change your '+NAMES[f]+' once every 24 hours.</span></p>' : '');
+    (ed ? '<p class="as-note">'+I.clock+'<span>You can change your '+NAMES[f]+' once every 24 hours.</span></p>' : '')+
+    /* a username change signs the person out (team, 16/11/2026), so they know before they type */
+    (ed && f==='username' ? '<p class="as-note out">'+I.out+'<span>You’ll be signed out after changing your username.</span></p>' : '');
   return '<div class="as-f'+(cls?' '+cls:'')+'" data-field="'+f+'">'+
     '<div class="as-lbl"><label for="as-'+f+'">'+LABELS[f]+'</label>'+act+'</div>'+input+
     '<p class="as-err" id="as-'+f+'-err"'+(ed && S.err ? '' : ' hidden')+'>'+I.err+'<span>'+h(S.err)+'</span></p>'+notes+
@@ -136,7 +140,8 @@ function modal(){
     '<dl class="diff"><div><dt>Current</dt><dd>'+h(S.vals[f])+'</dd></div><div class="new"><dt>New</dt><dd>'+h(m.to)+'</dd></div></dl>'+
     (f==='username' ? '<p>Your new username will be displayed publicly next to your donations.</p>' : '')+
     '<p>You won’t be able to change your '+n+' again until <b>'+when(Date.now()+DAY)+'</b>.</p>'+
-    '<div class="acts"><button class="as-btn ghost" type="button" data-act="mdCancel">Cancel</button><button class="as-btn primary" type="button" data-act="mdConfirm">Change '+n+'</button></div>'+
+    (f==='username' ? '<div class="md-note">'+I.out+'<span>You’ll be signed out. Sign in again to continue.</span></div>' : '')+
+    '<div class="acts"><button class="as-btn ghost" type="button" data-act="mdCancel">Cancel</button><button class="as-btn primary" type="button" data-act="mdConfirm">'+(f==='username' ? 'Change and sign out' : 'Change '+n)+'</button></div>'+
   '</div></div>';
 }
 
@@ -174,6 +179,26 @@ function suValidate(){
   S.su.e=e; S.su.done=!Object.keys(e).length;
 }
 
+/* ============ SIGN IN (Keycloak), after a username change ============
+   Production's Sign in page as it is (fetched 09/11/2026 for Task #218): no message box and nothing filled in,
+   since most people sign in with Google or Facebook (anh, 16/11/2026) */
+function signIn(){
+  var show=S.su.show.si;
+  return '<div class="kc"><div class="kc-top"><img src="assets/img/home/agathos-logo.png" alt="agathos"></div><div class="kc-body"><div class="kc-card">'+
+    '<div class="kc-lang">English</div><h1>Sign in to your account</h1>'+
+    '<p class="kc-sub">Using your social media accounts:</p><div class="kc-social"><a href="#" aria-label="Sign in with Facebook">'+I.fb+'</a><a href="#" aria-label="Sign in with Google">'+I.g+'</a></div>'+
+    '<p class="kc-sub">or sign in manually</p>'+
+    '<form class="kc-form" novalidate>'+
+      '<div class="kc-f"><label for="kc-si-user">Username or email</label><div class="kc-box"><input class="kc-in" id="kc-si-user" type="text" autocomplete="off"></div></div>'+
+      '<div class="kc-f"><label for="kc-si-pw">Password</label><div class="kc-box pw"><input class="kc-in" id="kc-si-pw" type="'+(show?'text':'password')+'" autocomplete="off">'+
+        '<button type="button" class="kc-eye" data-act="eye" data-k="si" aria-label="'+(show?'Hide':'Show')+' password">'+I.eye+'</button></div></div>'+
+    '</form>'+
+    '<div class="kc-opts"><label><input type="checkbox">Remember me</label><a href="#">Forgot Password?</a></div>'+
+    '<button class="kc-submit" type="button" data-act="siSubmit">Sign In</button>'+
+    '<p class="kc-signup">Don’t have an account?<a href="#/signup">Create an account</a></p>'+
+  '</div></div></div>';
+}
+
 /* ============ FLOW & MESSAGES ============ */
 function flow(){
   var steps=[
@@ -181,7 +206,9 @@ function flow(){
     ['Change','The field opens for editing, with “You can change your [field] once every 24 hours.”'],
     ['Type the new value','Rules are checked on Save, then live as the person fixes the error.'],
     ['Save','Opens the confirmation modal: current → new, and when the field can be changed again.'],
-    ['Confirm','The value is saved and a toast confirms it.'],
+    ['Confirm','The value is saved. First name or last name: a toast confirms it.'],
+    ['Signed out','Username only: the person is signed out at once and lands on the Sign in page.'],
+    ['Sign in again','Username only: back to Account settings.'],
     ['Locked for 24 hours','Change becomes “Change again after [date, time]” until 24 hours have passed.']
   ];
   var rows=[
@@ -204,7 +231,10 @@ function flow(){
     ['Account settings only',[
       ['Save fails (server or network); the 24 hours don’t start',MSG.saveFailed,'settings','',''],
       ['Field changed less than 24 hours ago, e.g. on another device',MSG.tooSoon('username','7 Nov 2026, 14:32'),'settings','',''],
-      ['Changed in the last 24 hours (a state, not an error)','Change again after 7 Nov 2026, 14:32','settings','','']]]
+      ['Changed in the last 24 hours (a state, not an error)','Change again after 7 Nov 2026, 14:32','settings','','']]],
+    ['Username change signs out',[
+      ['Editing the username (a note, not an error)','You’ll be signed out after changing your username.','settings','',''],
+      ['Confirmation modal, username','You’ll be signed out. Sign in again to continue.','settings','','']]]
   ];
   var where={both:'Sign up, Account settings', signup:'Sign up', settings:'Account settings'};
   return '<div class="fm"><div class="fm-inner">'+
@@ -227,8 +257,9 @@ function flow(){
       '<li>To show the new messages on sign up, override the keys above in the realm’s Localization tab. <code>error-invalid-length</code> and <code>error-invalid-length-too-long</code> are shared by every field, so the text needs the field name placeholder <code>{0}</code>, e.g. “{0} must be between {1} and {2} characters.” The prohibited-character validators accept their own message key in the User Profile settings.</li>'+
       '<li>Account settings should check the same rules before saving, and the backend still has the last word (for example a username taken a second earlier, or a change made on another device in the last 24 hours).</li>'+
       '<li>Each field has its own 24 hours: changing the username doesn’t lock the first name or last name. Times show in the person’s own time zone.</li>'+
-      '<li>New copy waiting for approval <span class="tbc">To confirm</span>: the box title “Username and name”, the 24-hour line, the modal text, “Change again after …”, and the messages that differ from Keycloak’s.</li>'+
-      '<li>Questions <span class="tbc">To confirm</span>: does the first change also have to wait 24 hours after sign-up? Should we email the person after each change?</li>'+
+      '<li>A username change signs the person out as soon as it is saved, because the session still carries the old username: left signed in, they could start another change, and the screens can’t show that cleanly. First name and last name don’t sign out, and neither does a save that fails.</li>'+
+      '<li>New copy waiting for approval <span class="tbc">To confirm</span>: the box title “Username and name”, the 24-hour line, the modal text, “Change again after …”, the two sign-out lines and the “Change and sign out” button, and the messages that differ from Keycloak’s.</li>'+
+      '<li>Questions <span class="tbc">To confirm</span>: does the first change also have to wait 24 hours after sign-up? Should we email the person after each change? After a username change, sign out on every device, or only this one? (The sessions on other devices also carry the old username.)</li>'+
     '</ul></div></div>';
 }
 
@@ -246,10 +277,10 @@ function review(r){
     '<div class="t2-ctl">'+ctl+'</div>';
 }
 function render(keepScroll){
-  var r=route(), y=window.scrollY;
-  document.querySelector('.t2-page').classList.toggle('is-kc', r==='signup');
+  var r=route(), y=window.scrollY, out=r==='settings' && !!S.out;
+  document.querySelector('.t2-page').classList.toggle('is-kc', r==='signup' || out);
   document.getElementById('t2-review').innerHTML=review(r);
-  document.getElementById('t2').innerHTML = r==='signup' ? signup() : r==='flow' ? flow() : settings();
+  document.getElementById('t2').innerHTML = r==='signup' ? signup() : r==='flow' ? flow() : out ? signIn() : settings();
   document.getElementById('t2-modal').innerHTML = r==='settings' ? modal() : '';
   window.scrollTo(0, keepScroll ? y : 0);
 }
@@ -282,12 +313,17 @@ var ACT={
   mdBackdrop:function(t, ev){ if(ev.target===t) closeModal(); },
   mdConfirm:function(){
     var f=S.modal.f, to=S.modal.to; S.modal=null;
-    S.vals[f]=to; S.last[f]=Date.now(); S.edit=null; S.err=''; render(true); toast(cap(NAMES[f])+' changed');
+    S.vals[f]=to; S.last[f]=Date.now(); S.edit=null; S.err='';
+    /* the username signs the person out straight away: no toast, the Sign in page says what happened */
+    if(f==='username'){ S.out=true; render(); return; }
+    render(true); toast(cap(NAMES[f])+' changed');
   },
-  setLock:function(t){ var at=t.getAttribute('data-v')==='1' ? Date.now()-3*36e5 : 0; S.last={username:at, firstName:at, lastName:at}; S.edit=null; S.err=''; render(true); },
+  /* demo: any password signs back in, to Account settings with the username locked */
+  siSubmit:function(){ S.out=false; S.su.show.si=false; render(); },
+  setLock:function(t){ S.out=false; var at=t.getAttribute('data-v')==='1' ? Date.now()-3*36e5 : 0; S.last={username:at, firstName:at, lastName:at}; S.edit=null; S.err=''; render(true); },
   /* the two server errors, shown straight away on a field that is open with a new value */
-  demoFail:function(){ S.modal=null; S.last.username=0; S.edit='username'; S.draft=S.vals.username==='nguyenle' ? 'nguyenle2' : 'nguyenle'; S.err=MSG.saveFailed; render(true); focusDraft(); },
-  demoElsewhere:function(){ S.modal=null; S.last.firstName=Date.now()-3*36e5; S.edit='firstName'; S.draft='Ann'; S.err=MSG.tooSoon('firstName', when(until('firstName'))); render(true); focusDraft(); },
+  demoFail:function(){ S.modal=null; S.out=false; S.last.username=0; S.edit='username'; S.draft=S.vals.username==='nguyenle' ? 'nguyenle2' : 'nguyenle'; S.err=MSG.saveFailed; render(true); focusDraft(); },
+  demoElsewhere:function(){ S.modal=null; S.out=false; S.last.firstName=Date.now()-3*36e5; S.edit='firstName'; S.draft='Ann'; S.err=MSG.tooSoon('firstName', when(until('firstName'))); render(true); focusDraft(); },
   reset:function(){ S=fresh(); render(true); },
   gender:function(t){ S.other.gender=t.getAttribute('data-g'); S.other.dirty=true; render(true); },
   saveOther:function(){ S.other.dirty=false; render(true); toast('Saved'); },

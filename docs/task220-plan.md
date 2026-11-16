@@ -77,7 +77,7 @@ Tạo các file mới sau, không sửa file nào khác:
 
 ---
 
-## Vòng 2 (06/11/2026): feedback mới. Anh đã duyệt (D1–D4 theo mặc định), đã làm, chưa commit.
+## Vòng 2 (06/11/2026): feedback mới. Anh đã duyệt (D1–D4 theo mặc định), đã làm, đã commit 33fde66.
 
 ### Feedback (nguyên văn) và cách làm
 
@@ -174,7 +174,7 @@ FEEDBACK 2 là bản mới nhất. Chỗ nào trùng với FEEDBACK 1 thì làm 
 | 4. Tab Flow & messages: bước, nhánh, bảng câu báo, ghi chú | 0.15 | 0.85 |
 | 5. Kiểm tra (node, curl) và ghi log | 0.15 | 1.0 |
 
-### Nhật ký vòng 2 (06/11/2026). Chưa commit.
+### Nhật ký vòng 2 (06/11/2026). Đã commit 33fde66.
 
 **Đã làm đúng theo plan, không có chỗ nào làm khác.**
 
@@ -203,14 +203,14 @@ FEEDBACK 2 là bản mới nhất. Chỗ nào trùng với FEEDBACK 1 thì làm 
 - Curl: trang, JS, CSS và ảnh đều trả về 200.
 - Chưa xem giao diện bằng mắt.
 
-**Chỉnh UI theo góp ý của anh (06/11/2026). Chưa commit.**
+**Chỉnh UI theo góp ý của anh (06/11/2026). Đã commit 33fde66.**
 - **Username:** chiếm hết chiều ngang của box (class `full`). Đã gỡ `.as-f.solo`.
 - **Language:** đưa lên cùng hàng với Gender.
   - Ô chọn rộng hết cột, cao 48px như 2 nút Gender. Chữ 15.5px.
   - Nhãn dùng cùng cỡ chữ với nhãn Gender, nên gỡ `.as-lbl.big`. Production đang dùng 17px cho nhãn này.
 - **Đã kiểm tra:** script node 35/35 qua. Thêm kiểm tra: Username full width, Language đứng ngay sau Gender, Bio vẫn full width.
 
-**Chỉnh theo góp ý thứ 2 của anh (06/11/2026). Chưa commit.**
+**Chỉnh theo góp ý thứ 2 của anh (06/11/2026). Đã commit 33fde66.**
 - **Dòng "Change again after …":**
   - Chuyển từ hàng nhãn (bên phải, bị xuống dòng ở cột First/Last Name) xuống ngay dưới ô nhập, thành một dòng ghi chú có icon khóa.
   - Làm giống nhau cho cả 3 trường. Khi đang khóa, hàng nhãn chỉ còn tên trường.
@@ -222,3 +222,115 @@ FEEDBACK 2 là bản mới nhất. Chỗ nào trùng với FEEDBACK 1 thì làm 
 - **Đã kiểm tra:** script node 38/38 qua.
   - Thêm kiểm tra vị trí dòng khóa của cả 3 trường, và 2 nút demo hiện kết quả ngay.
   - Một lần chạy fail đã chỉ ra lỗi của nút "Save fails": giá trị điền sẵn có thể trùng username hiện tại, làm nút Save bị tắt. Đã sửa.
+
+---
+
+## Vòng 3 (16/11/2026): đổi username xong thì bị đăng xuất. Anh đã duyệt D1–D4, đã làm, đã commit và push (16/11/2026).
+
+### Feedback (nguyên văn)
+*"For the username change by the user, can the screens and flow be modified to inform the user that he will be logged out upon successful change? On the successful change, the user will be logged out."*
+
+**Lý do, theo comment của dev gửi Josias (nguyên văn, anh chuyển ngày 16/11/2026):**
+*"I found that when the user initiates a username change, and after a successful change, and he is not logged out, there's a problem arising. That's due to how the user session token is tracked. What can happen is the user can initiate multiple changes, and we can trap it or handle it cleanly. It doesn't mess up the user account, but on the UX aspect, it cannot be presented cleanly to the user. So that can cause quite a confuse. In short, the clean approach is to log the user out and ask the user to log in again."*
+
+Em hiểu như sau:
+- Phiên đăng nhập vẫn gắn với username cũ, nên nếu không đăng xuất thì người dùng có thể đổi thêm lần nữa và màn hình hiện không rõ ràng.
+- Vì vậy đăng xuất ngay khi đổi thành công là việc bắt buộc, không phải tuỳ chọn. Điều này khớp với D3: không có bước nào ở giữa để người dùng làm thêm thao tác.
+- Câu này sẽ ghi vào ghi chú của tab Flow & messages, để FE biết vì sao phải đăng xuất.
+
+### Thay đổi trên màn hình (chỉ khi đổi Username; First Name và Last Name giữ nguyên)
+
+| Chỗ | Hiện tại | Sau khi sửa |
+|---|---|---|
+| Ô Username đang sửa | Câu "You can change your username once every 24 hours." | Thêm một dòng ngay dưới: *"You'll be signed out after changing your username."* |
+| Modal xác nhận | Current → New, câu hiển thị công khai, câu 24 giờ; nút "Change username" | Thêm khung báo: *"You'll be signed out. Sign in again to continue."*; nút đổi thành **"Change and sign out"** |
+| Sau khi xác nhận | Toast "Username changed", ở lại trang | Không có toast. Chuyển sang trang **Sign in** của Keycloak, có khung báo: *"Your username is now <b>nguyenle</b>. Sign in again to continue."*; ô "Username or email" điền sẵn username mới |
+| Đăng nhập lại | — | Quay về Account settings. Username đang khoá: "Change again after …" |
+
+### Tab Flow & messages
+- **Các bước:** sau "Confirm" của username, thêm 2 bước: "Signed out" (trang Sign in có khung báo, username mới điền sẵn) và "Sign in again" (Username khoá 24 giờ).
+- **Bảng câu báo:** thêm 3 dòng: câu ở ô đang sửa, câu trong modal, câu trên trang Sign in.
+- **Ghi chú cho team:**
+  - First Name và Last Name không đăng xuất.
+  - Lưu lỗi thì không đăng xuất.
+  - Vì sao phải đăng xuất: phiên đăng nhập vẫn gắn với username cũ (theo comment của dev).
+  - *To confirm:* đăng xuất cả các thiết bị khác, hay chỉ thiết bị đang dùng? Theo lý do ở trên, phiên ở thiết bị khác cũng còn gắn với username cũ.
+  - *To check:* hiện khung báo trên trang Sign in của Keycloak bằng cách nào (thông báo của theme, hoặc tham số khi chuyển trang).
+
+### Quyết định, mặc định em chọn (anh đổi được)
+- **D1. Báo ở cả 2 chỗ:** khi bắt đầu sửa username và trong modal, để người dùng biết trước khi gõ chứ không chỉ ở bước cuối. Cách khác: chỉ báo trong modal.
+- **D2. Nút modal ghi "Change and sign out".** Cách khác: giữ "Change username", chỉ thêm câu báo.
+- **D3. Chuyển thẳng sang trang Sign in**, không có màn hình "Signing you out…" ở giữa. ~~Trang Sign in có khung báo và điền sẵn username mới.~~ Anh đổi ngày 16/11/2026: không khung báo, không điền sẵn; trang Sign in giữ nguyên như production.
+- **D4. Trang Sign in trong prototype** dùng kiểu thẻ Keycloak giống tab Sign up, với các trường của production: Username or email, Password, Remember me, Forgot Password?, Sign In, Facebook/Google. Trang này chỉ minh hoạ khung báo; khi ra production thì dùng trang Sign in đang chạy (hoặc bản của Task #218 nếu đã lên).
+
+### Phạm vi theo file
+- `assets/task220.js`: dòng báo ở ô Username, modal, trang Sign in sau khi đổi, tab Flow & messages.
+- `assets/task220.css`: khung báo trong modal, trang Sign in.
+- `docs/task220-plan.md`: log.
+- Không sửa tab Sign up hay file nào khác.
+
+### Kiểm tra nghiệm thu
+- Đổi First Name hoặc Last Name: không có chữ "signed out", vẫn có toast, không chuyển trang.
+- Đổi Username:
+  - ô đang sửa có dòng báo đăng xuất;
+  - modal có khung báo và nút "Change and sign out";
+  - xác nhận xong thì hiện trang Sign in có khung báo và username mới điền sẵn;
+  - bấm Sign In thì về Account settings, Username khoá 24 giờ.
+- "Save fails" và "Changed on another device": không đăng xuất.
+- Tab Sign up giống từng byte HTML so với bản hiện tại.
+- Kiểm bằng `node --check`, script node, curl. Không chạy Chromium headless.
+
+### Ước lượng thời gian
+| Bước | Ngày | Cộng dồn |
+|---|---|---|
+| 1. Plan này | 0.05 | 0.05 |
+| 2. Dòng báo ở ô Username và modal (D1, D2) | 0.1 | 0.15 |
+| 3. Trang Sign in sau khi đổi, đăng nhập lại về trang khoá (D3, D4) | 0.15 | 0.3 |
+| 4. Tab Flow & messages | 0.1 | 0.4 |
+| 5. Kiểm tra, log, sửa FE note | 0.1 | 0.5 |
+
+### Nhật ký vòng 3 (16/11/2026). Đã commit và push (16/11/2026).
+
+**Anh duyệt D1–D4 và dặn tham khảo cách các nền tảng lớn làm.**
+
+Em tìm thấy như sau:
+- Đổi username mà buộc đăng xuất thì ít gặp:
+  - GitHub giữ phiên đăng nhập, chỉ khuyên đăng xuất rồi đăng nhập lại trên app điện thoại.
+  - Microsoft (đổi primary alias) cần đăng xuất rồi đăng nhập lại trên từng thiết bị.
+  - Turnitin báo đổi email, username hay mật khẩu xong thì phải đăng nhập lại bằng thông tin mới.
+- Đăng xuất sau khi đổi thông tin đăng nhập là cách quen thuộc khi đổi mật khẩu: Google đăng xuất mọi nơi trừ vài thiết bị; Keycloak có lựa chọn "Sign out all devices".
+- Cách làm chung: báo hậu quả trước khi xác nhận, nút ghi rõ việc sẽ xảy ra, rồi đưa về trang đăng nhập có câu nói rõ lý do. D1–D4 đã theo đúng cách này, nên em làm theo plan, không đổi gì.
+
+**Đã làm:**
+- `assets/task220.js`:
+  - Dòng báo *"You'll be signed out after changing your username."* khi đang sửa Username (chỉ Username).
+  - Modal Username: khung báo *"You'll be signed out. Sign in again to continue."*, nút *"Change and sign out"*.
+  - Xác nhận xong: không toast, chuyển sang trang Sign in. Trang này có khung báo *"Your username is now … Sign in again to continue."* và điền sẵn username mới.
+  - Trang Sign in theo production (bản tải về cho Task #218): tiêu đề, khung báo, đăng nhập mạng xã hội, "or sign in manually", Username or email, Password, Remember me, Forgot Password?, Sign In, Create an account. Bấm Sign In (mật khẩu nào cũng được) thì về Account settings, Username khoá 24 giờ.
+  - Các nút trên thanh review đưa trang về lại Account settings.
+  - Tab Flow & messages:
+    - 8 bước, thêm "Signed out" và "Sign in again";
+    - nhóm câu báo mới "Username change signs out" gồm 3 dòng;
+    - ghi chú lý do phải đăng xuất, mục *To check* về khung báo trên Keycloak;
+    - câu hỏi về thiết bị khác gộp vào dòng Questions sẵn có.
+- `assets/task220.css`: `.as-note.out`, `.md-note`, `.kc-alert.info`, `.kc-opts`, `.kc-signup`; lưới bước 4 cột (3 cột trên màn vừa, 1 cột trên điện thoại).
+
+**Đã kiểm tra:**
+- `node --check` qua.
+- Script node `t220-check.js` 29/29 qua:
+  - đổi Username: dòng báo, modal, trang Sign in (đúng thứ tự trường của production, điền sẵn), đăng nhập lại thì Username khoá;
+  - đổi First Name: không đăng xuất, vẫn có toast;
+  - "Save fails": không đăng xuất;
+  - Flow: 8 bước, 3 câu báo, ghi chú;
+  - tab Sign up giống từng byte HTML so với bản trước, cả khi có lỗi.
+- Curl trả về 200.
+- **Chưa kiểm tra:** chưa xem bằng mắt. Đã commit và push (16/11/2026).
+
+**Anh đổi D3 (16/11/2026): bỏ khung báo và không điền sẵn username, *"vì đa số dùng gmail, facebook để login"*. Đã commit và push (16/11/2026).**
+- Trước đó anh hỏi khung báo có làm được không. Em trả lời: làm được nhưng phải sửa theme Keycloak (khoảng nửa ngày, cộng một lần deploy), và không nên lấy username từ URL để hiện lên trang. Em đề xuất bỏ khung, giữ điền sẵn. Anh chọn bỏ cả hai.
+- `assets/task220.js`:
+  - Trang Sign in sau khi đổi username giữ nguyên như production: không khung báo, ô "Username or email" để trống. `S.out` giờ chỉ là cờ true/false.
+  - Tab Flow & messages: bước "Signed out" chỉ còn "lands on the Sign in page"; bỏ câu báo trên trang Sign in (còn 2 câu báo đăng xuất); bỏ mục *To check* về khung báo trên Keycloak.
+- `assets/task220.css`: gỡ `.kc-alert.info` và `.kc-alert svg`.
+- **Đã kiểm tra:** `node --check` qua. `t220-check.js` 30/30: trang Sign in không có khung báo, không điền gì; Flow không còn câu báo trên trang Sign in; các kiểm tra cũ vẫn qua, tab Sign up không đổi.
+- **Chưa kiểm tra:** chưa xem bằng mắt. Đã commit và push (16/11/2026).
