@@ -149,7 +149,7 @@ function modal(){
     '<dl class="diff"><div><dt>Current</dt><dd>'+h(S.vals[f])+'</dd></div><div class="new"><dt>New</dt><dd>'+h(m.to)+'</dd></div></dl>'+
     (f==='username' ? '<p>Your new username will be displayed publicly next to your donations.</p>' : '')+
     '<p>You won’t be able to change your '+n+' again until <b>'+when(Date.now()+DAY)+'</b>.</p>'+
-    (f==='username' ? '<div class="md-note">'+I.out+'<span>You’ll be signed out. Sign in again to continue.</span></div>' : '')+
+    (f==='username' ? '<div class="md-note">'+I.out+'<span>You’ll be signed out. Please sign in again with your new username after it has been changed.</span></div>' : '')+
     '<div class="acts"><button class="as-btn ghost" type="button" data-act="mdCancel">Cancel</button><button class="as-btn primary" type="button" data-act="mdConfirm">'+(f==='username' ? 'Change and sign out' : 'Change '+n)+'</button></div>'+
   '</div></div>';
 }
@@ -243,7 +243,7 @@ function flow(){
       ['Changed in the last 24 hours (a state, not an error)','Change again after 7 Nov 2026, 14:32','settings','','']]],
     ['Username change signs out',[
       ['Editing the username (a note, not an error)','You’ll be signed out after changing your username.','settings','',''],
-      ['Confirmation modal, username','You’ll be signed out. Sign in again to continue.','settings','',''],
+      ['Confirmation modal, username','You’ll be signed out. Please sign in again with your new username after it has been changed.','settings','',''],
       ['Modal, once the username is saved (counts 3, 2, 1; no buttons)','Username changed. Signing you out in 3 seconds…','settings','','']]]
   ];
   var where={both:'Sign up, Account settings', signup:'Sign up', settings:'Account settings'};

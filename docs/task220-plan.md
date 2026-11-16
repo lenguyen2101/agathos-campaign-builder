@@ -361,3 +361,12 @@ Em tìm thấy như sau:
   - Tab Flow & messages: bước Confirm và dòng trong bảng câu báo đổi theo câu đếm.
 - **Đã kiểm tra:** `node --check` qua. `t220-check.js` 38/38: đúng câu ở 3, 2 và 1 giây; giây thứ 3 thì sang trang Sign in; trong lúc đếm chỉ đổi dòng đếm; Esc không đóng; Reset hoặc nút trên thanh review trong lúc đếm thì không đăng xuất; tab Sign up không đổi.
 - **Chưa kiểm tra:** chưa xem bằng mắt. Đã commit và push (16/11/2026).
+
+**Đổi câu trong modal theo Josias (16/11/2026, kèm ảnh khung báo trong modal). Đã commit và push (16/11/2026).**
+- Josias: *"Change copy to "You'll be signed out. Please sign in again with your new username after it has been changed.""*
+- `assets/task220.js`:
+  - Khung báo trong modal Username: "You’ll be signed out. Sign in again to continue." → **"You’ll be signed out. Please sign in again with your new username after it has been changed."**
+  - Dòng tương ứng trong bảng câu báo (tab Flow & messages) đổi theo.
+  - Dòng báo khi đang sửa ô ("You’ll be signed out after changing your username.") giữ nguyên, vì feedback chỉ chỉ vào khung trong modal.
+- **Đã kiểm tra:** `node --check` qua; không còn câu cũ trong code; `t220-check.js` 38/38.
+- **Chưa kiểm tra:** chưa xem bằng mắt. Đã commit và push (16/11/2026).
