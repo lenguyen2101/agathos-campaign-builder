@@ -80,6 +80,7 @@ var I={
   out:ic('<path d="M8 3.5H5A1.5 1.5 0 0 0 3.5 5v10A1.5 1.5 0 0 0 5 16.5h3"/><path d="M12.5 6.5L16 10l-3.5 3.5M16 10H8"/>'),
   err:'<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.5" fill="currentColor"/><path d="M10 5.8v5.4" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="10" cy="14.1" r="1.2" fill="#fff"/></svg>',
   down:ic('<path d="M5 7.5l5 5 5-5"/>',' stroke-width="1.8"'),
+  ok:'<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="#3E8635"/><path d="M6 10.3l2.7 2.6L14 7.5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   tick:'<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="#111"/><path d="M6 10.3l2.7 2.6L14 7.5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   vn:'<svg viewBox="0 0 30 20" aria-hidden="true"><rect width="30" height="20" fill="#DA251D"/><path d="M15 4.2l1.6 4.9h5.2l-4.2 3 1.6 4.9-4.2-3-4.2 3 1.6-4.9-4.2-3h5.2z" fill="#FFCD00"/></svg>',
   eye:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5.5C6.8 5.5 3 9.6 2 12c1 2.4 4.8 6.5 10 6.5s9-4.1 10-6.5c-1-2.4-4.8-6.5-10-6.5z" fill="currentColor"/><circle cx="12" cy="12" r="3.6" fill="#fff"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg>',
@@ -132,9 +133,17 @@ function settings(){
       '<label class="as-toggle"><input type="checkbox" data-other'+(o.news?' checked':'')+'><i></i>I want to receive updates on latest news and events.</label>'+
     '</section></div></div></div>';
 }
+/* after a username change the modal says so and counts down OUT_S seconds, with no buttons, then signs the person
+   out by itself (team, 16/11/2026: a success message without an extra screen; anh: count 3, 2, 1).
+   Only the count changes each second, so a screen reader reads "Username changed" once */
+var OUT_S=3;
+function outLeft(n){ return 'Signing you out in '+n+' second'+(n===1?'':'s')+'…'; }
 function modal(){
   var m=S.modal; if(!m) return '';
   var f=m.f, n=NAMES[f];
+  if(m.done) return '<div class="md-wrap"><div class="md md-done" role="dialog" aria-modal="true" aria-labelledby="md-t">'+
+    '<span class="ok">'+I.ok+'</span><h3 id="md-t" role="status" aria-live="polite">Username changed</h3><p id="md-count">'+outLeft(m.left)+'</p>'+
+  '</div></div>';
   return '<div class="md-wrap" data-act="mdBackdrop"><div class="md" role="dialog" aria-modal="true" aria-labelledby="md-t">'+
     '<h3 id="md-t">Change your '+n+'?</h3>'+
     '<dl class="diff"><div><dt>Current</dt><dd>'+h(S.vals[f])+'</dd></div><div class="new"><dt>New</dt><dd>'+h(m.to)+'</dd></div></dl>'+
@@ -206,8 +215,8 @@ function flow(){
     ['Change','The field opens for editing, with “You can change your [field] once every 24 hours.”'],
     ['Type the new value','Rules are checked on Save, then live as the person fixes the error.'],
     ['Save','Opens the confirmation modal: current → new, and when the field can be changed again.'],
-    ['Confirm','The value is saved. First name or last name: a toast confirms it.'],
-    ['Signed out','Username only: the person is signed out at once and lands on the Sign in page.'],
+    ['Confirm','The value is saved. First name or last name: a toast confirms it. Username: the modal says “Username changed” and counts down “Signing you out in 3 seconds…”, 2, 1, with no buttons.'],
+    ['Signed out','Username only: then the person is signed out by itself, with no click, and lands on the Sign in page.'],
     ['Sign in again','Username only: back to Account settings.'],
     ['Locked for 24 hours','Change becomes “Change again after [date, time]” until 24 hours have passed.']
   ];
@@ -234,7 +243,8 @@ function flow(){
       ['Changed in the last 24 hours (a state, not an error)','Change again after 7 Nov 2026, 14:32','settings','','']]],
     ['Username change signs out',[
       ['Editing the username (a note, not an error)','You’ll be signed out after changing your username.','settings','',''],
-      ['Confirmation modal, username','You’ll be signed out. Sign in again to continue.','settings','','']]]
+      ['Confirmation modal, username','You’ll be signed out. Sign in again to continue.','settings','',''],
+      ['Modal, once the username is saved (counts 3, 2, 1; no buttons)','Username changed. Signing you out in 3 seconds…','settings','','']]]
   ];
   var where={both:'Sign up, Account settings', signup:'Sign up', settings:'Account settings'};
   return '<div class="fm"><div class="fm-inner">'+
@@ -258,7 +268,7 @@ function flow(){
       '<li>Account settings should check the same rules before saving, and the backend still has the last word (for example a username taken a second earlier, or a change made on another device in the last 24 hours).</li>'+
       '<li>Each field has its own 24 hours: changing the username doesn’t lock the first name or last name. Times show in the person’s own time zone.</li>'+
       '<li>A username change signs the person out as soon as it is saved, because the session still carries the old username: left signed in, they could start another change, and the screens can’t show that cleanly. First name and last name don’t sign out, and neither does a save that fails.</li>'+
-      '<li>New copy waiting for approval <span class="tbc">To confirm</span>: the box title “Username and name”, the 24-hour line, the modal text, “Change again after …”, the two sign-out lines and the “Change and sign out” button, and the messages that differ from Keycloak’s.</li>'+
+      '<li>New copy waiting for approval <span class="tbc">To confirm</span>: the box title “Username and name”, the 24-hour line, the modal text, “Change again after …”, the sign-out lines and the “Change and sign out” button, and the messages that differ from Keycloak’s.</li>'+
       '<li>Questions <span class="tbc">To confirm</span>: does the first change also have to wait 24 hours after sign-up? Should we email the person after each change? After a username change, sign out on every device, or only this one? (The sessions on other devices also carry the old username.)</li>'+
     '</ul></div></div>';
 }
@@ -314,13 +324,22 @@ var ACT={
   mdConfirm:function(){
     var f=S.modal.f, to=S.modal.to; S.modal=null;
     S.vals[f]=to; S.last[f]=Date.now(); S.edit=null; S.err='';
-    /* the username signs the person out straight away: no toast, the Sign in page says what happened */
-    if(f==='username'){ S.out=true; render(); return; }
+    /* the username: "Username changed", a 3, 2, 1 count in the modal, then signed out by itself, no toast */
+    if(f==='username'){
+      S.modal={f:f, to:to, done:true, left:OUT_S}; render(true);
+      var tick=function(){
+        if(!S.modal || !S.modal.done) return;
+        if(--S.modal.left > 0){ document.getElementById('md-count').textContent=outLeft(S.modal.left); setTimeout(tick, 1000); return; }
+        S.modal=null; S.out=true; render();
+      };
+      setTimeout(tick, 1000);
+      return;
+    }
     render(true); toast(cap(NAMES[f])+' changed');
   },
   /* demo: any password signs back in, to Account settings with the username locked */
   siSubmit:function(){ S.out=false; S.su.show.si=false; render(); },
-  setLock:function(t){ S.out=false; var at=t.getAttribute('data-v')==='1' ? Date.now()-3*36e5 : 0; S.last={username:at, firstName:at, lastName:at}; S.edit=null; S.err=''; render(true); },
+  setLock:function(t){ S.modal=null; S.out=false; var at=t.getAttribute('data-v')==='1' ? Date.now()-3*36e5 : 0; S.last={username:at, firstName:at, lastName:at}; S.edit=null; S.err=''; render(true); },
   /* the two server errors, shown straight away on a field that is open with a new value */
   demoFail:function(){ S.modal=null; S.out=false; S.last.username=0; S.edit='username'; S.draft=S.vals.username==='nguyenle' ? 'nguyenle2' : 'nguyenle'; S.err=MSG.saveFailed; render(true); focusDraft(); },
   demoElsewhere:function(){ S.modal=null; S.out=false; S.last.firstName=Date.now()-3*36e5; S.edit='firstName'; S.draft='Ann'; S.err=MSG.tooSoon('firstName', when(until('firstName'))); render(true); focusDraft(); },
@@ -350,7 +369,7 @@ document.addEventListener('change', function(ev){
   if(ev.target.type==='checkbox' && ev.target.hasAttribute('data-other')){ S.other.news=ev.target.checked; S.other.dirty=true; document.querySelector('.as-save').disabled=false; }
 });
 document.addEventListener('keydown', function(ev){
-  if(S.modal && ev.key==='Escape'){ closeModal(); return; }
+  if(S.modal && ev.key==='Escape'){ if(!S.modal.done) closeModal(); return; }
   if(ev.target.hasAttribute && ev.target.hasAttribute('data-draft')){
     if(ev.key==='Enter'){ ev.preventDefault(); if(!same(S.edit) && !until(S.edit)) trySave(); }
     if(ev.key==='Escape'){ ACT.cancel(); }

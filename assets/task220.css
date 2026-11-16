@@ -120,6 +120,10 @@
 .md-note svg{flex:none;width:17px;height:17px;margin-top:2px;color:#2B6BCB;}
 .md .acts{display:flex;justify-content:flex-end;gap:10px;margin-top:24px;}
 .md .acts .as-btn{height:40px;padding:0 18px;}
+/* after a username change: the modal says it worked, then the person is signed out */
+.md-done{max-width:380px;padding:32px 28px 30px;text-align:center;}
+.md-done .ok svg{display:block;width:44px;height:44px;margin:0 auto 14px;}
+.md-done p{margin-top:6px;}
 
 /* ============ SIGN UP (Keycloak, production) ============ */
 .kc{min-height:calc(100vh - 57px);background:#63B6F8;font-family:'Open Sans',system-ui,sans-serif;color:#333;}

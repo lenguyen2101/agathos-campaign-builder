@@ -334,3 +334,30 @@ Em tìm thấy như sau:
 - `assets/task220.css`: gỡ `.kc-alert.info` và `.kc-alert svg`.
 - **Đã kiểm tra:** `node --check` qua. `t220-check.js` 30/30: trang Sign in không có khung báo, không điền gì; Flow không còn câu báo trên trang Sign in; các kiểm tra cũ vẫn qua, tab Sign up không đổi.
 - **Chưa kiểm tra:** chưa xem bằng mắt. Đã commit và push (16/11/2026).
+
+**Thông báo thành công trước khi đăng xuất (16/11/2026). Đã commit và push (16/11/2026).**
+- Josias: *"I think you missed out the success screen"*. Anh trả lời team là không thêm màn hình riêng, vì như vậy dài quá. Em đề xuất 2 cách, anh chọn cách 1.
+- `assets/task220.js`:
+  - Bấm "Change and sign out" xong, modal đổi thành dấu tích xanh, tiêu đề **"Username changed"** và dòng **"Signing you out…"**, không có nút nào.
+  - Sau 1.5 giây (`OUT_MS`) thì tự đăng xuất, sang trang Sign in. Người dùng không phải bấm gì.
+  - Esc và bấm ra ngoài không đóng modal này. Các nút trên thanh review huỷ việc đăng xuất (chỉ để demo).
+  - Tab Flow & messages:
+    - bước Confirm ghi câu thành công;
+    - bước Signed out ghi "signed out by itself, with no click";
+    - bảng câu báo thêm dòng "Username changed. Signing you out…".
+- `assets/task220.css`: `.md-done`.
+- **Đã kiểm tra:** `node --check` qua. `t220-check.js` 35/35 (có đồng hồ giả):
+  - modal thành công không có nút, Esc không đóng, đúng 1.5 giây rồi sang trang Sign in;
+  - bấm Reset hoặc nút trên thanh review trong 1.5 giây thì không đăng xuất;
+  - đổi First Name không có modal thành công;
+  - tab Sign up không đổi.
+- **Chưa kiểm tra:** chưa xem bằng mắt. Đã commit và push (16/11/2026).
+
+**Đếm 3, 2, 1 thay cho 1.5 giây (16/11/2026, anh: *"nó nhanh quá, đếm 3,2,1 đi"*). Đã commit và push (16/11/2026).**
+- Em có góp ý không nên đếm, nhưng anh chọn đếm. Đã làm theo.
+- `assets/task220.js`:
+  - Modal thành công: tiêu đề "Username changed", bên dưới đếm "Signing you out in 3 seconds…" → "2 seconds…" → "1 second…", rồi sang trang Sign in. Tổng cộng 3 giây (`OUT_S`), vẫn không có nút.
+  - Mỗi giây chỉ đổi dòng đếm. Tiêu đề nằm trong vùng thông báo cho trình đọc màn hình nên chỉ được đọc một lần, còn các con số thì không được đọc.
+  - Tab Flow & messages: bước Confirm và dòng trong bảng câu báo đổi theo câu đếm.
+- **Đã kiểm tra:** `node --check` qua. `t220-check.js` 38/38: đúng câu ở 3, 2 và 1 giây; giây thứ 3 thì sang trang Sign in; trong lúc đếm chỉ đổi dòng đếm; Esc không đóng; Reset hoặc nút trên thanh review trong lúc đếm thì không đăng xuất; tab Sign up không đổi.
+- **Chưa kiểm tra:** chưa xem bằng mắt. Đã commit và push (16/11/2026).
